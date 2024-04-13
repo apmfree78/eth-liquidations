@@ -1,5 +1,6 @@
-mod crypto_data;
-use crypto_data::{generate_token, Erc20Token, TOKEN_DATA};
+use eth_liquadation::abi::erc20::ERC20;
+use eth_liquadation::crypto_data::{generate_token, Erc20Token, TOKEN_DATA};
+use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
 use ethers::types::{H160, U256};
 use std::sync::Arc;
@@ -30,6 +31,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
+    let address: Address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".parse()?;
+    let weth_contract = ERC20::new(address, client.clone());
+    let weth_token = TOKEN_DATA
+        .get("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
+        .unwrap_or_else(|| panic!("Token not found"));
+    println!("name from Token => {} ", weth_token.name);
+    println!(
+        "name from Contract => {} ",
+        weth_contract.name().call().await?
+    );
+
     let token_2 = generate_token(
         1,
         16,
@@ -38,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     )
     .await?;
-    println!("hashmap {:?}", TOKEN_DATA);
+    // println!("hashmap {:?}", TOKEN_DATA);
 
     let pool = get_pool(
         1,
