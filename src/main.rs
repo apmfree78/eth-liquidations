@@ -1,5 +1,6 @@
 use eth_liquadation::abi::erc20::ERC20;
 use eth_liquadation::crypto_data::{generate_token, TOKEN_DATA};
+use eth_liquadation::get_aave_users::get_aave_v3_users;
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
 use std::sync::Arc;
@@ -65,7 +66,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let formatted_price = price
         .to_significant(significant_digits, rounding_strategy)
         .expect("Failed to format the price");
-    println!("WEHT price: {:?}", formatted_price);
+    println!("WETH price: {:?}", formatted_price);
+
+    let aave_users = get_aave_v3_users().await?;
+    for user in aave_users {
+        println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
+    }
 
     Ok(())
 }
