@@ -1,18 +1,12 @@
 use eth_liquadation::abi::erc20::ERC20;
-use eth_liquadation::crypto_data::{generate_token, Erc20Token, TOKEN_DATA};
+use eth_liquadation::crypto_data::{generate_token, TOKEN_DATA};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
-use ethers::types::{H160, U256};
 use std::sync::Arc;
-use uniswap_sdk_core::{
-    constants::Rounding,
-    entities::token::{Token, TokenMeta},
-    prelude::*,
-};
+use uniswap_sdk_core::{constants::Rounding, prelude::*};
 use uniswap_v3_sdk::{
     constants::{FeeAmount, FACTORY_ADDRESS},
-    entities::pool::{self},
-    extensions::{get_pool, get_pool_contract},
+    extensions::get_pool,
 };
 
 const WS_URL: &str = "ws://localhost:8546";

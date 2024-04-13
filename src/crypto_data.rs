@@ -46,7 +46,7 @@ pub static TOKEN_DATA: Lazy<HashMap<&str, Erc20Token>> = Lazy::new(|| {
         "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
         Erc20Token {
             name: "Wrapped liquid staked Ether 2.0",
-            symbol: "wstWETH",
+            symbol: "wstETH",
             decimals: 18,
             address: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
         },
@@ -175,7 +175,7 @@ pub static TOKEN_DATA: Lazy<HashMap<&str, Erc20Token>> = Lazy::new(|| {
     t.insert(
         "0x111111111117dC0aa78b770fA6A738034120C302",
         Erc20Token {
-            name: "1inch Network",
+            name: "1INCH Token",
             symbol: "1INCH",
             decimals: 18,
             address: "0x111111111117dC0aa78b770fA6A738034120C302",
