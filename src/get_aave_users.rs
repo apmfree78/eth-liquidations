@@ -18,6 +18,8 @@ pub struct UserReserve {
     current_stable_debt: String,
     #[serde(rename = "currentVariableDebt")]
     current_variable_debt: String,
+    #[serde(rename = "currentTotalDebt")]
+    current_total_debt: String,
     reserve: Reserve,
 }
 
@@ -25,6 +27,7 @@ pub struct UserReserve {
 pub struct Reserve {
     id: String,
     name: String,
+    symbol: String,
     #[serde(rename = "reserveLiquidationThreshold")]
     reserve_liquidation_threshold: String,
     #[serde(rename = "reserveLiquidationBonus")]
@@ -58,9 +61,11 @@ pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Er
           currentATokenBalance
           currentStableDebt
           currentVariableDebt
+          currentTotalDebt
           reserve {
             id
             name
+            symbol
             reserveLiquidationThreshold
             reserveLiquidationBonus
             price {
