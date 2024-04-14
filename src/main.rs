@@ -69,9 +69,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("WETH price: {:?}", formatted_price);
 
     let aave_users = get_aave_v3_users().await?;
-    for user in aave_users {
+    for user in &aave_users {
         println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
     }
-
+    println!("{:?}", aave_users);
     Ok(())
 }
