@@ -4,7 +4,7 @@ use serde_json;
 use tokio;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AaveUser {
-    id: String,
+    pub id: String,
     #[serde(rename = "borrowedReservesCount")]
     borrowed_reserves_count: i64,
     reserves: Vec<UserReserve>,
@@ -28,6 +28,8 @@ pub struct Reserve {
     id: String,
     name: String,
     symbol: String,
+    #[serde(rename = "usageAsCollateralEnabled")]
+    usage_as_collateral_enabled: bool,
     #[serde(rename = "reserveLiquidationThreshold")]
     reserve_liquidation_threshold: String,
     #[serde(rename = "reserveLiquidationBonus")]
@@ -66,6 +68,7 @@ pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Er
             id
             name
             symbol
+            usageAsCollateralEnabled
             reserveLiquidationThreshold
             reserveLiquidationBonus
             price {
