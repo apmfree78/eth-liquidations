@@ -85,7 +85,7 @@ pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Er
         .await?;
 
     let raw_response = response.text().await?;
-    println!("Raw JSON response: {}", raw_response);
+    // println!("Raw JSON response: {}", raw_response);
 
     let response: Response = serde_json::from_str(&raw_response)?;
 

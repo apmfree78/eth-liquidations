@@ -72,6 +72,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for user in &aave_users {
         println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
     }
-    println!("{:?}", aave_users);
     Ok(())
 }
