@@ -1,5 +1,8 @@
+use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use ethers::{abi::Address, core::types::U256};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
+use std::str::FromStr;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
 
 #[derive(Clone, Copy, Debug)]
@@ -29,6 +32,22 @@ impl Convert for Erc20Token {
         });
     }
 }
+
+pub static WETH_ADDRESS: Lazy<Address> = Lazy::new(|| {
+    "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+        .parse()
+        .expect("Invalid address")
+});
+pub static AAVE_ORACLE_ADDRESS: Lazy<Address> = Lazy::new(|| {
+    "0x54586bE62E3c3580375aE3723C145253060Ca0C2"
+        .parse()
+        .expect("Invalid address")
+});
+pub static AAVE_V3_POOL_ADDRESS: Lazy<Address> = Lazy::new(|| {
+    "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
+        .parse()
+        .expect("Invalid address")
+});
 
 pub static TOKEN_DATA: Lazy<HashMap<&'static str, Erc20Token>> = Lazy::new(|| {
     let mut tokens = Vec::<Erc20Token>::new();
@@ -241,4 +260,8 @@ pub async fn generate_token(
             sell_fee_bps: None,
         },
     });
+}
+
+pub fn u256_to_big_decimal(value: &U256) -> BigDecimal {
+    BigDecimal::from_str(&value.to_string()).unwrap()
 }

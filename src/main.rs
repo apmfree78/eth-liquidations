@@ -1,12 +1,16 @@
+use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use eth_liquadation::abi::aave_oracle::AAVE_ORACLE;
 use eth_liquadation::abi::aave_v3_pool::AAVE_V3_POOL;
 use eth_liquadation::abi::erc20::ERC20;
-use eth_liquadation::crypto_data::{generate_token, TOKEN_DATA};
-use eth_liquadation::get_aave_users::get_aave_v3_users;
+use eth_liquadation::crypto_data::u256_to_big_decimal;
+use eth_liquadation::crypto_data::{
+    generate_token, AAVE_ORACLE_ADDRESS, AAVE_V3_POOL_ADDRESS, TOKEN_DATA, WETH_ADDRESS,
+};
+use eth_liquadation::get_aave_users::{get_aave_v3_users, UserAccountData};
 use ethers::abi::Address;
-use ethers::core::k256::U256;
 use ethers::providers::{Provider, Ws};
 use std::sync::Arc;
+use uniswap_sdk_core::prelude::BigDecimal;
 use uniswap_sdk_core::{constants::Rounding, prelude::*};
 use uniswap_v3_sdk::{
     constants::{FeeAmount, FACTORY_ADDRESS},
@@ -29,15 +33,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
-    let weth_address: Address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".parse()?;
-    let aave_oracle_address: Address = "0x54586bE62E3c3580375aE3723C145253060Ca0C2".parse()?;
-    let aave_v3_pool_address: Address = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2".parse()?;
+    let weth_contract = ERC20::new(*WETH_ADDRESS, client.clone());
+    let aave_oracle = AAVE_ORACLE::new(*AAVE_ORACLE_ADDRESS, client.clone());
+    let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
 
-    let weth_contract = ERC20::new(weth_address, client.clone());
-    let aave_oracle = AAVE_ORACLE::new(aave_oracle_address, client.clone());
-    let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
-
-    let weth_USD_price = aave_oracle.get_asset_price(weth_address).call().await?;
+    let weth_USD_price = aave_oracle.get_asset_price(*WETH_ADDRESS).call().await?;
 
     let weth_token = TOKEN_DATA
         .get("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
@@ -84,8 +84,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for user in &aave_users {
         println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
         let user_id: Address = user.id.parse()?;
-        let user_account = aave_v3_pool.get_user_account_data(user_id).call().await?;
-        println!("user account details {:#?} ", user_account);
+        // let user_account = aave_v3_pool.get_user_account_data(user_id).call().await?;
+        let (
+            total_collateral_base,
+            total_debt_base,
+            available_borrows_base,
+            current_liquidation_threshod,
+            ltv,
+            health_facter,
+        ) = aave_v3_pool.get_user_account_data(user_id).call().await?;
+        let health_facter_decimal = u256_to_big_decimal(&health_facter);
+        // directly calculate health factor
+        let calculated_health_factor = user.get_health_factor_from_oracle(&client).await?;
+        println!("current user {}", user_id);
+        println!("user health factor {} ", health_facter_decimal);
+        println!("calculated health factor {:?}", calculated_health_factor);
+        println!("user ltv {} ", ltv);
     }
     Ok(())
 }
