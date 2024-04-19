@@ -1,5 +1,7 @@
 use crate::abi::aave_oracle::AAVE_ORACLE;
-use crate::crypto_data::{AAVE_ORACLE_ADDRESS, AAVE_V3_POOL_ADDRESS, TOKEN_DATA, WETH_ADDRESS};
+use crate::crypto_data::{
+    Erc20Token, AAVE_ORACLE_ADDRESS, AAVE_V3_POOL_ADDRESS, TOKEN_DATA, WETH_ADDRESS,
+};
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use core::panic;
 use ethers::providers::{Provider, Ws};
@@ -22,6 +24,7 @@ pub trait UserAccountData {
         &self,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+    fn get_list_of_user_tokens(&self) -> Result<Vec<Erc20Token>, Box<dyn std::error::Error>>;
 }
 
 impl UserAccountData for AaveUser {
@@ -56,32 +59,65 @@ impl UserAccountData for AaveUser {
 
             // 2. get get current total debt in USD
             let current_total_debt = BigDecimal::from_str(&*r.current_total_debt)?;
-            let current_total_debt_usd =
-                &current_total_debt * &token_price_usd / &token_decimal_factor;
 
-            // 3. add current total debt to total debt
-            total_debt_usd += &current_total_debt_usd;
+            if current_total_debt > BigDecimal::zero() {
+                let current_total_debt_usd =
+                    &current_total_debt * &token_price_usd / &token_decimal_factor;
+
+                // 3. add current total debt to total debt
+                total_debt_usd += &current_total_debt_usd;
+            }
 
             if r.reserve.usage_as_collateral_enabled {
                 // 4. get atoken balance in USD
                 let current_atoken_balance =
                     BigDecimal::from_str(&*r.current_atoken_balance).unwrap();
-                let current_atoken_usd =
-                    current_atoken_balance * &token_price_usd / &token_decimal_factor;
 
-                // 5. update liquidity threshold colleral sum
-                let liquidation_threshold =
-                    BigDecimal::from_str(&*r.reserve.reserve_liquidation_threshold).unwrap();
-                liquidation_threshold_collateral_sum +=
-                    current_atoken_usd * &liquidation_threshold / &bps_factor;
+                if current_atoken_balance > BigDecimal::zero() {
+                    let current_atoken_usd =
+                        current_atoken_balance * &token_price_usd / &token_decimal_factor;
+
+                    // 5. update liquidity threshold colleral sum
+                    let liquidation_threshold =
+                        BigDecimal::from_str(&*r.reserve.reserve_liquidation_threshold).unwrap();
+                    liquidation_threshold_collateral_sum +=
+                        current_atoken_usd * &liquidation_threshold / &bps_factor;
+                }
             }
         }
-
+        println!("total debt {}", total_debt_usd);
         let mut health_factor = BigDecimal::zero();
         if total_debt_usd > BigDecimal::zero() {
             health_factor = liquidation_threshold_collateral_sum / total_debt_usd;
         }
         Ok(health_factor)
+    }
+
+    fn get_list_of_user_tokens(&self) -> Result<Vec<Erc20Token>, Box<dyn std::error::Error>> {
+        let mut user_token_list: Vec<Erc20Token> = Vec::new();
+
+        for r in &self.reserves {
+            let token_address: &str;
+            let token_decimals: u8;
+            let token_name: &str;
+            let token_symbol: &str;
+            match TOKEN_DATA.get(&*r.reserve.symbol) {
+                Some(token) => {
+                    token_address = token.address;
+                    token_decimals = token.decimals;
+                    token_name = token.name;
+                    token_symbol = token.symbol;
+                }
+                None => panic!("No value found for {}", r.reserve.symbol),
+            }
+            user_token_list.push(Erc20Token {
+                name: token_name,
+                symbol: token_symbol,
+                decimals: token_decimals,
+                address: token_address,
+            })
+        }
+        Ok(user_token_list)
     }
 }
 

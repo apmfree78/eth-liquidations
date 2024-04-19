@@ -1,9 +1,78 @@
+use crate::abi::aave_v3_pool::AAVE_V3_POOL;
+use crate::get_aave_users::{get_aave_v3_users, UserAccountData};
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use ethers::providers::{Provider, Ws};
 use ethers::{abi::Address, core::types::U256};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::sync::Arc;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
+
+#[derive(Clone, Debug)]
+pub struct AaveUserData {
+    pub id: Address,
+    pub total_debt: BigDecimal,
+    pub colladeral_times_liquidation_factor: BigDecimal,
+    pub tokens: Vec<Erc20Token>,
+    pub health_factor: BigDecimal,
+}
+
+pub trait Generate {
+    async fn get_users(
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<Vec<AaveUserData>, Box<dyn std::error::Error>>;
+}
+
+impl Generate for AaveUserData {
+    async fn get_users(
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<Vec<AaveUserData>, Box<dyn std::error::Error>> {
+        let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
+
+        // store all data that we need for user
+        let mut aave_user_data: Vec<AaveUserData> = Vec::new();
+
+        let aave_users = get_aave_v3_users().await?;
+        // let mut user_with_bad_data = 0;
+        let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
+        let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
+        for user in &aave_users {
+            // println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
+            let user_id: Address = user.id.parse()?;
+            // let user_account = aave_v3_pool.get_user_account_data(user_id).call().await?;
+            let (
+                total_collateral_base,
+                total_debt_base,
+                available_borrows_base,
+                current_liquidation_threshod,
+                ltv,
+                health_factor,
+            ) = aave_v3_pool.get_user_account_data(user_id).call().await?;
+
+            let total_debt = u256_to_big_decimal(&total_debt_base);
+            let total_collateral = u256_to_big_decimal(&total_collateral_base);
+            let liquidation_threshold = u256_to_big_decimal(&current_liquidation_threshod);
+            let colladeral_times_liquidation_factor =
+                &liquidation_threshold * &total_collateral / &bps_factor;
+            let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
+
+            // this is list of tokens that user is either using as colladeral or borrowing
+            let user_tokens = user.get_list_of_user_tokens().unwrap();
+
+            // save data to AvveUserData
+            aave_user_data.push(AaveUserData {
+                id: user_id,
+                total_debt: total_debt.clone(),
+                colladeral_times_liquidation_factor,
+                health_factor: health_factor.clone(),
+                tokens: user_tokens,
+            });
+        }
+
+        Ok(aave_user_data)
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Erc20Token {
