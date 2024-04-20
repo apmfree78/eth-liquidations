@@ -1,6 +1,6 @@
 use crate::abi::aave_oracle::AAVE_ORACLE;
 use crate::crypto_data::{
-    Erc20Token, AAVE_ORACLE_ADDRESS, AAVE_V3_POOL_ADDRESS, TOKEN_DATA, WETH_ADDRESS,
+    AaveToken, Erc20Token, AAVE_ORACLE_ADDRESS, AAVE_V3_POOL_ADDRESS, TOKEN_DATA, WETH_ADDRESS,
 };
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use core::panic;
@@ -24,7 +24,7 @@ pub trait UserAccountData {
         &self,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
-    fn get_list_of_user_tokens(&self) -> Result<Vec<Erc20Token>, Box<dyn std::error::Error>>;
+    fn get_list_of_user_tokens(&self) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>>;
 }
 
 impl UserAccountData for AaveUser {
@@ -58,7 +58,9 @@ impl UserAccountData for AaveUser {
                 BigDecimal::from_u64(10_u64.pow(token_decimals.into())).unwrap();
 
             // 2. get get current total debt in USD
+            // *************************************
             let current_total_debt = BigDecimal::from_str(&*r.current_total_debt)?;
+            // *************************************
 
             if current_total_debt > BigDecimal::zero() {
                 let current_total_debt_usd =
@@ -70,8 +72,10 @@ impl UserAccountData for AaveUser {
 
             if r.reserve.usage_as_collateral_enabled {
                 // 4. get atoken balance in USD
+                // *************************************
                 let current_atoken_balance =
                     BigDecimal::from_str(&*r.current_atoken_balance).unwrap();
+                // *************************************
 
                 if current_atoken_balance > BigDecimal::zero() {
                     let current_atoken_usd =
@@ -80,6 +84,8 @@ impl UserAccountData for AaveUser {
                     // 5. update liquidity threshold colleral sum
                     let liquidation_threshold =
                         BigDecimal::from_str(&*r.reserve.reserve_liquidation_threshold).unwrap();
+                    // *************************************
+
                     liquidation_threshold_collateral_sum +=
                         current_atoken_usd * &liquidation_threshold / &bps_factor;
                 }
@@ -93,8 +99,8 @@ impl UserAccountData for AaveUser {
         Ok(health_factor)
     }
 
-    fn get_list_of_user_tokens(&self) -> Result<Vec<Erc20Token>, Box<dyn std::error::Error>> {
-        let mut user_token_list: Vec<Erc20Token> = Vec::new();
+    fn get_list_of_user_tokens(&self) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>> {
+        let mut user_token_list: Vec<AaveToken> = Vec::new();
 
         for r in &self.reserves {
             let token_address: &str;
@@ -110,11 +116,27 @@ impl UserAccountData for AaveUser {
                 }
                 None => panic!("No value found for {}", r.reserve.symbol),
             }
-            user_token_list.push(Erc20Token {
-                name: token_name,
-                symbol: token_symbol,
-                decimals: token_decimals,
-                address: token_address,
+
+            let current_total_debt = BigDecimal::from_str(&*r.current_total_debt)?;
+            let current_atoken_balance = BigDecimal::from_str(&*r.current_atoken_balance).unwrap();
+            let reserve_liquidation_threshold =
+                BigDecimal::from_str(&*r.reserve.reserve_liquidation_threshold).unwrap();
+            let reserve_liquidation_bonus =
+                BigDecimal::from_str(&*r.reserve.reserve_liquidation_bonus).unwrap();
+            let usage_as_collateral_enabled = r.reserve.usage_as_collateral_enabled;
+            // get debt, colladeral, liquidation threshold, bonus, and usage colladeral boolean
+            user_token_list.push(AaveToken {
+                token: Erc20Token {
+                    name: token_name,
+                    symbol: token_symbol,
+                    decimals: token_decimals,
+                    address: token_address,
+                },
+                current_total_debt,
+                usage_as_collateral_enabled,
+                current_atoken_balance,
+                reserve_liquidation_threshold,
+                reserve_liquidation_bonus,
             })
         }
         Ok(user_token_list)

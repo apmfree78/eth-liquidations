@@ -23,10 +23,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
-    let aave_user_list = AaveUserData::get_users(&client).await?;
+    let mut aave_user_list = AaveUserData::get_users(&client).await?;
 
     println!(" user data {:#?}", aave_user_list);
     Ok(())
+
+    // scan published blocks for aave user events where account data is updated
+    // if event found with matching user then update data for that user
+    //
+    // also scan for mempool events for oracle updates, if found then:
+    //1. find all users that are borrowing or using token as colladeral
+    // 2. re-calculate their health factor ???
 }
 
 // HOW TO GET PRICE FROM UNISWAP V3

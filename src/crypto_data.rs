@@ -10,11 +10,21 @@ use std::sync::Arc;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
 
 #[derive(Clone, Debug)]
+pub struct AaveToken {
+    pub token: Erc20Token,
+    pub current_total_debt: BigDecimal,
+    pub usage_as_collateral_enabled: bool,
+    pub current_atoken_balance: BigDecimal,
+    pub reserve_liquidation_threshold: BigDecimal,
+    pub reserve_liquidation_bonus: BigDecimal,
+}
+
+#[derive(Clone, Debug)]
 pub struct AaveUserData {
     pub id: Address,
     pub total_debt: BigDecimal,
     pub colladeral_times_liquidation_factor: BigDecimal,
-    pub tokens: Vec<Erc20Token>,
+    pub tokens: Vec<AaveToken>,
     pub health_factor: BigDecimal,
 }
 
