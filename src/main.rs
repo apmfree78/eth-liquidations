@@ -29,11 +29,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 
     // scan published blocks for aave user events where account data is updated
-    // if event found with matching user then update data for that user
-    //
+    // if event found with matching user then update data for that user,
+    // this includes adding in new tokens
+    // TODO - create method(s) to take event info and update relevant user in aave_user_list
+
     // also scan for mempool events for oracle updates, if found then:
     //1. find all users that are borrowing or using token as colladeral
-    // 2. re-calculate their health factor ???
+    // 2. re-calculate their health factor with updated token price (from uniswap v3)
+    // TODO - create method to update relevant user health factor
 }
 
 // HOW TO GET PRICE FROM UNISWAP V3

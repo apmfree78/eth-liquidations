@@ -1,6 +1,7 @@
 use crate::abi::aave_oracle::AAVE_ORACLE;
 use crate::crypto_data::{
-    AaveToken, Erc20Token, AAVE_ORACLE_ADDRESS, AAVE_V3_POOL_ADDRESS, TOKEN_DATA, WETH_ADDRESS,
+    AaveToken, Convert, Erc20Token, AAVE_ORACLE_ADDRESS, AAVE_V3_POOL_ADDRESS, TOKEN_DATA,
+    WETH_ADDRESS,
 };
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use core::panic;
@@ -24,7 +25,11 @@ pub trait UserAccountData {
         &self,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
-    fn get_list_of_user_tokens(&self) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>>;
+
+    async fn get_list_of_user_tokens(
+        &self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>>;
 }
 
 impl UserAccountData for AaveUser {
@@ -99,23 +104,15 @@ impl UserAccountData for AaveUser {
         Ok(health_factor)
     }
 
-    fn get_list_of_user_tokens(&self) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>> {
+    async fn get_list_of_user_tokens(
+        &self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>> {
         let mut user_token_list: Vec<AaveToken> = Vec::new();
 
         for r in &self.reserves {
-            let token_address: &str;
-            let token_decimals: u8;
-            let token_name: &str;
-            let token_symbol: &str;
-            match TOKEN_DATA.get(&*r.reserve.symbol) {
-                Some(token) => {
-                    token_address = token.address;
-                    token_decimals = token.decimals;
-                    token_name = token.name;
-                    token_symbol = token.symbol;
-                }
-                None => panic!("No value found for {}", r.reserve.symbol),
-            }
+            let token = TOKEN_DATA.get(&*r.reserve.symbol).unwrap();
+            let token_price_eth = token.get_token_price_in_eth(&client).await?;
 
             let current_total_debt = BigDecimal::from_str(&*r.current_total_debt)?;
             let current_atoken_balance = BigDecimal::from_str(&*r.current_atoken_balance).unwrap();
@@ -126,14 +123,10 @@ impl UserAccountData for AaveUser {
             let usage_as_collateral_enabled = r.reserve.usage_as_collateral_enabled;
             // get debt, colladeral, liquidation threshold, bonus, and usage colladeral boolean
             user_token_list.push(AaveToken {
-                token: Erc20Token {
-                    name: token_name,
-                    symbol: token_symbol,
-                    decimals: token_decimals,
-                    address: token_address,
-                },
+                token: *token,
                 current_total_debt,
                 usage_as_collateral_enabled,
+                token_price_eth,
                 current_atoken_balance,
                 reserve_liquidation_threshold,
                 reserve_liquidation_bonus,

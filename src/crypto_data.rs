@@ -8,11 +8,17 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
+use uniswap_v3_sdk::extensions::fraction_to_big_decimal;
+use uniswap_v3_sdk::{
+    constants::{FeeAmount, FACTORY_ADDRESS},
+    extensions::get_pool,
+};
 
 #[derive(Clone, Debug)]
 pub struct AaveToken {
     pub token: Erc20Token,
     pub current_total_debt: BigDecimal,
+    pub token_price_eth: BigDecimal,
     pub usage_as_collateral_enabled: bool,
     pub current_atoken_balance: BigDecimal,
     pub reserve_liquidation_threshold: BigDecimal,
@@ -94,6 +100,10 @@ pub struct Erc20Token {
 
 pub trait Convert {
     async fn get_token(&self, chain_id: u64) -> Result<Token, Box<dyn std::error::Error>>;
+    async fn get_token_price_in_eth(
+        &self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 }
 
 impl Convert for Erc20Token {
@@ -110,6 +120,41 @@ impl Convert for Erc20Token {
             },
         });
     }
+
+    async fn get_token_price_in_eth(
+        &self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+        let weth_token: &Erc20Token = TOKEN_DATA.get("WETH").unwrap();
+        let weth_token = weth_token.get_token(1).await?;
+
+        let token = self.get_token(1).await?;
+
+        let pool = get_pool(
+            1,
+            FACTORY_ADDRESS,
+            token.meta.address,
+            weth_token.meta.address,
+            FeeAmount::MEDIUM,
+            client.clone(),
+            None,
+        )
+        .await?;
+
+        let token_price_in_eth = pool.token0_price();
+        let token_price_in_eth = fraction_to_big_decimal(&token_price_in_eth);
+        let token_price_in_eth = convert_uniswap_to_bigdecimal(token_price_in_eth);
+
+        Ok(token_price_in_eth)
+    }
+}
+
+fn convert_uniswap_to_bigdecimal(
+    uniswap_bd: uniswap_sdk_core::prelude::BigDecimal,
+) -> bigdecimal::BigDecimal {
+    let as_string = uniswap_bd.to_string(); // Convert Uniswap BigDecimal to String
+    bigdecimal::BigDecimal::from_str(&as_string).expect("Invalid BigDecimal format")
+    // Convert String to bigdecimal BigDecimal
 }
 
 pub static WETH_ADDRESS: Lazy<Address> = Lazy::new(|| {
