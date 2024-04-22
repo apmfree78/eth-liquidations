@@ -1,5 +1,7 @@
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
 use crate::get_aave_users::{get_aave_v3_users, UserAccountData};
+use async_recursion::async_recursion;
+use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::providers::{Provider, Ws};
 use ethers::{abi::Address, core::types::U256};
@@ -63,7 +65,7 @@ impl Generate for AaveUserData {
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
         for user in &aave_users {
-            println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
+            // println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
             let user_id: Address = user.id.parse()?;
             println!("getting user account data from aave_v3_pool");
             let (
@@ -105,14 +107,14 @@ impl Generate for AaveUserData {
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
 
-        let mut total_debt_eth = BigDecimal::zero();
+        let mut total_debt_usd = BigDecimal::zero();
         let mut liquidation_threshold_collateral_sum = BigDecimal::zero();
 
         for t in &self.tokens {
             let token = TOKEN_DATA.get(&*t.token.symbol).unwrap();
 
             // 1. get token price from uniswap
-            let token_price_eth = token.get_token_price_in_eth(&client).await?;
+            let token_price_usd = token.get_token_price_in_("USDC", &client).await?;
             let token_decimal_factor =
                 BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
 
@@ -121,11 +123,11 @@ impl Generate for AaveUserData {
             let current_total_debt = t.current_total_debt.clone();
             // *************************************
             if current_total_debt > BigDecimal::zero() {
-                let current_total_debt_eth =
-                    &current_total_debt * &token_price_eth / &token_decimal_factor;
+                let current_total_debt_usd =
+                    &current_total_debt * &token_price_usd / &token_decimal_factor;
 
                 // 3. add current total debt to total debt
-                total_debt_eth += &current_total_debt_eth;
+                total_debt_usd += &current_total_debt_usd;
             }
 
             if t.usage_as_collateral_enabled {
@@ -135,22 +137,22 @@ impl Generate for AaveUserData {
                 // *************************************
 
                 if current_atoken_balance > BigDecimal::zero() {
-                    let current_atoken_eth =
-                        current_atoken_balance * &token_price_eth / &token_decimal_factor;
+                    let current_atoken_usd =
+                        current_atoken_balance * &token_price_usd / &token_decimal_factor;
 
                     // 5. update liquidity threshold colleral sum
                     let liquidation_threshold = t.reserve_liquidation_threshold.clone();
                     // *************************************
 
                     liquidation_threshold_collateral_sum +=
-                        current_atoken_eth * &liquidation_threshold / &bps_factor;
+                        current_atoken_usd * &liquidation_threshold / &bps_factor;
                 }
             }
         }
-        println!("total debt {}", total_debt_eth);
+        println!("total debt {}", total_debt_usd);
         let mut health_factor = BigDecimal::zero();
-        if total_debt_eth > BigDecimal::zero() {
-            health_factor = liquidation_threshold_collateral_sum / total_debt_eth;
+        if total_debt_usd > BigDecimal::zero() {
+            health_factor = liquidation_threshold_collateral_sum / total_debt_usd;
         }
         Ok(health_factor)
     }
@@ -164,6 +166,7 @@ pub struct Erc20Token {
     pub address: &'static str,
 }
 
+#[async_trait]
 pub trait Convert {
     async fn get_token(&self, chain_id: u64) -> Result<Token, Box<dyn std::error::Error>>;
     async fn get_token_price_in_eth(
@@ -177,6 +180,7 @@ pub trait Convert {
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 }
 
+#[async_trait]
 impl Convert for Erc20Token {
     async fn get_token(&self, chain_id: u64) -> Result<Token, Box<dyn std::error::Error>> {
         return Ok(Token {
@@ -199,13 +203,39 @@ impl Convert for Erc20Token {
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
         if self.symbol == base_token_symbol {
             return Ok(BigDecimal::from(1));
-        };
+        } else if self.symbol == "crvUSD" && base_token_symbol == "USDC" {
+            return Ok(BigDecimal::from(1));
+        } else if (self.symbol == "cbETH" || self.symbol == "sDAI") && base_token_symbol == "USDC" {
+            // FIND how to convert crvUSD
+            if self.symbol == "crvUSD" {
+                return Ok(BigDecimal::from(1));
+            }
+            // 1. get price in cbETH price in ETH
+            let token_price_in_ETH = self.get_token_price_in_("WETH", &client).await?;
+
+            // 2. get ETH price in USDC
+            let weth_token: &Erc20Token = TOKEN_DATA.get("WETH").unwrap();
+            let eth_price_in_usdc = weth_token.get_token_price_in_("USDC", &client).await?;
+
+            // determine cbETH price in USDC by multipying
+            let decimal_factor =
+                BigDecimal::from_u64(10_u64.pow(weth_token.decimals.into())).unwrap();
+
+            let token_usdc_price = &token_price_in_ETH * &eth_price_in_usdc / &decimal_factor;
+
+            return Ok(token_usdc_price);
+        }
 
         let base_token: &Erc20Token = TOKEN_DATA.get(base_token_symbol).unwrap();
         let base_token = base_token.get_token(1).await?;
 
         let token = self.get_token(1).await?;
+        let token_symbol = token.symbol.unwrap();
 
+        println!(
+            "retrieving pool contract {} and {}",
+            token_symbol, base_token_symbol
+        );
         let pool = get_pool(
             1,
             FACTORY_ADDRESS,
@@ -217,6 +247,7 @@ impl Convert for Erc20Token {
         )
         .await?;
 
+        println!("retrieving price for {}", token_symbol);
         let token_price_in_base_token = pool.token0_price();
         let token_price_in_base_token = fraction_to_big_decimal(&token_price_in_base_token);
         let token_price_in_base_token = convert_uniswap_to_bigdecimal(token_price_in_base_token);

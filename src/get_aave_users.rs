@@ -175,8 +175,8 @@ impl UserAccountData for AaveUser {
 
         for r in &self.reserves {
             let token = TOKEN_DATA.get(&*r.reserve.symbol).unwrap();
-            println!("getting price of {} in eth", token.symbol);
-            let token_price_eth = token.get_token_price_in_eth(&client).await?;
+            println!("getting price of {} in usd", token.symbol);
+            let token_price_eth = token.get_token_price_in_("USDC", &client).await?;
 
             let current_total_debt = BigDecimal::from_str(&*r.current_total_debt)?;
             let current_atoken_balance = BigDecimal::from_str(&*r.current_atoken_balance).unwrap();
