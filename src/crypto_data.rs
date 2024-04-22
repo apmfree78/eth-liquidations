@@ -7,6 +7,8 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+use uniswap_sdk_core::chains::ChainId;
+use uniswap_sdk_core::entities::base_currency;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
 use uniswap_v3_sdk::extensions::fraction_to_big_decimal;
 use uniswap_v3_sdk::{
@@ -38,25 +40,32 @@ pub trait Generate {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
     ) -> Result<Vec<AaveUserData>, Box<dyn std::error::Error>>;
+
+    async fn get_health_factor_with_uniswap_v3(
+        &self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 }
 
 impl Generate for AaveUserData {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
     ) -> Result<Vec<AaveUserData>, Box<dyn std::error::Error>> {
+        println!("connecting to aave_v3_pool");
         let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
 
         // store all data that we need for user
         let mut aave_user_data: Vec<AaveUserData> = Vec::new();
 
         let aave_users = get_aave_v3_users().await?;
+        println!("got aave_v3 users");
         // let mut user_with_bad_data = 0;
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
         for user in &aave_users {
-            // println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
+            println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
             let user_id: Address = user.id.parse()?;
-            // let user_account = aave_v3_pool.get_user_account_data(user_id).call().await?;
+            println!("getting user account data from aave_v3_pool");
             let (
                 total_collateral_base,
                 total_debt_base,
@@ -73,8 +82,9 @@ impl Generate for AaveUserData {
                 &liquidation_threshold * &total_collateral / &bps_factor;
             let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
 
+            println!("getting list of user tokens");
             // this is list of tokens that user is either using as colladeral or borrowing
-            let user_tokens = user.get_list_of_user_tokens().unwrap();
+            let user_tokens = user.get_list_of_user_tokens(&client).await?;
 
             // save data to AvveUserData
             aave_user_data.push(AaveUserData {
@@ -87,6 +97,62 @@ impl Generate for AaveUserData {
         }
 
         Ok(aave_user_data)
+    }
+
+    async fn get_health_factor_with_uniswap_v3(
+        &self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+        let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
+
+        let mut total_debt_eth = BigDecimal::zero();
+        let mut liquidation_threshold_collateral_sum = BigDecimal::zero();
+
+        for t in &self.tokens {
+            let token = TOKEN_DATA.get(&*t.token.symbol).unwrap();
+
+            // 1. get token price from uniswap
+            let token_price_eth = token.get_token_price_in_eth(&client).await?;
+            let token_decimal_factor =
+                BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
+
+            // 2. get get current total debt in ETH
+            // *************************************
+            let current_total_debt = t.current_total_debt.clone();
+            // *************************************
+            if current_total_debt > BigDecimal::zero() {
+                let current_total_debt_eth =
+                    &current_total_debt * &token_price_eth / &token_decimal_factor;
+
+                // 3. add current total debt to total debt
+                total_debt_eth += &current_total_debt_eth;
+            }
+
+            if t.usage_as_collateral_enabled {
+                // 4. get atoken balance in USD
+                // *************************************
+                let current_atoken_balance = t.current_atoken_balance.clone();
+                // *************************************
+
+                if current_atoken_balance > BigDecimal::zero() {
+                    let current_atoken_eth =
+                        current_atoken_balance * &token_price_eth / &token_decimal_factor;
+
+                    // 5. update liquidity threshold colleral sum
+                    let liquidation_threshold = t.reserve_liquidation_threshold.clone();
+                    // *************************************
+
+                    liquidation_threshold_collateral_sum +=
+                        current_atoken_eth * &liquidation_threshold / &bps_factor;
+                }
+            }
+        }
+        println!("total debt {}", total_debt_eth);
+        let mut health_factor = BigDecimal::zero();
+        if total_debt_eth > BigDecimal::zero() {
+            health_factor = liquidation_threshold_collateral_sum / total_debt_eth;
+        }
+        Ok(health_factor)
     }
 }
 
@@ -102,6 +168,11 @@ pub trait Convert {
     async fn get_token(&self, chain_id: u64) -> Result<Token, Box<dyn std::error::Error>>;
     async fn get_token_price_in_eth(
         &self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+    async fn get_token_price_in_(
+        &self,
+        base_token: &str,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 }
@@ -121,10 +192,47 @@ impl Convert for Erc20Token {
         });
     }
 
+    async fn get_token_price_in_(
+        &self,
+        base_token_symbol: &str,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+        if self.symbol == base_token_symbol {
+            return Ok(BigDecimal::from(1));
+        };
+
+        let base_token: &Erc20Token = TOKEN_DATA.get(base_token_symbol).unwrap();
+        let base_token = base_token.get_token(1).await?;
+
+        let token = self.get_token(1).await?;
+
+        let pool = get_pool(
+            1,
+            FACTORY_ADDRESS,
+            token.meta.address,
+            base_token.meta.address,
+            FeeAmount::MEDIUM,
+            client.clone(),
+            None,
+        )
+        .await?;
+
+        let token_price_in_base_token = pool.token0_price();
+        let token_price_in_base_token = fraction_to_big_decimal(&token_price_in_base_token);
+        let token_price_in_base_token = convert_uniswap_to_bigdecimal(token_price_in_base_token);
+
+        Ok(token_price_in_base_token)
+    }
+
     async fn get_token_price_in_eth(
         &self,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+        if self.symbol == "WETH" {
+            return Ok(BigDecimal::from(1));
+        };
+
+        // put in exception for GHO - calculate price is USDC and convert to ETH
         let weth_token: &Erc20Token = TOKEN_DATA.get("WETH").unwrap();
         let weth_token = weth_token.get_token(1).await?;
 
