@@ -24,8 +24,6 @@ async fn test_token_price_uniswap_versus_oracle() -> Result<(), Box<dyn std::err
 
         let address: Address = token.address.parse()?;
         // TODO - fix scaling
-        let uniswap_decimal_factor =
-            BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
         let oracle_decimal_factor = BigDecimal::from_u64(10_u64.pow(8)).unwrap();
 
         let token_price_uniswap = token.get_token_price_in_("USDC", &client).await?;

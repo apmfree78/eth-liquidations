@@ -10,7 +10,9 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use uniswap_sdk_core::chains::ChainId;
-use uniswap_sdk_core::entities::base_currency;
+use uniswap_sdk_core::entities::base_currency::{self, CurrencyLike};
+use uniswap_sdk_core::entities::fractions::fraction::FractionLike;
+use uniswap_sdk_core::entities::fractions::price::PriceMeta;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
 use uniswap_v3_sdk::extensions::fraction_to_big_decimal;
 use uniswap_v3_sdk::{
@@ -211,11 +213,6 @@ impl Convert for Erc20Token {
             || self.symbol == "BAL")
             && base_token_symbol == "USDC"
         {
-            // FIND how to convert crvUSD
-            if self.symbol == "crvUSD" {
-                return Ok(BigDecimal::from(1));
-            }
-
             // 1. get price token price in WETH
             let token_price_in_weth = self.get_token_price_in_("WETH", &client).await?;
 
@@ -224,21 +221,21 @@ impl Convert for Erc20Token {
             let weth_price_in_usdc = weth_token.get_token_price_in_("USDC", &client).await?;
 
             // 3 .get scale factor
-            let usdc_token: &Erc20Token = TOKEN_DATA.get("USDC").unwrap();
+            // let usdc_token: &Erc20Token = TOKEN_DATA.get("USDC").unwrap();
 
-            let token_usdc_scale_factor: i8 = self.decimals as i8 - usdc_token.decimals as i8;
-            let token_usdc_decimal_factor =
-                BigDecimal::from_u64(10_u64.pow(token_usdc_scale_factor.abs() as u32)).unwrap();
+            // let token_usdc_scale_factor: i8 = usdc_token.decimals as i8 - self.decimals as i8;
+            // let token_usdc_decimal_factor =
+            //     BigDecimal::from_u64(10_u64.pow(token_usdc_scale_factor.abs() as u32)).unwrap();
 
             // determine token price in USDC by multipying
-            let mut token_usdc_price = &token_price_in_weth * &weth_price_in_usdc;
+            let token_usdc_price = &token_price_in_weth * &weth_price_in_usdc;
 
-            // unscaling the price
-            if token_usdc_scale_factor > 0 {
-                token_usdc_price = &token_usdc_price / &token_usdc_decimal_factor;
-            } else {
-                token_usdc_price = &token_usdc_price / &token_usdc_decimal_factor;
-            }
+            // // unscaling the price
+            // if token_usdc_scale_factor > 0 {
+            //     token_usdc_price = &token_usdc_price * &token_usdc_decimal_factor;
+            // } else {
+            //     token_usdc_price = &token_usdc_price / &token_usdc_decimal_factor;
+            // }
 
             return Ok(token_usdc_price);
         }
@@ -249,7 +246,7 @@ impl Convert for Erc20Token {
         let token = self.get_token(1).await?;
         let token_symbol = token.symbol.unwrap();
 
-        let scale_factor: i8 = base_token.decimals as i8 - token.decimals as i8;
+        let scale_factor: i8 = token.decimals as i8 - base_token.decimals as i8;
 
         let decimal_factor = BigDecimal::from_u64(10_u64.pow(scale_factor.abs() as u32)).unwrap();
 
@@ -267,17 +264,23 @@ impl Convert for Erc20Token {
             None,
         )
         .await?;
+        let token0_symbol = pool.token0.symbol.as_ref().unwrap();
+
+        let token_price_in_base_token = if token0_symbol == base_token_symbol {
+            pool.token1_price().clone()
+        } else {
+            pool.token0_price().clone()
+        };
 
         println!("retrieving price for {}", token_symbol);
-        let token_price_in_base_token = pool.token0_price();
         let token_price_in_base_token = fraction_to_big_decimal(&token_price_in_base_token);
         let mut token_price_in_base_token =
             convert_uniswap_to_bigdecimal(token_price_in_base_token);
 
         if scale_factor > 0 {
-            token_price_in_base_token = token_price_in_base_token * &decimal_factor;
+            token_price_in_base_token = &token_price_in_base_token * &decimal_factor;
         } else {
-            token_price_in_base_token = token_price_in_base_token / &decimal_factor;
+            token_price_in_base_token = &token_price_in_base_token / &decimal_factor;
         }
 
         Ok(token_price_in_base_token)
