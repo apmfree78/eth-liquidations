@@ -1,11 +1,7 @@
-use bigdecimal::{BigDecimal, FromPrimitive, Zero};
-use eth_liquadation::abi::aave_oracle::AAVE_ORACLE;
-use eth_liquadation::abi::erc20::ERC20;
-use eth_liquadation::crypto_data::{
-    generate_token, u256_to_big_decimal, AaveToken, Convert, Erc20Token, AAVE_ORACLE_ADDRESS,
-    AAVE_V3_POOL_ADDRESS, TOKEN_DATA, WETH_ADDRESS,
-};
+use bigdecimal::BigDecimal;
+use eth_liquadation::crypto_data::{Convert, TOKEN_DATA};
 use ethers::prelude::*;
+use std::str::FromStr;
 use std::sync::Arc;
 
 #[tokio::test]
@@ -14,7 +10,6 @@ async fn test_token_price_uniswap_versus_oracle() -> Result<(), Box<dyn std::err
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
-    let aave_oracle = AAVE_ORACLE::new(*AAVE_ORACLE_ADDRESS, client.clone());
 
     println!(" number of test to run {} ", 3 * TOKEN_DATA.len());
     for token in TOKEN_DATA.values() {
@@ -22,21 +17,26 @@ async fn test_token_price_uniswap_versus_oracle() -> Result<(), Box<dyn std::err
             continue;
         }
 
-        let address: Address = token.address.parse()?;
-        // TODO - fix scaling
-        let oracle_decimal_factor = BigDecimal::from_u64(10_u64.pow(8)).unwrap();
-
+        // uniswap price
         let token_price_uniswap = token.get_token_price_in_("USDC", &client).await?;
-        let token_price_oracle = aave_oracle.get_asset_price(address).call().await?;
-        let token_price_oracle = u256_to_big_decimal(&token_price_oracle);
 
-        println!("checking {} ", token.name);
+        // price from chainlink oracle price
+        let token_price_oracle = token.get_token_oracle_price(&client).await?;
 
-        println!("uniswap price {}", token_price_uniswap);
-        println!(
-            "aave oracle price {}",
-            token_price_oracle / oracle_decimal_factor
-        );
+        let lower_bound = BigDecimal::from_str("0.98")? * &token_price_oracle;
+        let upper_bound = BigDecimal::from_str("1.02")? * &token_price_oracle;
+
+        if token_price_uniswap < lower_bound || token_price_uniswap > upper_bound {
+            println!("checking {} ", token.name);
+            println!("symbol {} ", token.symbol);
+
+            println!("uniswap price {}", token_price_uniswap);
+            println!("aave oracle price {}", token_price_oracle);
+        }
+        // assert!(
+        //     token_price_uniswap > lower_bound && token_price_uniswap < upper_bound,
+        //     "price out of bound"
+        // );
     }
     Ok(())
 }

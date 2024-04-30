@@ -1,12 +1,8 @@
 use crate::abi::aave_oracle::AAVE_ORACLE;
-use crate::crypto_data::{
-    AaveToken, Convert, Erc20Token, AAVE_ORACLE_ADDRESS, AAVE_V3_POOL_ADDRESS, TOKEN_DATA,
-    WETH_ADDRESS,
-};
+use crate::crypto_data::{AaveToken, Convert, AAVE_ORACLE_ADDRESS, TOKEN_DATA};
+use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
-use core::panic;
 use ethers::providers::{Provider, Ws};
-use ethers::{abi::Address, core::types::U256};
 use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -21,6 +17,7 @@ pub struct AaveUser {
     reserves: Vec<UserReserve>,
 }
 
+#[async_trait]
 pub trait UserAccountData {
     async fn get_health_factor_from_oracle(
         &self,
@@ -38,6 +35,7 @@ pub trait UserAccountData {
     ) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>>;
 }
 
+#[async_trait]
 impl UserAccountData for AaveUser {
     async fn get_health_factor_from_oracle(
         &self,
@@ -50,22 +48,10 @@ impl UserAccountData for AaveUser {
         let mut liquidation_threshold_collateral_sum = BigDecimal::zero();
 
         for r in &self.reserves {
-            let token_address: Address;
-            let token_decimals: u8;
-            match TOKEN_DATA.get(&*r.reserve.symbol) {
-                Some(token) => {
-                    token_address = token.address.parse()?;
-                    token_decimals = token.decimals;
-                }
-                None => panic!("No value found for {}", r.reserve.symbol),
-            }
-            // 1. get token price from AAve Oracle
-            let token_price_usd_u256: U256 =
-                aave_oracle.get_asset_price(token_address).call().await?;
-            let token_price_usd: BigDecimal =
-                BigDecimal::from_str(&(token_price_usd_u256.to_string())).unwrap();
-            let token_decimal_factor =
-                BigDecimal::from_u64(10_u64.pow(token_decimals.into())).unwrap();
+            let token = TOKEN_DATA.get(&*r.reserve.symbol).unwrap();
+
+            // 1. get token price USD
+            let token_price_usd = token.get_token_oracle_price(&client).await?;
 
             // 2. get get current total debt in USD
             // *************************************
@@ -73,8 +59,7 @@ impl UserAccountData for AaveUser {
             // *************************************
 
             if current_total_debt > BigDecimal::zero() {
-                let current_total_debt_usd =
-                    &current_total_debt * &token_price_usd / &token_decimal_factor;
+                let current_total_debt_usd = &current_total_debt * &token_price_usd;
 
                 // 3. add current total debt to total debt
                 total_debt_usd += &current_total_debt_usd;
@@ -88,8 +73,7 @@ impl UserAccountData for AaveUser {
                 // *************************************
 
                 if current_atoken_balance > BigDecimal::zero() {
-                    let current_atoken_usd =
-                        current_atoken_balance * &token_price_usd / &token_decimal_factor;
+                    let current_atoken_usd = current_atoken_balance * &token_price_usd;
 
                     // 5. update liquidity threshold colleral sum
                     let liquidation_threshold =
@@ -101,7 +85,8 @@ impl UserAccountData for AaveUser {
                 }
             }
         }
-        println!("total debt {}", total_debt_usd);
+
+        // println!("total debt {}", total_debt_usd);
         let mut health_factor = BigDecimal::zero();
         if total_debt_usd > BigDecimal::zero() {
             health_factor = liquidation_threshold_collateral_sum / total_debt_usd;
@@ -122,9 +107,7 @@ impl UserAccountData for AaveUser {
             let token = TOKEN_DATA.get(&*r.reserve.symbol).unwrap();
 
             // 1. get token price from uniswap
-            let token_price_eth = token.get_token_price_in_eth(&client).await?;
-            let token_decimal_factor =
-                BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
+            let token_price_eth = token.get_token_price_in_("WETH", &client).await?;
 
             // 2. get get current total debt in USD
             // *************************************
@@ -132,8 +115,7 @@ impl UserAccountData for AaveUser {
             // *************************************
 
             if current_total_debt > BigDecimal::zero() {
-                let current_total_debt_eth =
-                    &current_total_debt * &token_price_eth / &token_decimal_factor;
+                let current_total_debt_eth = &current_total_debt * &token_price_eth;
 
                 // 3. add current total debt to total debt
                 total_debt_eth += &current_total_debt_eth;
@@ -147,8 +129,7 @@ impl UserAccountData for AaveUser {
                 // *************************************
 
                 if current_atoken_balance > BigDecimal::zero() {
-                    let current_atoken_eth =
-                        current_atoken_balance * &token_price_eth / &token_decimal_factor;
+                    let current_atoken_eth = current_atoken_balance * &token_price_eth;
 
                     // 5. update liquidity threshold colleral sum
                     let liquidation_threshold =
@@ -160,13 +141,14 @@ impl UserAccountData for AaveUser {
                 }
             }
         }
-        println!("total debt {}", total_debt_eth);
+        // println!("total debt {}", total_debt_eth);
         let mut health_factor = BigDecimal::zero();
         if total_debt_eth > BigDecimal::zero() {
             health_factor = liquidation_threshold_collateral_sum / total_debt_eth;
         }
         Ok(health_factor)
     }
+
     async fn get_list_of_user_tokens(
         &self,
         client: &Arc<Provider<Ws>>,
@@ -175,7 +157,7 @@ impl UserAccountData for AaveUser {
 
         for r in &self.reserves {
             let token = TOKEN_DATA.get(&*r.reserve.symbol).unwrap();
-            println!("getting price of {} in usd", token.symbol);
+            // println!("getting price of {} in usd", token.symbol);
             let token_price_eth = token.get_token_price_in_("USDC", &client).await?;
 
             let current_total_debt = BigDecimal::from_str(&*r.current_total_debt)?;

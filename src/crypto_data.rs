@@ -1,6 +1,5 @@
-use crate::abi::aave_v3_pool::AAVE_V3_POOL;
+use crate::abi::{aave_oracle::AAVE_ORACLE, aave_v3_pool::AAVE_V3_POOL};
 use crate::get_aave_users::{get_aave_v3_users, UserAccountData};
-use async_recursion::async_recursion;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::providers::{Provider, Ws};
@@ -9,17 +8,16 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
-use uniswap_sdk_core::chains::ChainId;
-use uniswap_sdk_core::entities::base_currency::{self, CurrencyLike};
-use uniswap_sdk_core::entities::fractions::fraction::FractionLike;
-use uniswap_sdk_core::entities::fractions::price::PriceMeta;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
-use uniswap_v3_sdk::extensions::fraction_to_big_decimal;
 use uniswap_v3_sdk::{
     constants::{FeeAmount, FACTORY_ADDRESS},
-    extensions::get_pool,
+    extensions::{fraction_to_big_decimal, get_pool},
 };
 
+pub enum PricingSource {
+    AaveOracle,
+    UniswapV3,
+}
 #[derive(Clone, Debug)]
 pub struct AaveToken {
     pub token: Erc20Token,
@@ -40,17 +38,29 @@ pub struct AaveUserData {
     pub health_factor: BigDecimal,
 }
 
+#[async_trait]
 pub trait Generate {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
     ) -> Result<Vec<AaveUserData>, Box<dyn std::error::Error>>;
+}
 
-    async fn get_health_factor_with_uniswap_v3(
+#[async_trait]
+pub trait HealthFactor {
+    async fn get_health_factor_from_(
         &self,
+        source_for_pricing: PricingSource,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+
+    async fn get_and_update_health_factor_with_(
+        &mut self,
+        source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 }
 
+#[async_trait]
 impl Generate for AaveUserData {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
@@ -63,48 +73,66 @@ impl Generate for AaveUserData {
 
         let aave_users = get_aave_v3_users().await?;
         println!("got aave_v3 users");
-        // let mut user_with_bad_data = 0;
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
+        println!("found { } users from aave v3 graphql", aave_users.len());
         for user in &aave_users {
-            // println!("User details: {:#?}", user); // Assuming AaveUser implements Debug
             let user_id: Address = user.id.parse()?;
-            println!("getting user account data from aave_v3_pool");
+            // println!("getting user account data from aave_v3_pool");
             let (
                 total_collateral_base,
                 total_debt_base,
-                available_borrows_base,
-                current_liquidation_threshod,
-                ltv,
+                _available_borrows_base,
+                current_liquidation_threshold,
+                _ltv,
                 health_factor,
             ) = aave_v3_pool.get_user_account_data(user_id).call().await?;
 
             let total_debt = u256_to_big_decimal(&total_debt_base);
             let total_collateral = u256_to_big_decimal(&total_collateral_base);
-            let liquidation_threshold = u256_to_big_decimal(&current_liquidation_threshod);
+            let liquidation_threshold = u256_to_big_decimal(&current_liquidation_threshold);
             let colladeral_times_liquidation_factor =
                 &liquidation_threshold * &total_collateral / &bps_factor;
             let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
 
-            println!("getting list of user tokens");
+            // println!("getting list of user tokens");
             // this is list of tokens that user is either using as colladeral or borrowing
             let user_tokens = user.get_list_of_user_tokens(&client).await?;
 
-            // save data to AvveUserData
-            aave_user_data.push(AaveUserData {
+            let aave_user = AaveUserData {
                 id: user_id,
                 total_debt: total_debt.clone(),
                 colladeral_times_liquidation_factor,
                 health_factor: health_factor.clone(),
                 tokens: user_tokens,
-            });
+            };
+
+            // validate user data - 10% of graphql data for aave users is not accurate
+            let aave_user_health_factor = aave_user.health_factor.clone();
+            let aave_user_calculated_health_factor = aave_user
+                .get_health_factor_from_(PricingSource::AaveOracle, &client)
+                .await?;
+            let lower_bound = BigDecimal::from_str("0.95")? * &aave_user_health_factor;
+            let upper_bound = BigDecimal::from_str("1.05")? * &aave_user_health_factor;
+
+            if aave_user_calculated_health_factor > lower_bound
+                && aave_user_calculated_health_factor < upper_bound
+            {
+                // save data to AvveUserData
+                aave_user_data.push(aave_user);
+            }
         }
 
+        println!("{} valid users saved", aave_user_data.len());
         Ok(aave_user_data)
     }
+}
 
-    async fn get_health_factor_with_uniswap_v3(
+#[async_trait]
+impl HealthFactor for AaveUserData {
+    async fn get_health_factor_from_(
         &self,
+        source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
@@ -112,18 +140,23 @@ impl Generate for AaveUserData {
         let mut total_debt_usd = BigDecimal::zero();
         let mut liquidation_threshold_collateral_sum = BigDecimal::zero();
 
-        for t in &self.tokens {
-            let token = TOKEN_DATA.get(&*t.token.symbol).unwrap();
+        for r in &self.tokens {
+            let token = TOKEN_DATA.get(&*r.token.symbol).unwrap();
 
-            // 1. get token price from uniswap
-            let token_price_usd = token.get_token_price_in_("USDC", &client).await?;
+            // 1. get token price USD
+            let token_price_usd = match source_for_pricing {
+                PricingSource::UniswapV3 => token.get_token_price_in_("USDC", &client).await?,
+                PricingSource::AaveOracle => token.get_token_oracle_price(&client).await?,
+            };
+
             let token_decimal_factor =
                 BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
 
-            // 2. get get current total debt in ETH
+            // 2. get get current total debt in USD
             // *************************************
-            let current_total_debt = t.current_total_debt.clone();
+            let current_total_debt = r.current_total_debt.clone();
             // *************************************
+
             if current_total_debt > BigDecimal::zero() {
                 let current_total_debt_usd =
                     &current_total_debt * &token_price_usd / &token_decimal_factor;
@@ -132,18 +165,18 @@ impl Generate for AaveUserData {
                 total_debt_usd += &current_total_debt_usd;
             }
 
-            if t.usage_as_collateral_enabled {
+            if r.usage_as_collateral_enabled {
                 // 4. get atoken balance in USD
                 // *************************************
-                let current_atoken_balance = t.current_atoken_balance.clone();
+                let current_atoken_balance = r.current_atoken_balance.clone();
                 // *************************************
 
                 if current_atoken_balance > BigDecimal::zero() {
                     let current_atoken_usd =
-                        current_atoken_balance * &token_price_usd / &token_decimal_factor;
+                        &current_atoken_balance * &token_price_usd / &token_decimal_factor;
 
                     // 5. update liquidity threshold colleral sum
-                    let liquidation_threshold = t.reserve_liquidation_threshold.clone();
+                    let liquidation_threshold = r.reserve_liquidation_threshold.clone();
                     // *************************************
 
                     liquidation_threshold_collateral_sum +=
@@ -151,11 +184,27 @@ impl Generate for AaveUserData {
                 }
             }
         }
-        println!("total debt {}", total_debt_usd);
+
+        // println!("total debt {}", total_debt_usd);
         let mut health_factor = BigDecimal::zero();
         if total_debt_usd > BigDecimal::zero() {
             health_factor = liquidation_threshold_collateral_sum / total_debt_usd;
         }
+        Ok(health_factor)
+    }
+
+    async fn get_and_update_health_factor_with_(
+        &mut self,
+        source_for_pricing: PricingSource,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+        // obtain latest health factor
+        let health_factor = self
+            .get_health_factor_from_(source_for_pricing, &client)
+            .await?;
+
+        self.health_factor = health_factor.clone();
+
         Ok(health_factor)
     }
 }
@@ -171,13 +220,13 @@ pub struct Erc20Token {
 #[async_trait]
 pub trait Convert {
     async fn get_token(&self, chain_id: u64) -> Result<Token, Box<dyn std::error::Error>>;
-    async fn get_token_price_in_eth(
-        &self,
-        client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
     async fn get_token_price_in_(
         &self,
         base_token: &str,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+    async fn get_token_oracle_price(
+        &self,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 }
@@ -207,9 +256,20 @@ impl Convert for Erc20Token {
             return Ok(BigDecimal::from(1));
         } else if self.symbol == "crvUSD" && base_token_symbol == "USDC" {
             return Ok(BigDecimal::from(1));
+        } else if self.symbol == "sDAI" && base_token_symbol == "USDC" {
+            let sdai_price = self.get_token_oracle_price(&client).await?;
+            return Ok(sdai_price);
         } else if (self.symbol == "cbETH"
-            || self.symbol == "sDAI"
+            || self.symbol == "ENS"
+            || self.symbol == "SNX"
+            || self.symbol == "CRV"
+            || self.symbol == "AAVE"
+            || self.symbol == "1INCH"
+            || self.symbol == "LDO"
+            || self.symbol == "rETH"
+            || self.symbol == "LUSD"
             || self.symbol == "weETH"
+            || self.symbol == "wstETH"
             || self.symbol == "BAL")
             && base_token_symbol == "USDC"
         {
@@ -220,22 +280,8 @@ impl Convert for Erc20Token {
             let weth_token: &Erc20Token = TOKEN_DATA.get("WETH").unwrap();
             let weth_price_in_usdc = weth_token.get_token_price_in_("USDC", &client).await?;
 
-            // 3 .get scale factor
-            // let usdc_token: &Erc20Token = TOKEN_DATA.get("USDC").unwrap();
-
-            // let token_usdc_scale_factor: i8 = usdc_token.decimals as i8 - self.decimals as i8;
-            // let token_usdc_decimal_factor =
-            //     BigDecimal::from_u64(10_u64.pow(token_usdc_scale_factor.abs() as u32)).unwrap();
-
             // determine token price in USDC by multipying
             let token_usdc_price = &token_price_in_weth * &weth_price_in_usdc;
-
-            // // unscaling the price
-            // if token_usdc_scale_factor > 0 {
-            //     token_usdc_price = &token_usdc_price * &token_usdc_decimal_factor;
-            // } else {
-            //     token_usdc_price = &token_usdc_price / &token_usdc_decimal_factor;
-            // }
 
             return Ok(token_usdc_price);
         }
@@ -244,16 +290,11 @@ impl Convert for Erc20Token {
         let base_token = base_token.get_token(1).await?;
 
         let token = self.get_token(1).await?;
-        let token_symbol = token.symbol.unwrap();
 
         let scale_factor: i8 = token.decimals as i8 - base_token.decimals as i8;
 
         let decimal_factor = BigDecimal::from_u64(10_u64.pow(scale_factor.abs() as u32)).unwrap();
 
-        println!(
-            "retrieving pool contract {} and {}",
-            token_symbol, base_token_symbol
-        );
         let pool = get_pool(
             1,
             FACTORY_ADDRESS,
@@ -272,7 +313,6 @@ impl Convert for Erc20Token {
             pool.token0_price().clone()
         };
 
-        println!("retrieving price for {}", token_symbol);
         let token_price_in_base_token = fraction_to_big_decimal(&token_price_in_base_token);
         let mut token_price_in_base_token =
             convert_uniswap_to_bigdecimal(token_price_in_base_token);
@@ -286,37 +326,52 @@ impl Convert for Erc20Token {
         Ok(token_price_in_base_token)
     }
 
-    async fn get_token_price_in_eth(
+    async fn get_token_oracle_price(
         &self,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
-        if self.symbol == "WETH" {
-            return Ok(BigDecimal::from(1));
-        };
+        let address: Address = self.address.parse()?;
+        let aave_oracle = AAVE_ORACLE::new(*AAVE_ORACLE_ADDRESS, client.clone());
+        let oracle_decimal_factor = BigDecimal::from_u64(10_u64.pow(8)).unwrap();
 
-        // put in exception for GHO - calculate price is USDC and convert to ETH
-        let weth_token: &Erc20Token = TOKEN_DATA.get("WETH").unwrap();
-        let weth_token = weth_token.get_token(1).await?;
+        let token_price_oracle = aave_oracle.get_asset_price(address).call().await?;
+        let token_price_oracle = u256_to_big_decimal(&token_price_oracle);
+        let token_price_oracle = token_price_oracle / oracle_decimal_factor;
 
-        let token = self.get_token(1).await?;
-
-        let pool = get_pool(
-            1,
-            FACTORY_ADDRESS,
-            token.meta.address,
-            weth_token.meta.address,
-            FeeAmount::MEDIUM,
-            client.clone(),
-            None,
-        )
-        .await?;
-
-        let token_price_in_eth = pool.token0_price();
-        let token_price_in_eth = fraction_to_big_decimal(&token_price_in_eth);
-        let token_price_in_eth = convert_uniswap_to_bigdecimal(token_price_in_eth);
-
-        Ok(token_price_in_eth)
+        Ok(token_price_oracle)
     }
+
+    // async fn get_token_price_in_eth(
+    //     &self,
+    //     client: &Arc<Provider<Ws>>,
+    // ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+    //     if self.symbol == "WETH" {
+    //         return Ok(BigDecimal::from(1));
+    //     };
+
+    //     // put in exception for GHO - calculate price is USDC and convert to ETH
+    //     let weth_token: &Erc20Token = TOKEN_DATA.get("WETH").unwrap();
+    //     let weth_token = weth_token.get_token(1).await?;
+
+    //     let token = self.get_token(1).await?;
+
+    //     let pool = get_pool(
+    //         1,
+    //         FACTORY_ADDRESS,
+    //         token.meta.address,
+    //         weth_token.meta.address,
+    //         FeeAmount::MEDIUM,
+    //         client.clone(),
+    //         None,
+    //     )
+    //     .await?;
+
+    //     let token_price_in_eth = pool.token0_price();
+    //     let token_price_in_eth = fraction_to_big_decimal(&token_price_in_eth);
+    //     let token_price_in_eth = convert_uniswap_to_bigdecimal(token_price_in_eth);
+
+    //     Ok(token_price_in_eth)
+    // }
 }
 
 fn convert_uniswap_to_bigdecimal(
