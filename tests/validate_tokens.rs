@@ -1,5 +1,5 @@
 use eth_liquadation::abi::erc20::ERC20;
-use eth_liquadation::crypto_data::{generate_token, Erc20Token, TOKEN_DATA};
+use eth_liquadation::data::erc20::TOKEN_DATA;
 use ethers::prelude::*;
 use std::sync::Arc;
 

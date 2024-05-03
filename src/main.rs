@@ -1,5 +1,7 @@
 use bigdecimal::BigDecimal;
-use eth_liquadation::crypto_data::{AaveUserData, Generate, HealthFactor, PricingSource};
+use eth_liquadation::exchanges::aave_v3::data::{
+    AaveUserData, Generate, HealthFactor, PricingSource,
+};
 use ethers::providers::{Provider, Ws};
 use std::sync::Arc;
 
@@ -20,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // TODO - 10% of graphl data is corrupted and unrealiable for user token amount ( and maybe
         // the tokens themselves) please clean out this corrupted data
-        // println!(" user data {:#?}", user);
+        println!(" user data {:#?}", user);
         println!("----------------------------------------");
         println!(" user heath factor {}", user.health_factor);
         println!(

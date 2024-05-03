@@ -1,5 +1,7 @@
 use crate::abi::aave_oracle::AAVE_ORACLE;
-use crate::crypto_data::{AaveToken, Convert, AAVE_ORACLE_ADDRESS, TOKEN_DATA};
+use crate::data::address::AAVE_ORACLE_ADDRESS;
+use crate::data::erc20::{Convert, TOKEN_DATA};
+use crate::exchanges::aave_v3::data::AaveToken;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::providers::{Provider, Ws};
@@ -41,7 +43,6 @@ impl UserAccountData for AaveUser {
         &self,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
-        let aave_oracle = AAVE_ORACLE::new(*AAVE_ORACLE_ADDRESS, client.clone());
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
 
         let mut total_debt_usd = BigDecimal::zero();

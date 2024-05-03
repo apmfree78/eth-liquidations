@@ -1,5 +1,7 @@
 use bigdecimal::BigDecimal;
-use eth_liquadation::crypto_data::{AaveUserData, Generate, HealthFactor, PricingSource};
+use eth_liquadation::exchanges::aave_v3::data::{
+    AaveUserData, Generate, HealthFactor, PricingSource,
+};
 use ethers::providers::{Provider, Ws};
 use std::str::FromStr;
 use std::sync::Arc;

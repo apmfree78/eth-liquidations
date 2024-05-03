@@ -1,3 +1,5 @@
+use crate::abi::aave_v3_pool::AAVE_V3_POOL;
+use ethers::contract::Event;
 use ethers::{prelude::*, utils::keccak256};
 use std::sync::Arc;
 const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
