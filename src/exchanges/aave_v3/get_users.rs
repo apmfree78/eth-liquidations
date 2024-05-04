@@ -159,7 +159,7 @@ impl UserAccountData for AaveUser {
         for r in &self.reserves {
             let token = TOKEN_DATA.get(&*r.reserve.symbol).unwrap();
             // println!("getting price of {} in usd", token.symbol);
-            let token_price_eth = token.get_token_price_in_("USDC", &client).await?;
+            // let token_price_eth = token.get_token_price_in_("USDC", &client).await?;
 
             let current_total_debt = BigDecimal::from_str(&*r.current_total_debt)?;
             let current_atoken_balance = BigDecimal::from_str(&*r.current_atoken_balance).unwrap();
@@ -173,7 +173,6 @@ impl UserAccountData for AaveUser {
                 token: *token,
                 current_total_debt,
                 usage_as_collateral_enabled,
-                token_price_eth,
                 current_atoken_balance,
                 reserve_liquidation_threshold,
                 reserve_liquidation_bonus,

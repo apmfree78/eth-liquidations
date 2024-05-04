@@ -1,11 +1,19 @@
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
+use crate::exchanges::aave_v3::data::AaveUserData;
+use crate::exchanges::aave_v3::events::{
+    create_aave_event_from_log, get_user_action_from_event, AaveEvent, AaveEventType,
+    AaveUserEvent, Update,
+};
 use ethers::contract::Event;
 use ethers::{prelude::*, utils::keccak256};
 use std::sync::Arc;
 const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 use eyre::Result;
 
-pub async fn scan_for_aave_events(client: &Arc<Provider<Ws>>) -> Result<()> {
+pub async fn scan_and_update_aave_events(
+    users: &mut Vec<AaveUserData>,
+    client: &Arc<Provider<Ws>>,
+) -> Result<()> {
     // Define the event signatures
     let withdraw_signature = "Withdraw(address,address,address,uint256)";
     let borrow_signature = "Borrow(address,address,address,uint256,uint8,uint256)";
@@ -50,20 +58,42 @@ pub async fn scan_for_aave_events(client: &Arc<Provider<Ws>>) -> Result<()> {
     let logs = client.get_logs(&filter).await?;
     println!("{} aave events found!", logs.iter().len());
 
+    // TODO - refactor users into a hashmap
     for log in logs.iter() {
         if log.topics.len() > 0 {
             match log.topics[0] {
                 topic if topic == withdraw_hash => {
                     println!("Withdraw event: {:?}", log);
+
+                    if let AaveEventType::WithdrawEvent(event) =
+                        create_aave_event_from_log(AaveUserEvent::WithDraw, &log)
+                    {
+                        update_aave_user(users, event).unwrap();
+                    }
                 }
                 topic if topic == borrow_hash => {
                     println!("Borrow event: {:?}", log);
+                    if let AaveEventType::BorrowEvent(event) =
+                        create_aave_event_from_log(AaveUserEvent::Borrow, &log)
+                    {
+                        update_aave_user(users, event).unwrap();
+                    }
                 }
                 topic if topic == repay_hash => {
                     println!("Repay event: {:?}", log);
+                    if let AaveEventType::RepayEvent(event) =
+                        create_aave_event_from_log(AaveUserEvent::Repay, &log)
+                    {
+                        update_aave_user(users, event).unwrap();
+                    }
                 }
                 topic if topic == supply_hash => {
                     println!("Supply event: {:?}", log);
+                    if let AaveEventType::SupplyEvent(event) =
+                        create_aave_event_from_log(AaveUserEvent::Supply, &log)
+                    {
+                        update_aave_user(users, event).unwrap();
+                    }
                 }
                 _ => {
                     println!("Unknown event: {:?}", log);
@@ -72,5 +102,20 @@ pub async fn scan_for_aave_events(client: &Arc<Provider<Ws>>) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+// TODO - refactor to make users a hashmap
+pub fn update_aave_user<T: AaveEvent>(
+    users: &mut Vec<AaveUserData>,
+    event: T,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let user_action = get_user_action_from_event(&event);
+    for user in users.iter_mut() {
+        if user.id == event.get_from() {
+            user.update(&user_action).unwrap();
+            return Ok(());
+        }
+    }
     Ok(())
 }

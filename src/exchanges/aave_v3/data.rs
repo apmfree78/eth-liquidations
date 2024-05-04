@@ -18,7 +18,7 @@ pub enum PricingSource {
 pub struct AaveToken {
     pub token: Erc20Token,
     pub current_total_debt: BigDecimal,
-    pub token_price_eth: BigDecimal,
+    // pub token_price_eth: BigDecimal,
     pub usage_as_collateral_enabled: bool,
     pub current_atoken_balance: BigDecimal,
     pub reserve_liquidation_threshold: BigDecimal,
