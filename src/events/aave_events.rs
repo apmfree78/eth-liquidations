@@ -104,7 +104,7 @@ pub fn update_aave_user(
     users: &mut Vec<AaveUserData>,
     event: Box<dyn AaveEvent>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let user_address = event.get_from();
+    let user_address = event.get_user();
     let user_action = get_user_action_from_event(event);
     println!("user action {:#?}", user_action);
     for user in users.iter_mut() {

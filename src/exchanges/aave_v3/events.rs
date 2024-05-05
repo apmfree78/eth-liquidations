@@ -26,32 +26,36 @@ pub struct AaveUserAction {
 
 #[derive(Clone, Copy, Debug)]
 pub struct WithdrawEvent {
-    pub from: Address,
     pub reserve: Address,
+    pub user: Address,
     pub to: Address,
     pub amount: U256,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct BorrowEvent {
-    pub from: Address,
     pub reserve: Address,
-    pub to: Address,
+    pub user: Address,
+    pub on_behalf_of: Address,
     pub amount: U256,
+    pub interate_rate_mode: u8,
+    pub borrow_rate: U256,
+    pub referral_code: u16,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct RepayEvent {
-    pub from: Address,
     pub reserve: Address,
-    pub to: Address,
+    pub user: Address,
+    pub repayer: Address,
     pub amount: U256,
+    pub use_a_tokens: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct SupplyEvent {
-    pub from: Address,
     pub reserve: Address,
+    pub user: Address,
     pub on_behalf_of: Address,
     pub amount: U256,
     pub referral_code: u16,
@@ -67,7 +71,7 @@ pub enum AaveEventType {
 }
 
 pub trait AaveEvent {
-    fn get_from(&self) -> Address;
+    fn get_user(&self) -> Address;
     fn get_reserve(&self) -> Address;
     fn get_amount(&self) -> U256;
     fn get_type(&self) -> AaveUserEvent;
@@ -76,8 +80,8 @@ pub trait AaveEvent {
 macro_rules! impl_aave_event {
     ($struct_name:ident, $event_variant:expr) => {
         impl AaveEvent for $struct_name {
-            fn get_from(&self) -> Address {
-                self.from
+            fn get_user(&self) -> Address {
+                self.user
             }
 
             fn get_reserve(&self) -> Address {
@@ -101,14 +105,15 @@ impl_aave_event!(SupplyEvent, AaveUserEvent::Supply);
 impl_aave_event!(WithdrawEvent, AaveUserEvent::WithDraw);
 
 pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
-    let token_address = event.get_reserve().to_string();
-    let token = TOKEN_DATA.get(&token_address).unwrap();
+    let token_address = event.get_reserve();
+    println!("token address {:#?}", token_address);
+    let token = TOKEN_DATA.get(&token_address.to_string()).unwrap();
     let amount = event.get_amount();
     let amount = u256_to_big_decimal(&amount);
 
     return AaveUserAction {
         user_event: event.get_type(),
-        user_address: event.get_from(),
+        user_address: event.get_user(),
         token: *token,
         amount_transferred: amount,
     };
@@ -189,10 +194,11 @@ impl Update for AaveUserData {
 
 pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveEventType {
     let raw_log: RawLog = RawLog::from(log.clone());
+    println!(" raw log data {:#?}", raw_log);
 
     match event_type {
         AaveUserEvent::WithDraw => {
-            let amount = vec_u8_to_u256(&raw_log.data);
+            let amount = vec_u8_to_u256(&raw_log.data).expect("vec u8 to u256:invalid call");
             return AaveEventType::WithdrawEvent(WithdrawEvent {
                 from: raw_log.topics[1].into(),
                 reserve: raw_log.topics[2].into(),
@@ -201,7 +207,7 @@ pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveE
             });
         }
         AaveUserEvent::Borrow => {
-            let amount = vec_u8_to_u256(&raw_log.data);
+            let amount = vec_u8_to_u256(&raw_log.data).expect("vec u8 to u256:invalid call");
             return AaveEventType::BorrowEvent(BorrowEvent {
                 from: raw_log.topics[1].into(),
                 reserve: raw_log.topics[2].into(),
@@ -210,7 +216,7 @@ pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveE
             });
         }
         AaveUserEvent::Repay => {
-            let amount = vec_u8_to_u256(&raw_log.data);
+            let amount = vec_u8_to_u256(&raw_log.data).expect("vec u8 to u256: invalid call");
             return AaveEventType::RepayEvent(RepayEvent {
                 from: raw_log.topics[1].into(),
                 reserve: raw_log.topics[2].into(),
@@ -232,9 +238,12 @@ pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveE
     }
 }
 
-fn vec_u8_to_u256(data: &Vec<u8>) -> U256 {
-    let mut data_slice = data.as_slice();
-    U256::decode(&mut data_slice).unwrap()
+fn vec_u8_to_u256(data: &Vec<u8>) -> Result<U256, Box<dyn std::error::Error>> {
+    if data.len() != 32 {
+        return Err("Data length incorrect for U256, must be 32 bytes".into());
+    }
+    let data_slice = data.as_slice();
+    Ok(U256::from_big_endian(data_slice))
 }
 
 fn decode_supply_event_data(data: &Vec<u8>) -> Result<(U256, u16), ethers::abi::Error> {
