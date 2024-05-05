@@ -7,7 +7,7 @@ use ethers::core::abi::RawLog;
 use ethers::core::types::{Log, U256};
 use open_fastrlp::Decodable;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum AaveUserEvent {
     WithDraw,
     Borrow,
@@ -24,6 +24,7 @@ pub struct AaveUserAction {
     pub amount_transferred: BigDecimal,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct WithdrawEvent {
     pub from: Address,
     pub reserve: Address,
@@ -31,6 +32,7 @@ pub struct WithdrawEvent {
     pub amount: U256,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct BorrowEvent {
     pub from: Address,
     pub reserve: Address,
@@ -38,6 +40,7 @@ pub struct BorrowEvent {
     pub amount: U256,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct RepayEvent {
     pub from: Address,
     pub reserve: Address,
@@ -45,6 +48,7 @@ pub struct RepayEvent {
     pub amount: U256,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct SupplyEvent {
     pub from: Address,
     pub reserve: Address,
@@ -53,6 +57,7 @@ pub struct SupplyEvent {
     pub referral_code: u16,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum AaveEventType {
     WithdrawEvent(WithdrawEvent),
     BorrowEvent(BorrowEvent),
@@ -95,7 +100,7 @@ impl_aave_event!(RepayEvent, AaveUserEvent::Repay);
 impl_aave_event!(SupplyEvent, AaveUserEvent::Supply);
 impl_aave_event!(WithdrawEvent, AaveUserEvent::WithDraw);
 
-pub fn get_user_action_from_event<T: AaveEvent>(event: &T) -> AaveUserAction {
+pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
     let token_address = event.get_reserve().to_string();
     let token = TOKEN_DATA.get(&token_address).unwrap();
     let amount = event.get_amount();
