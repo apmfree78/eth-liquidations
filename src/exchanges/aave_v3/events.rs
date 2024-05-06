@@ -38,7 +38,7 @@ pub struct BorrowEvent {
     pub user: Address,
     pub on_behalf_of: Address,
     pub amount: U256,
-    pub interate_rate_mode: u8,
+    pub interest_rate_mode: u8,
     pub borrow_rate: U256,
     pub referral_code: u16,
 }
@@ -198,72 +198,119 @@ pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveE
 
     match event_type {
         AaveUserEvent::WithDraw => {
-            let amount = vec_u8_to_u256(&raw_log.data).expect("vec u8 to u256:invalid call");
-            return AaveEventType::WithdrawEvent(WithdrawEvent {
-                from: raw_log.topics[1].into(),
-                reserve: raw_log.topics[2].into(),
-                to: raw_log.topics[3].into(),
-                amount,
-            });
+            let withdraw_event = decode_withdraw_event(log).unwrap();
+            AaveEventType::WithdrawEvent(withdraw_event)
         }
         AaveUserEvent::Borrow => {
-            let amount = vec_u8_to_u256(&raw_log.data).expect("vec u8 to u256:invalid call");
-            return AaveEventType::BorrowEvent(BorrowEvent {
-                from: raw_log.topics[1].into(),
-                reserve: raw_log.topics[2].into(),
-                to: raw_log.topics[3].into(),
-                amount,
-            });
+            let borrow_event = decode_borrow_event(log).unwrap();
+            AaveEventType::BorrowEvent(borrow_event)
         }
         AaveUserEvent::Repay => {
-            let amount = vec_u8_to_u256(&raw_log.data).expect("vec u8 to u256: invalid call");
-            return AaveEventType::RepayEvent(RepayEvent {
-                from: raw_log.topics[1].into(),
-                reserve: raw_log.topics[2].into(),
-                to: raw_log.topics[3].into(),
-                amount,
-            });
+            let repay_event = decode_repay_event(log).unwrap();
+            AaveEventType::RepayEvent(repay_event)
         }
         AaveUserEvent::Supply => {
-            let (amount, referral_code) = decode_supply_event_data(&raw_log.data).unwrap();
-            return AaveEventType::SupplyEvent(SupplyEvent {
-                from: raw_log.topics[1].into(),
-                reserve: raw_log.topics[2].into(),
-                on_behalf_of: raw_log.topics[3].into(),
-                amount,
-                referral_code,
-            });
+            let supply_event = decode_supply_event(log).unwrap();
+            AaveEventType::SupplyEvent(supply_event)
         }
         _ => AaveEventType::Unknown,
     }
 }
 
-fn vec_u8_to_u256(data: &Vec<u8>) -> Result<U256, Box<dyn std::error::Error>> {
-    if data.len() != 32 {
-        return Err("Data length incorrect for U256, must be 32 bytes".into());
+fn decode_borrow_event(log: &Log) -> Result<BorrowEvent, Box<dyn std::error::Error>> {
+    if log.topics.len() < 3 {
+        // Check the number of indexed parameters
+        return Err("Incorrect number of topics for Borrow event".into());
     }
-    let data_slice = data.as_slice();
-    Ok(U256::from_big_endian(data_slice))
+
+    let reserve = Address::from_slice(&log.topics[1].as_bytes());
+    let on_behalf_of = Address::from_slice(&log.topics[2].as_bytes());
+    let referral_code = U256::from_big_endian(&log.topics[3].as_bytes());
+    let referral_code: u16 = referral_code
+        .low_u64()
+        .try_into()
+        .map_err(|_| "Referral code is too large for u16")?;
+
+    // Assuming the data contains the rest in order: user, amount, interestRateMode, borrowRate
+    let mut data_slice = log.data.as_ref();
+    let user = Address::decode(&mut data_slice)?;
+    let amount = U256::decode(&mut data_slice)?;
+    let interest_rate_mode = u8::decode(&mut data_slice)?;
+    let borrow_rate = U256::decode(&mut data_slice)?;
+
+    Ok(BorrowEvent {
+        reserve,
+        user,
+        on_behalf_of,
+        amount,
+        interest_rate_mode,
+        borrow_rate,
+        referral_code,
+    })
 }
 
-fn decode_supply_event_data(data: &Vec<u8>) -> Result<(U256, u16), ethers::abi::Error> {
-    // Decode data assuming it contains a U256 followed by a u16
-    // Both U256 and u16 are ABI-encoded as 32 bytes, with u16 being padded on the right
-    let data_slice = data.as_slice();
-    let tokens = decode(&[ParamType::Uint(256), ParamType::Uint(16)], data_slice)?;
+fn decode_repay_event(log: &Log) -> Result<RepayEvent, Box<dyn std::error::Error>> {
+    if log.topics.len() < 3 {
+        return Err("Must have 3 topics for Repay Event".into());
+    }
 
-    let amount = match &tokens[0] {
-        Token::Uint(value) => *value,
-        _ => return Err(ethers::abi::Error::InvalidData),
-    };
+    let reserve = Address::from_slice(log.topics[1].as_bytes());
+    let user = Address::from_slice(log.topics[2].as_bytes());
+    let repayer = Address::from_slice(log.topics[3].as_bytes());
 
-    let referral_code = match &tokens[1] {
-        Token::Uint(value) => {
-            // u16 should be within the last 2 bytes of the 32-byte aligned Uint
-            (*value & U256::from(u16::MAX)).as_u32() as u16
-        }
-        _ => return Err(ethers::abi::Error::InvalidData),
-    };
+    let mut data_slice = log.data.as_ref();
+    let amount = U256::decode(&mut data_slice)?;
+    let use_a_tokens = bool::decode(&mut data_slice)?;
 
-    Ok((amount, referral_code))
+    Ok(RepayEvent {
+        reserve,
+        user,
+        repayer,
+        amount,
+        use_a_tokens,
+    })
+}
+
+fn decode_withdraw_event(log: &Log) -> Result<WithdrawEvent, Box<dyn std::error::Error>> {
+    if log.topics.len() < 3 {
+        return Err("Must have 3 topics for WithDraw Event".into());
+    }
+
+    let reserve = Address::from_slice(log.topics[1].as_bytes());
+    let user = Address::from_slice(log.topics[2].as_bytes());
+    let to = Address::from_slice(log.topics[3].as_bytes());
+
+    let mut data_slice = log.data.as_ref();
+    let amount = U256::decode(&mut data_slice)?;
+
+    Ok(WithdrawEvent {
+        reserve,
+        user,
+        to,
+        amount,
+    })
+}
+
+fn decode_supply_event(log: &Log) -> Result<SupplyEvent, Box<dyn std::error::Error>> {
+    if log.topics.len() < 3 {
+        // Check the number of indexed parameters
+        return Err("Incorrect number of topics for Borrow event".into());
+    }
+
+    let reserve = Address::from_slice(&log.topics[1].as_bytes());
+    let user = Address::from_slice(&log.topics[2].as_bytes());
+    let on_behalf_of = Address::from_slice(&log.topics[3].as_bytes());
+
+    // Assuming the data contains the rest in order: user, amount, interestRateMode, borrowRate
+    let mut data_slice = log.data.as_ref();
+    let amount = U256::decode(&mut data_slice)?;
+    let referral_code = u16::decode(&mut data_slice)?;
+
+    Ok(SupplyEvent {
+        reserve,
+        user,
+        on_behalf_of,
+        amount,
+        referral_code,
+    })
 }

@@ -10,7 +10,7 @@ const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 use eyre::Result;
 
 const WITHDRAW_SIGNATURE: &str = "Withdraw(address,address,address,uint256)";
-const BORROW_SIGNATURE: &str = "Borrow(address,address,address,uint256,uint8,uint256)";
+const BORROW_SIGNATURE: &str = "Borrow(address,address,address,uint256,uint8,uint256,uint16)";
 const REPAY_SIGNATURE: &str = "Repay(address,address,address,uint256,bool)";
 const SUPPLY_SIGNATURE: &str = "Supply(address,address,address,uint256,uint16)";
 
