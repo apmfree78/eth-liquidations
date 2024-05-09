@@ -106,7 +106,7 @@ pub fn update_aave_user(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user_address = event.get_user();
     let user_action = get_user_action_from_event(event);
-    println!("user action {:#?}", user_action);
+    // println!("user action {:#?}", user_action);
     for user in users.iter_mut() {
         if user.id == user_address {
             println!("updating user {:#?}", user);

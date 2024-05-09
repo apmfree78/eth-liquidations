@@ -214,7 +214,7 @@ pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveE
             AaveEventType::BorrowEvent(borrow_event)
         }
         AaveUserEvent::Repay => {
-            println!("decoding repay event...");
+            println!("decoding repay event...{:#?}", log);
             let repay_event = decode_repay_event(log).unwrap();
             AaveEventType::RepayEvent(repay_event)
         }
@@ -235,7 +235,6 @@ fn decode_borrow_event(log: &Log) -> Result<BorrowEvent, Box<dyn std::error::Err
 
     let reserve: Address = log.topics[1].into();
     let on_behalf_of: Address = log.topics[2].into();
-    // let on_behalf_of = Address::from_slice(&log.topics[2].as_bytes());
     let referral_code = U256::from_big_endian(log.topics[3].as_bytes());
     let referral_code: u16 = referral_code
         .low_u64()
@@ -244,28 +243,31 @@ fn decode_borrow_event(log: &Log) -> Result<BorrowEvent, Box<dyn std::error::Err
 
     // Assuming the data contains the rest in order: user, amount, interestRateMode, borrowRate
     // Proceed with decoding data which is just raw binary (not RLP encoded)
-    let data_slice = log.data.as_ref();
-    if data_slice.len() < 53 {
-        // 20 (user) + 32 (amount) + 1 (interest rate mode)
+    let raw_log: RawLog = RawLog::from(log.clone());
+    let data_slice = raw_log.data;
+    if data_slice.len() < 128 {
         return Err("Data field too short to decode all fields".into());
     }
     // Extract the Address directly from data slice assuming first 20 bytes are the address
-    let user = Address::from_slice(&data_slice[0..20]);
-    let amount = U256::from_big_endian(&data_slice[20..52]);
-    let interest_rate_mode = data_slice[52]; // assuming 1 byte for interest rate mode
-                                             // RPL encode data
-                                             // println!("getting borrow rate");
-                                             // let borrow_rate = U256::decode(&mut data_slice)?;
+    let user = Address::from_slice(&data_slice[12..32]);
+    let amount = U256::from_big_endian(&data_slice[32..64]);
+    let interest_rate_mode = data_slice[95].clone(); // assuming 1 byte for interest rate mode
+    println!("getting borrow rate");
+    let borrow_rate = U256::from_big_endian(&data_slice[96..128]);
 
-    Ok(BorrowEvent {
+    let borrow_event = BorrowEvent {
         reserve,
         user,
         on_behalf_of,
         amount,
         interest_rate_mode,
-        borrow_rate: U256::from(0),
+        borrow_rate,
         referral_code,
-    })
+    };
+
+    // println!("borrow event => {:#?}", borrow_event);
+
+    Ok(borrow_event)
 }
 
 fn decode_repay_event(log: &Log) -> Result<RepayEvent, Box<dyn std::error::Error>> {
@@ -277,22 +279,26 @@ fn decode_repay_event(log: &Log) -> Result<RepayEvent, Box<dyn std::error::Error
     let user: Address = log.topics[2].into();
     let repayer: Address = log.topics[3].into();
 
-    if log.data.len() < 33 {
+    if log.data.len() < 64 {
         // Check sufficient data length for amount (32 bytes) + bool (1 byte)
         return Err("Data slice too short".into());
     }
 
     let data_slice = log.data.as_ref();
     let amount = U256::from_big_endian(&data_slice[0..32]);
-    let use_a_tokens: bool = data_slice[32] != 0;
+    let use_a_tokens: bool = data_slice[63] != 0;
 
-    Ok(RepayEvent {
+    let repay_event = RepayEvent {
         reserve,
         user,
         repayer,
         amount,
         use_a_tokens,
-    })
+    };
+
+    println!("REPAY EVENT => {:#?}", repay_event);
+
+    Ok(repay_event)
 }
 
 fn decode_withdraw_event(log: &Log) -> Result<WithdrawEvent, Box<dyn std::error::Error>> {
@@ -327,20 +333,21 @@ fn decode_supply_event(log: &Log) -> Result<SupplyEvent, Box<dyn std::error::Err
     }
 
     let reserve: Address = log.topics[1].into();
-    let user: Address = log.topics[2].into();
-    let on_behalf_of: Address = log.topics[3].into();
+    let on_behalf_of: Address = log.topics[2].into();
+    let referral_code = U256::from_big_endian(log.topics[3].as_bytes());
+    let referral_code: u16 = referral_code
+        .low_u64()
+        .try_into()
+        .map_err(|_| "Referral code is too large for u16")?;
 
     let data_slice = log.data.as_ref();
-    if data_slice.len() < 34 {
+    if data_slice.len() < 64 {
         return Err("Data slice too short for extracting u16".into());
     }
 
     // Assuming the data contains the rest in order: user, amount, interestRateMode, borrowRate
-    let amount = U256::from_big_endian(&data_slice[0..32]);
-    let bytes = data_slice[32..34]
-        .try_into() // Try to convert the slice into an array of length 2
-        .map_err(|_| "Slice with incorrect length")?;
-    let referral_code = u16::from_be_bytes(bytes);
+    let user = Address::from_slice(&data_slice[12..32]);
+    let amount = U256::from_big_endian(&data_slice[44..64]);
 
     Ok(SupplyEvent {
         reserve,
