@@ -39,6 +39,8 @@ async fn test_token_data_matches_token_contract() -> Result<(), Box<dyn std::err
         }
 
         let address: Address = token.address.parse()?;
+        // let address_str = address.to_string().to_lowercase();
+        let address_str = format!("{:?}", address);
 
         println!("checking {} ", token.name);
         let token_contract = ERC20::new(address, client.clone());
@@ -47,6 +49,19 @@ async fn test_token_data_matches_token_contract() -> Result<(), Box<dyn std::err
         let contract_name = token_contract.name().call().await?;
         let contract_symbol = token_contract.symbol().call().await?;
         let contract_decimals = token_contract.decimals().call().await?;
+
+        println!("normalized address {}", address_str);
+        println!("normalized address length {}", address_str.len());
+        println!("original token address {:?}", token.address);
+        // let _token = TOKEN_DATA
+        //     .get(&token.address.to_string().to_lowercase())
+        //     .unwrap();
+        let _token = TOKEN_DATA.get(&address_str).unwrap();
+
+        assert_eq!(
+            contract_name, _token.name,
+            "Contract name does not match expected token name"
+        );
 
         assert_eq!(
             contract_name, token.name,

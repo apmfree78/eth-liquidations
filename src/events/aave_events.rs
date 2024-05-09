@@ -56,7 +56,7 @@ pub async fn scan_and_update_aave_events(
         if !log.topics.is_empty() {
             //determine which aave event was found
             if let Some(aave_event_enum) = aave_event_map.get(&log.topics[0]) {
-                println!("{:?} event: {:?}", aave_event_enum, log);
+                // println!("{:?} event: {:#?}", aave_event_enum, log);
 
                 // extract event data from log
                 let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);

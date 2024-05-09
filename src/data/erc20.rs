@@ -2,9 +2,9 @@ use super::address::AAVE_ORACLE_ADDRESS;
 use crate::abi::{aave_oracle::AAVE_ORACLE, aave_v3_pool::AAVE_V3_POOL};
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use ethers::abi::Address;
 use ethers::core::types::U256;
 use ethers::providers::{Provider, Ws};
-use ethers::types::Address;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -345,7 +345,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
 
     // copy hashmap with token address as index
     for token in &tokens {
-        token_hash.insert(token.address.to_string(), *token);
+        token_hash.insert(token.address.to_string().to_lowercase(), *token);
     }
 
     token_hash
@@ -373,4 +373,8 @@ pub async fn generate_token(
 
 pub fn u256_to_big_decimal(value: &U256) -> BigDecimal {
     BigDecimal::from_str(&value.to_string()).unwrap()
+}
+
+pub fn address_to_string(address: Address) -> String {
+    format!("{:?}", address)
 }
