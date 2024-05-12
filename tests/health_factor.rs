@@ -1,5 +1,5 @@
 use bigdecimal::BigDecimal;
-use eth_liquadation::exchanges::aave_v3::data::{
+use eth_liquadation::exchanges::aave_v3::user_data::{
     AaveUserData, Generate, HealthFactor, PricingSource,
 };
 use ethers::providers::{Provider, Ws};

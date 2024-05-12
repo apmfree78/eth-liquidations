@@ -1,7 +1,8 @@
-use crate::exchanges::aave_v3::data::AaveUserData;
-use crate::exchanges::aave_v3::events::{
-    create_aave_event_from_log, get_user_action_from_event, AaveEvent, AaveEventType,
-    AaveUserEvent, Update,
+use crate::exchanges::aave_v3::{
+    decode_events::create_aave_event_from_log,
+    events::{AaveEvent, AaveEventType, AaveUserEvent},
+    update_user::{get_user_action_from_event, Update},
+    user_data::AaveUserData,
 };
 use ethers::{prelude::*, utils::keccak256};
 use std::collections::HashMap;
@@ -10,6 +11,10 @@ const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 use eyre::Result;
 
 const WITHDRAW_SIGNATURE: &str = "Withdraw(address,address,address,uint256)";
+const RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE: &str =
+    "ReserveUsedAsCollateralEnabled(address,address)";
+const RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE: &str =
+    "ReserveUsedAsCollateralDisabled(address,address)";
 const BORROW_SIGNATURE: &str = "Borrow(address,address,address,uint256,uint8,uint256,uint16)";
 const REPAY_SIGNATURE: &str = "Repay(address,address,address,uint256,bool)";
 const SUPPLY_SIGNATURE: &str = "Supply(address,address,address,uint256,uint16)";
@@ -40,6 +45,8 @@ pub async fn scan_and_update_aave_events(
                 BORROW_SIGNATURE,
                 REPAY_SIGNATURE,
                 SUPPLY_SIGNATURE,
+                RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE,
+                RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
             ]
             .to_vec(),
         )
@@ -79,11 +86,23 @@ fn setup_event_map() -> HashMap<H256, AaveUserEvent> {
     let withdraw_hash: H256 = H256::from(keccak256(WITHDRAW_SIGNATURE.as_bytes()));
     let repay_hash: H256 = H256::from(keccak256(REPAY_SIGNATURE.as_bytes()));
     let supply_hash: H256 = H256::from(keccak256(SUPPLY_SIGNATURE.as_bytes()));
+    let reserve_enable_hash: H256 =
+        keccak256(RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE.as_bytes()).into();
+    let reserve_disabled_hash: H256 =
+        keccak256(RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE.as_bytes()).into();
 
     event_map.insert(withdraw_hash, AaveUserEvent::WithDraw);
     event_map.insert(borrow_hash, AaveUserEvent::Borrow);
     event_map.insert(repay_hash, AaveUserEvent::Repay);
     event_map.insert(supply_hash, AaveUserEvent::Supply);
+    event_map.insert(
+        reserve_enable_hash,
+        AaveUserEvent::ReserveUsedAsCollateralEnabled,
+    );
+    event_map.insert(
+        reserve_disabled_hash,
+        AaveUserEvent::ReserveUsedAsCollateralDisabled,
+    );
     event_map
 }
 
@@ -95,6 +114,8 @@ pub fn extract_aave_event_data(
         AaveEventType::BorrowEvent(event) => Ok(Box::new(*event)),
         AaveEventType::RepayEvent(event) => Ok(Box::new(*event)),
         AaveEventType::SupplyEvent(event) => Ok(Box::new(*event)),
+        AaveEventType::ReserveUsedAsCollateralDisabled(event) => Ok(Box::new(*event)),
+        AaveEventType::ReserveUsedAsCollateralEnabled(event) => Ok(Box::new(*event)),
         _ => Err("Unhandled event type".into()),
     }
 }

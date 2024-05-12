@@ -1,7 +1,7 @@
 use super::address::AAVE_ORACLE_ADDRESS;
-use crate::abi::{aave_oracle::AAVE_ORACLE, aave_v3_pool::AAVE_V3_POOL};
+use crate::abi::aave_oracle::AAVE_ORACLE;
 use async_trait::async_trait;
-use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
 use ethers::core::types::U256;
 use ethers::providers::{Provider, Ws};
@@ -21,6 +21,8 @@ pub struct Erc20Token {
     pub symbol: &'static str,
     pub decimals: u8,
     pub address: &'static str,
+    pub liquidation_bonus: u16,
+    pub liquidation_threshold: u16,
 }
 
 #[async_trait]
@@ -166,6 +168,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "WETH",
         decimals: 18,
         address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        liquidation_bonus: 10500,
+        liquidation_threshold: 8300,
     });
 
     tokens.push(Erc20Token {
@@ -173,6 +177,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "wstETH",
         decimals: 18,
         address: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+        liquidation_bonus: 10600,
+        liquidation_threshold: 8100,
     });
 
     tokens.push(Erc20Token {
@@ -180,6 +186,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "USDC",
         decimals: 6,
         address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        liquidation_bonus: 10450,
+        liquidation_threshold: 7800,
     });
 
     tokens.push(Erc20Token {
@@ -187,6 +195,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "DAI",
         decimals: 18,
         address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        liquidation_bonus: 10500,
+        liquidation_threshold: 7700,
     });
 
     tokens.push(Erc20Token {
@@ -194,6 +204,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "LINK",
         decimals: 18,
         address: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+        liquidation_bonus: 10700,
+        liquidation_threshold: 6800,
     });
 
     tokens.push(Erc20Token {
@@ -201,6 +213,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "USDT",
         decimals: 6,
         address: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        liquidation_bonus: 10450,
+        liquidation_threshold: 7800,
     });
 
     tokens.push(Erc20Token {
@@ -208,6 +222,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "WBTC",
         decimals: 8,
         address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+        liquidation_bonus: 10500,
+        liquidation_threshold: 8300,
     });
 
     tokens.push(Erc20Token {
@@ -215,6 +231,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "rETH",
         decimals: 18,
         address: "0xae78736Cd615f374D3085123A210448E74Fc6393",
+        liquidation_bonus: 10750,
+        liquidation_threshold: 7700,
     });
 
     tokens.push(Erc20Token {
@@ -222,6 +240,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "MKR",
         decimals: 18,
         address: "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2",
+        liquidation_bonus: 10850,
+        liquidation_threshold: 7000,
     });
 
     tokens.push(Erc20Token {
@@ -229,6 +249,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "cbETH",
         decimals: 18,
         address: "0xBe9895146f7AF43049ca1c1AE358B0541Ea49704",
+        liquidation_bonus: 10750,
+        liquidation_threshold: 7700,
     });
 
     tokens.push(Erc20Token {
@@ -236,6 +258,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "PYUSD",
         decimals: 6,
         address: "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
+        liquidation_bonus: 0,
+        liquidation_threshold: 0,
     });
 
     tokens.push(Erc20Token {
@@ -243,6 +267,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "LDO",
         decimals: 18,
         address: "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32",
+        liquidation_bonus: 10900,
+        liquidation_threshold: 5000,
     });
 
     tokens.push(Erc20Token {
@@ -250,6 +276,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "UNI",
         decimals: 18,
         address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+        liquidation_bonus: 11000,
+        liquidation_threshold: 7400,
     });
 
     tokens.push(Erc20Token {
@@ -257,6 +285,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "SNX",
         decimals: 18,
         address: "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
+        liquidation_bonus: 10850,
+        liquidation_threshold: 6400,
     });
 
     tokens.push(Erc20Token {
@@ -264,6 +294,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "1INCH",
         decimals: 18,
         address: "0x111111111117dC0aa78b770fA6A738034120C302",
+        liquidation_bonus: 10750,
+        liquidation_threshold: 6700,
     });
 
     tokens.push(Erc20Token {
@@ -271,6 +303,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "LUSD",
         decimals: 18,
         address: "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0",
+        liquidation_bonus: 10450,
+        liquidation_threshold: 7700,
     });
 
     tokens.push(Erc20Token {
@@ -278,6 +312,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "ENS",
         decimals: 18,
         address: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
+        liquidation_bonus: 10800,
+        liquidation_threshold: 4900,
     });
 
     tokens.push(Erc20Token {
@@ -285,6 +321,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "BAL",
         decimals: 18,
         address: "0xba100000625a3754423978a60c9317c58a424e3D",
+        liquidation_bonus: 10830,
+        liquidation_threshold: 5900,
     });
 
     tokens.push(Erc20Token {
@@ -292,6 +330,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "CRV",
         decimals: 18,
         address: "0xD533a949740bb3306d119CC777fa900bA034cd52",
+        liquidation_bonus: 10830,
+        liquidation_threshold: 4100,
     });
 
     tokens.push(Erc20Token {
@@ -299,6 +339,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "FRAX",
         decimals: 18,
         address: "0x853d955aCEf822Db058eb8505911ED77F175b99e",
+        liquidation_bonus: 10600,
+        liquidation_threshold: 7200,
     });
 
     tokens.push(Erc20Token {
@@ -306,6 +348,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "crvUSD",
         decimals: 18,
         address: "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
+        liquidation_bonus: 0,
+        liquidation_threshold: 0,
     });
 
     tokens.push(Erc20Token {
@@ -313,6 +357,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "GHO",
         decimals: 18,
         address: "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+        liquidation_bonus: 0,
+        liquidation_threshold: 0,
     });
 
     tokens.push(Erc20Token {
@@ -320,6 +366,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "AAVE",
         decimals: 18,
         address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
+        liquidation_bonus: 10750,
+        liquidation_threshold: 7300,
     });
 
     tokens.push(Erc20Token {
@@ -327,6 +375,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "sDAI",
         decimals: 18,
         address: "0x83F20F44975D03b1b09e64809B757c47f942BEeA",
+        liquidation_bonus: 10450,
+        liquidation_threshold: 7800,
     });
 
     tokens.push(Erc20Token {
@@ -334,6 +384,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         symbol: "weETH",
         decimals: 18,
         address: "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
+        liquidation_bonus: 10750,
+        liquidation_threshold: 7500,
     });
 
     let mut token_hash = HashMap::new();

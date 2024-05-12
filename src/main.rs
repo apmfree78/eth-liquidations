@@ -1,7 +1,7 @@
 use bigdecimal::BigDecimal;
 use eth_liquadation::{
     events::aave_events::scan_and_update_aave_events,
-    exchanges::aave_v3::data::{AaveUserData, Generate, HealthFactor, PricingSource},
+    exchanges::aave_v3::user_data::{AaveUserData, Generate, HealthFactor, PricingSource},
 };
 use ethers::providers::{Provider, Ws};
 use std::sync::Arc;

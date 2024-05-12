@@ -1,7 +1,5 @@
-use crate::abi::aave_oracle::AAVE_ORACLE;
-use crate::data::address::AAVE_ORACLE_ADDRESS;
 use crate::data::erc20::{Convert, TOKEN_DATA};
-use crate::exchanges::aave_v3::data::AaveToken;
+use crate::exchanges::aave_v3::user_data::AaveToken;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::providers::{Provider, Ws};

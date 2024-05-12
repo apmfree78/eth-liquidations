@@ -1,15 +1,7 @@
-use core::panic;
-
-use super::data::{AaveToken, AaveUserData};
-use crate::data::erc20::{address_to_string, u256_to_big_decimal, Erc20Token, TOKEN_DATA};
+use crate::data::erc20::Erc20Token;
 use bigdecimal::BigDecimal;
 use ethers::abi::Address;
-use ethers::abi::{self, decode, ParamType, Token};
-use ethers::core::abi::RawLog;
-use ethers::core::types::{Log, U256};
-use rlp::RlpStream;
-// use ethers::types::Address;
-use open_fastrlp::Decodable;
+use ethers::core::types::U256;
 
 #[derive(Clone, Copy, Debug)]
 pub enum AaveUserEvent {
@@ -17,6 +9,8 @@ pub enum AaveUserEvent {
     Borrow,
     Repay,
     Supply,
+    ReserveUsedAsCollateralEnabled,
+    ReserveUsedAsCollateralDisabled,
     Unknown,
 }
 
@@ -26,6 +20,37 @@ pub struct AaveUserAction {
     pub user_address: Address,
     pub token: Erc20Token,
     pub amount_transferred: BigDecimal,
+    pub use_a_tokens: bool,
+}
+
+pub trait ReserveCollateralEvent {
+    fn new(reserve: Address, user: Address) -> Self
+    where
+        Self: Sized;
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ReserveUsedAsCollateralEnabledEvent {
+    pub reserve: Address,
+    pub user: Address,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ReserveUsedAsCollateralDisabledEvent {
+    pub reserve: Address,
+    pub user: Address,
+}
+
+impl ReserveCollateralEvent for ReserveUsedAsCollateralEnabledEvent {
+    fn new(reserve: Address, user: Address) -> Self {
+        ReserveUsedAsCollateralEnabledEvent { reserve, user }
+    }
+}
+
+impl ReserveCollateralEvent for ReserveUsedAsCollateralDisabledEvent {
+    fn new(reserve: Address, user: Address) -> Self {
+        ReserveUsedAsCollateralDisabledEvent { reserve, user }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -71,14 +96,21 @@ pub enum AaveEventType {
     BorrowEvent(BorrowEvent),
     RepayEvent(RepayEvent),
     SupplyEvent(SupplyEvent),
+    ReserveUsedAsCollateralEnabled(ReserveUsedAsCollateralEnabledEvent),
+    ReserveUsedAsCollateralDisabled(ReserveUsedAsCollateralDisabledEvent),
     Unknown,
 }
 
 pub trait AaveEvent {
     fn get_user(&self) -> Address;
     fn get_reserve(&self) -> Address;
-    fn get_amount(&self) -> U256;
+    fn get_amount(&self) -> U256 {
+        U256::from(0)
+    }
     fn get_type(&self) -> AaveUserEvent;
+    fn get_use_a_tokens(&self) -> bool {
+        false
+    }
 }
 
 macro_rules! impl_aave_event {
@@ -104,256 +136,53 @@ macro_rules! impl_aave_event {
 }
 
 impl_aave_event!(BorrowEvent, AaveUserEvent::Borrow);
-impl_aave_event!(RepayEvent, AaveUserEvent::Repay);
+impl AaveEvent for RepayEvent {
+    fn get_user(&self) -> Address {
+        self.user
+    }
+
+    fn get_reserve(&self) -> Address {
+        self.reserve
+    }
+
+    fn get_amount(&self) -> U256 {
+        self.amount
+    }
+
+    fn get_type(&self) -> AaveUserEvent {
+        AaveUserEvent::Repay
+    }
+    fn get_use_a_tokens(&self) -> bool {
+        self.use_a_tokens
+    }
+}
 impl_aave_event!(SupplyEvent, AaveUserEvent::Supply);
 impl_aave_event!(WithdrawEvent, AaveUserEvent::WithDraw);
 
-pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
-    let token_address = event.get_reserve();
-    let token_address = address_to_string(token_address);
-    let token;
-    if let Some(_token) = TOKEN_DATA.get(token_address.trim()) {
-        token = _token;
-    } else {
-        panic!("No token found for address: {}", token_address)
+impl AaveEvent for ReserveUsedAsCollateralEnabledEvent {
+    fn get_user(&self) -> Address {
+        self.user
     }
-    let amount = event.get_amount();
-    let amount = u256_to_big_decimal(&amount);
 
-    return AaveUserAction {
-        user_event: event.get_type(),
-        user_address: event.get_user(),
-        token: *token,
-        amount_transferred: amount,
-    };
-}
+    fn get_reserve(&self) -> Address {
+        self.reserve
+    }
 
-pub trait Update {
-    fn update(&mut self, aave_action: &AaveUserAction) -> Result<(), Box<dyn std::error::Error>>;
-}
-
-impl Update for AaveUserData {
-    fn update(&mut self, aave_action: &AaveUserAction) -> Result<(), Box<dyn std::error::Error>> {
-        let token_address = &aave_action.token.address;
-        match aave_action.user_event {
-            AaveUserEvent::WithDraw => {
-                for token in &mut self.tokens {
-                    if token.token.address == *token_address {
-                        // update
-                        token.current_atoken_balance -= aave_action.amount_transferred.clone();
-                        return Ok(());
-                    };
-                }
-            }
-            AaveUserEvent::Borrow => {
-                // find token in aave user data
-                for token in &mut self.tokens {
-                    if token.token.address == *token_address {
-                        // update
-                        token.current_total_debt += aave_action.amount_transferred.clone();
-                        return Ok(());
-                    };
-                }
-
-                // token does not exist , add it
-                let token = TOKEN_DATA.get(*token_address).unwrap();
-                self.tokens.push(AaveToken {
-                    token: *token,
-                    current_total_debt: aave_action.amount_transferred.clone(),
-                    usage_as_collateral_enabled: false,
-                    current_atoken_balance: BigDecimal::from(0),
-                    reserve_liquidation_threshold: BigDecimal::from(8000),
-                    reserve_liquidation_bonus: BigDecimal::from(10000),
-                })
-            }
-            AaveUserEvent::Repay => {
-                // find token in aave user data
-                for token in &mut self.tokens {
-                    if token.token.address == *token_address {
-                        // update
-                        token.current_total_debt -= aave_action.amount_transferred.clone();
-                        return Ok(());
-                    };
-                }
-            }
-            AaveUserEvent::Supply => {
-                for token in &mut self.tokens {
-                    if token.token.address == *token_address {
-                        // update
-                        token.current_atoken_balance += aave_action.amount_transferred.clone();
-                        return Ok(());
-                    };
-                }
-                // token does not exist , add it
-                let token = TOKEN_DATA.get(*token_address).unwrap();
-                self.tokens.push(AaveToken {
-                    token: *token,
-                    current_total_debt: BigDecimal::from(0),
-                    usage_as_collateral_enabled: true,
-                    current_atoken_balance: aave_action.amount_transferred.clone(),
-                    reserve_liquidation_threshold: BigDecimal::from(8000),
-                    reserve_liquidation_bonus: BigDecimal::from(10000),
-                })
-            }
-            _ => {}
-        }
-        Ok(())
+    fn get_type(&self) -> AaveUserEvent {
+        AaveUserEvent::ReserveUsedAsCollateralEnabled
     }
 }
 
-pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveEventType {
-    match event_type {
-        AaveUserEvent::WithDraw => {
-            println!("decoding withdraw event...");
-            let withdraw_event = decode_withdraw_event(log).unwrap();
-            AaveEventType::WithdrawEvent(withdraw_event)
-        }
-        AaveUserEvent::Borrow => {
-            println!("decoding borrow event...");
-            let borrow_event = decode_borrow_event(log).unwrap();
-            AaveEventType::BorrowEvent(borrow_event)
-        }
-        AaveUserEvent::Repay => {
-            println!("decoding repay event...{:#?}", log);
-            let repay_event = decode_repay_event(log).unwrap();
-            AaveEventType::RepayEvent(repay_event)
-        }
-        AaveUserEvent::Supply => {
-            println!("decoding supply event...");
-            let supply_event = decode_supply_event(log).unwrap();
-            AaveEventType::SupplyEvent(supply_event)
-        }
-        _ => AaveEventType::Unknown,
-    }
-}
-
-fn decode_borrow_event(log: &Log) -> Result<BorrowEvent, Box<dyn std::error::Error>> {
-    if log.topics.len() < 4 {
-        // Check the number of indexed parameters
-        return Err("Incorrect number of topics for Borrow event".into());
+impl AaveEvent for ReserveUsedAsCollateralDisabledEvent {
+    fn get_user(&self) -> Address {
+        self.user
     }
 
-    let reserve: Address = log.topics[1].into();
-    let on_behalf_of: Address = log.topics[2].into();
-    let referral_code = U256::from_big_endian(log.topics[3].as_bytes());
-    let referral_code: u16 = referral_code
-        .low_u64()
-        .try_into()
-        .map_err(|_| "Referral code is too large for u16")?;
-
-    // Assuming the data contains the rest in order: user, amount, interestRateMode, borrowRate
-    // Proceed with decoding data which is just raw binary (not RLP encoded)
-    let raw_log: RawLog = RawLog::from(log.clone());
-    let data_slice = raw_log.data;
-    if data_slice.len() < 128 {
-        return Err("Data field too short to decode all fields".into());
-    }
-    // Extract the Address directly from data slice assuming first 20 bytes are the address
-    let user = Address::from_slice(&data_slice[12..32]);
-    let amount = U256::from_big_endian(&data_slice[32..64]);
-    let interest_rate_mode = data_slice[95].clone(); // assuming 1 byte for interest rate mode
-    println!("getting borrow rate");
-    let borrow_rate = U256::from_big_endian(&data_slice[96..128]);
-
-    let borrow_event = BorrowEvent {
-        reserve,
-        user,
-        on_behalf_of,
-        amount,
-        interest_rate_mode,
-        borrow_rate,
-        referral_code,
-    };
-
-    // println!("borrow event => {:#?}", borrow_event);
-
-    Ok(borrow_event)
-}
-
-fn decode_repay_event(log: &Log) -> Result<RepayEvent, Box<dyn std::error::Error>> {
-    if log.topics.len() < 3 {
-        return Err("Must have 3 topics for Repay Event".into());
+    fn get_reserve(&self) -> Address {
+        self.reserve
     }
 
-    let reserve: Address = log.topics[1].into();
-    let user: Address = log.topics[2].into();
-    let repayer: Address = log.topics[3].into();
-
-    if log.data.len() < 64 {
-        // Check sufficient data length for amount (32 bytes) + bool (1 byte)
-        return Err("Data slice too short".into());
+    fn get_type(&self) -> AaveUserEvent {
+        AaveUserEvent::ReserveUsedAsCollateralDisabled
     }
-
-    let data_slice = log.data.as_ref();
-    let amount = U256::from_big_endian(&data_slice[0..32]);
-    let use_a_tokens: bool = data_slice[63] != 0;
-
-    let repay_event = RepayEvent {
-        reserve,
-        user,
-        repayer,
-        amount,
-        use_a_tokens,
-    };
-
-    println!("REPAY EVENT => {:#?}", repay_event);
-
-    Ok(repay_event)
-}
-
-fn decode_withdraw_event(log: &Log) -> Result<WithdrawEvent, Box<dyn std::error::Error>> {
-    if log.topics.len() < 3 {
-        return Err("Must have 3 topics for WithDraw Event".into());
-    }
-
-    let reserve: Address = log.topics[1].into();
-    let user: Address = log.topics[2].into();
-    let to: Address = log.topics[3].into();
-
-    if log.data.len() < 32 {
-        // Check sufficient data length for amount (32 bytes) + bool (1 byte)
-        return Err("Data slice too short".into());
-    }
-
-    let data_slice = log.data.as_ref();
-    let amount = U256::from_big_endian(&data_slice[0..32]);
-
-    Ok(WithdrawEvent {
-        reserve,
-        user,
-        to,
-        amount,
-    })
-}
-
-fn decode_supply_event(log: &Log) -> Result<SupplyEvent, Box<dyn std::error::Error>> {
-    if log.topics.len() < 3 {
-        // Check the number of indexed parameters
-        return Err("Incorrect number of topics for Borrow event".into());
-    }
-
-    let reserve: Address = log.topics[1].into();
-    let on_behalf_of: Address = log.topics[2].into();
-    let referral_code = U256::from_big_endian(log.topics[3].as_bytes());
-    let referral_code: u16 = referral_code
-        .low_u64()
-        .try_into()
-        .map_err(|_| "Referral code is too large for u16")?;
-
-    let data_slice = log.data.as_ref();
-    if data_slice.len() < 64 {
-        return Err("Data slice too short for extracting u16".into());
-    }
-
-    // Assuming the data contains the rest in order: user, amount, interestRateMode, borrowRate
-    let user = Address::from_slice(&data_slice[12..32]);
-    let amount = U256::from_big_endian(&data_slice[44..64]);
-
-    Ok(SupplyEvent {
-        reserve,
-        user,
-        on_behalf_of,
-        amount,
-        referral_code,
-    })
 }
