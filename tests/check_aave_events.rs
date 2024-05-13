@@ -1,8 +1,10 @@
 use eth_liquadation::exchanges::aave_v3::decode_events::{
-    decode_borrow_event, decode_repay_event, decode_supply_event, decode_withdraw_event,
+    decode_borrow_event, decode_repay_event, decode_reserve_used_as_colladeral_event,
+    decode_supply_event, decode_withdraw_event,
 };
 use eth_liquadation::exchanges::aave_v3::events::{
-    BorrowEvent, RepayEvent, SupplyEvent, WithdrawEvent,
+    BorrowEvent, RepayEvent, ReserveCollateralEvent, ReserveUsedAsCollateralDisabledEvent,
+    ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent,
 };
 use ethers::abi::Address;
 use ethers::core::types::{Bytes, Log, U256};
@@ -187,6 +189,74 @@ async fn test_withdraw_event_decoding() -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
+#[tokio::test]
+async fn test_collateral_enable_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
+    let event = ReserveUsedAsCollateralEnabledEvent {
+        reserve: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+            .parse()
+            .unwrap(),
+        user: "0x5ed5dd65ab0dc1bccc44eedaa40680c231faaa9f"
+            .parse()
+            .unwrap(),
+    };
+
+    let topics = generate_collateral_event_topics_field(event.clone());
+
+    // create mock log
+    let log = Log {
+        address: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
+            .parse()
+            .unwrap(),
+        topics,
+        ..Default::default()
+    };
+
+    // decode log
+    let decoded_event =
+        decode_reserve_used_as_colladeral_event::<ReserveUsedAsCollateralEnabledEvent>(&log)
+            .unwrap();
+
+    // test originala event matches decoded
+    assert_eq!(event.reserve, decoded_event.reserve);
+    assert_eq!(event.user, decoded_event.user);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_collateral_disable_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
+    let event = ReserveUsedAsCollateralDisabledEvent {
+        reserve: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+            .parse()
+            .unwrap(),
+        user: "0x5ed5dd65ab0dc1bccc44eedaa40680c231faaa9f"
+            .parse()
+            .unwrap(),
+    };
+
+    let topics = generate_collateral_event_topics_field(event.clone());
+
+    // create mock log
+    let log = Log {
+        address: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
+            .parse()
+            .unwrap(),
+        topics,
+        ..Default::default()
+    };
+
+    // decode log
+    let decoded_event =
+        decode_reserve_used_as_colladeral_event::<ReserveUsedAsCollateralDisabledEvent>(&log)
+            .unwrap();
+
+    // test originala event matches decoded
+    assert_eq!(event.reserve, decoded_event.reserve);
+    assert_eq!(event.user, decoded_event.user);
+
+    Ok(())
+}
+
 fn generate_borrow_event_topics_field(&event: &BorrowEvent) -> Vec<H256> {
     let topics = vec![
         H256::from_slice(&[0u8; 32]),
@@ -203,6 +273,15 @@ fn generate_repay_event_topics_field(&event: &RepayEvent) -> Vec<H256> {
         event.reserve.into(),
         event.user.into(),
         event.repayer.into(),
+    ];
+    topics
+}
+
+fn generate_collateral_event_topics_field<T: ReserveCollateralEvent>(event: T) -> Vec<H256> {
+    let topics = vec![
+        H256::from_slice(&[0u8; 32]),
+        event.get_reserve().into(),
+        event.get_user().into(),
     ];
     topics
 }

@@ -27,6 +27,8 @@ pub trait ReserveCollateralEvent {
     fn new(reserve: Address, user: Address) -> Self
     where
         Self: Sized;
+    fn get_reserve(&self) -> Address;
+    fn get_user(&self) -> Address;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -45,11 +47,23 @@ impl ReserveCollateralEvent for ReserveUsedAsCollateralEnabledEvent {
     fn new(reserve: Address, user: Address) -> Self {
         ReserveUsedAsCollateralEnabledEvent { reserve, user }
     }
+    fn get_reserve(&self) -> Address {
+        self.reserve
+    }
+    fn get_user(&self) -> Address {
+        self.user
+    }
 }
 
 impl ReserveCollateralEvent for ReserveUsedAsCollateralDisabledEvent {
     fn new(reserve: Address, user: Address) -> Self {
         ReserveUsedAsCollateralDisabledEvent { reserve, user }
+    }
+    fn get_reserve(&self) -> Address {
+        self.reserve
+    }
+    fn get_user(&self) -> Address {
+        self.user
     }
 }
 

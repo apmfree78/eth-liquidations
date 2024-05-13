@@ -93,7 +93,7 @@ impl Generate for AaveUserData {
 
             // println!("getting list of user tokens");
             // this is list of tokens that user is either using as colladeral or borrowing
-            let user_tokens = user.get_list_of_user_tokens(&client).await?;
+            let user_tokens = user.get_list_of_user_tokens().await?;
 
             let aave_user = AaveUserData {
                 id: user_id,

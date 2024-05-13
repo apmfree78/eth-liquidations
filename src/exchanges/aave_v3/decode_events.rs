@@ -31,7 +31,7 @@ pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveE
             AaveEventType::SupplyEvent(supply_event)
         }
         AaveUserEvent::ReserveUsedAsCollateralDisabled => {
-            println!("decoding reserve collateral enabled event...");
+            println!("decoding reserve collateral enabled event..");
             let reserve_disable_event = decode_reserve_used_as_colladeral_event::<
                 ReserveUsedAsCollateralDisabledEvent,
             >(log)
@@ -143,7 +143,7 @@ pub fn decode_withdraw_event(log: &Log) -> Result<WithdrawEvent, Box<dyn std::er
         amount,
     };
 
-    println!("withdraw event => {:#?}", withdraw_event);
+    // println!("withdraw event => {:#?}", withdraw_event);
 
     Ok(withdraw_event)
 }

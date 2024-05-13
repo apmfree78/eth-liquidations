@@ -29,10 +29,7 @@ pub trait UserAccountData {
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 
-    async fn get_list_of_user_tokens(
-        &self,
-        client: &Arc<Provider<Ws>>,
-    ) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>>;
+    async fn get_list_of_user_tokens(&self) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -148,10 +145,7 @@ impl UserAccountData for AaveUser {
         Ok(health_factor)
     }
 
-    async fn get_list_of_user_tokens(
-        &self,
-        client: &Arc<Provider<Ws>>,
-    ) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>> {
+    async fn get_list_of_user_tokens(&self) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>> {
         let mut user_token_list: Vec<AaveToken> = Vec::new();
 
         for r in &self.reserves {
