@@ -127,29 +127,25 @@ pub trait AaveEvent {
     }
 }
 
-macro_rules! impl_aave_event {
-    ($struct_name:ident, $event_variant:expr) => {
-        impl AaveEvent for $struct_name {
-            fn get_user(&self) -> Address {
-                self.user
-            }
+impl AaveEvent for BorrowEvent {
+    fn get_user(&self) -> Address {
+        // on_behalf_of is user who will be update
+        self.on_behalf_of
+    }
 
-            fn get_reserve(&self) -> Address {
-                self.reserve
-            }
+    fn get_reserve(&self) -> Address {
+        self.reserve
+    }
 
-            fn get_amount(&self) -> U256 {
-                self.amount
-            }
+    fn get_amount(&self) -> U256 {
+        self.amount
+    }
 
-            fn get_type(&self) -> AaveUserEvent {
-                $event_variant
-            }
-        }
-    };
+    fn get_type(&self) -> AaveUserEvent {
+        AaveUserEvent::Borrow
+    }
 }
 
-impl_aave_event!(BorrowEvent, AaveUserEvent::Borrow);
 impl AaveEvent for RepayEvent {
     fn get_user(&self) -> Address {
         self.user
@@ -170,8 +166,43 @@ impl AaveEvent for RepayEvent {
         self.use_a_tokens
     }
 }
-impl_aave_event!(SupplyEvent, AaveUserEvent::Supply);
-impl_aave_event!(WithdrawEvent, AaveUserEvent::WithDraw);
+
+impl AaveEvent for SupplyEvent {
+    fn get_user(&self) -> Address {
+        // on_behalf_of is user who will be update
+        self.on_behalf_of
+    }
+
+    fn get_reserve(&self) -> Address {
+        self.reserve
+    }
+
+    fn get_amount(&self) -> U256 {
+        self.amount
+    }
+
+    fn get_type(&self) -> AaveUserEvent {
+        AaveUserEvent::Supply
+    }
+}
+
+impl AaveEvent for WithdrawEvent {
+    fn get_user(&self) -> Address {
+        self.user
+    }
+
+    fn get_reserve(&self) -> Address {
+        self.reserve
+    }
+
+    fn get_amount(&self) -> U256 {
+        self.amount
+    }
+
+    fn get_type(&self) -> AaveUserEvent {
+        AaveUserEvent::WithDraw
+    }
+}
 
 impl AaveEvent for ReserveUsedAsCollateralEnabledEvent {
     fn get_user(&self) -> Address {

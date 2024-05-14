@@ -8,6 +8,10 @@ pub mod exchanges {
     }
 }
 
+pub mod utils {
+    pub mod type_conversion;
+}
+
 pub mod data {
     pub mod address;
     pub mod erc20;

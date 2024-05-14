@@ -1,17 +1,26 @@
+#[path = "./mocks/generate_logs.rs"]
+mod generate_logs;
+
 use eth_liquadation::exchanges::aave_v3::decode_events::{
     decode_borrow_event, decode_repay_event, decode_reserve_used_as_colladeral_event,
     decode_supply_event, decode_withdraw_event,
 };
 use eth_liquadation::exchanges::aave_v3::events::{
-    BorrowEvent, RepayEvent, ReserveCollateralEvent, ReserveUsedAsCollateralDisabledEvent,
+    BorrowEvent, RepayEvent, ReserveUsedAsCollateralDisabledEvent,
     ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent,
 };
-use ethers::abi::Address;
-use ethers::core::types::{Bytes, Log, U256};
-use ethers::prelude::*;
+use ethers::core::types::U256;
 
-#[tokio::test]
-async fn test_repay_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
+use crate::generate_logs::{
+    create_log_for_borrow_event, create_log_for_collateral_disable_event,
+    create_log_for_collateral_enable_event, create_log_for_repay_event,
+    create_log_for_supply_event, create_log_for_withdraw_event,
+};
+
+const AAVE_V3_POOL: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
+
+#[test]
+fn test_repay_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
     let repay_event = RepayEvent {
         reserve: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
             .parse()
@@ -26,18 +35,7 @@ async fn test_repay_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
         use_a_tokens: true,
     };
 
-    let topics = generate_repay_event_topics_field(&repay_event);
-    let data = generate_repay_event_log_data_field(&repay_event);
-
-    // create mock log
-    let log = Log {
-        address: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
-            .parse()
-            .unwrap(),
-        topics,
-        data,
-        ..Default::default()
-    };
+    let log = create_log_for_repay_event(&repay_event, AAVE_V3_POOL);
 
     // decode log
     let decoded_repay_event = decode_repay_event(&log).unwrap();
@@ -52,8 +50,8 @@ async fn test_repay_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[tokio::test]
-async fn test_borrow_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
+#[test]
+fn test_borrow_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
     let borrow_event = BorrowEvent {
         reserve: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
             .parse()
@@ -70,18 +68,8 @@ async fn test_borrow_event_decoding() -> Result<(), Box<dyn std::error::Error>> 
         referral_code: 123,
     };
 
-    let topics = generate_borrow_event_topics_field(&borrow_event);
-    let data = generate_borrow_event_log_data_field(&borrow_event);
-
     // create mock log
-    let log = Log {
-        address: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
-            .parse()
-            .unwrap(),
-        topics,
-        data,
-        ..Default::default()
-    };
+    let log = create_log_for_borrow_event(&borrow_event, AAVE_V3_POOL);
 
     // decode log
     let decoded_borrow_event = decode_borrow_event(&log).unwrap();
@@ -104,8 +92,8 @@ async fn test_borrow_event_decoding() -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-#[tokio::test]
-async fn test_supply_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
+#[test]
+fn test_supply_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
     let supply_event = SupplyEvent {
         reserve: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
             .parse()
@@ -120,18 +108,7 @@ async fn test_supply_event_decoding() -> Result<(), Box<dyn std::error::Error>> 
         referral_code: 123,
     };
 
-    let topics = generate_supply_event_topics_field(&supply_event);
-    let data = generate_supply_event_log_data_field(&supply_event);
-
-    // create mock log
-    let log = Log {
-        address: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
-            .parse()
-            .unwrap(),
-        topics,
-        data,
-        ..Default::default()
-    };
+    let log = create_log_for_supply_event(&supply_event, AAVE_V3_POOL);
 
     // decode log
     let decoded_supply_event = decode_supply_event(&log).unwrap();
@@ -149,8 +126,8 @@ async fn test_supply_event_decoding() -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-#[tokio::test]
-async fn test_withdraw_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
+#[test]
+fn test_withdraw_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
     let withdraw_event = WithdrawEvent {
         reserve: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
             .parse()
@@ -164,18 +141,7 @@ async fn test_withdraw_event_decoding() -> Result<(), Box<dyn std::error::Error>
         amount: U256::from(400000000),
     };
 
-    let topics = generate_withdraw_event_topics_field(&withdraw_event);
-    let data = generate_withdraw_event_log_data_field(&withdraw_event);
-
-    // create mock log
-    let log = Log {
-        address: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
-            .parse()
-            .unwrap(),
-        topics,
-        data,
-        ..Default::default()
-    };
+    let log = create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL);
 
     // decode log
     let decoded_withdraw_event = decode_withdraw_event(&log).unwrap();
@@ -189,8 +155,8 @@ async fn test_withdraw_event_decoding() -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
-#[tokio::test]
-async fn test_collateral_enable_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
+#[test]
+fn test_collateral_enable_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
     let event = ReserveUsedAsCollateralEnabledEvent {
         reserve: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
             .parse()
@@ -200,16 +166,7 @@ async fn test_collateral_enable_event_decoding() -> Result<(), Box<dyn std::erro
             .unwrap(),
     };
 
-    let topics = generate_collateral_event_topics_field(event.clone());
-
-    // create mock log
-    let log = Log {
-        address: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
-            .parse()
-            .unwrap(),
-        topics,
-        ..Default::default()
-    };
+    let log = create_log_for_collateral_enable_event(event.clone(), AAVE_V3_POOL);
 
     // decode log
     let decoded_event =
@@ -223,8 +180,8 @@ async fn test_collateral_enable_event_decoding() -> Result<(), Box<dyn std::erro
     Ok(())
 }
 
-#[tokio::test]
-async fn test_collateral_disable_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
+#[test]
+fn test_collateral_disable_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
     let event = ReserveUsedAsCollateralDisabledEvent {
         reserve: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
             .parse()
@@ -234,16 +191,7 @@ async fn test_collateral_disable_event_decoding() -> Result<(), Box<dyn std::err
             .unwrap(),
     };
 
-    let topics = generate_collateral_event_topics_field(event.clone());
-
-    // create mock log
-    let log = Log {
-        address: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
-            .parse()
-            .unwrap(),
-        topics,
-        ..Default::default()
-    };
+    let log = create_log_for_collateral_disable_event(event.clone(), AAVE_V3_POOL);
 
     // decode log
     let decoded_event =
@@ -255,126 +203,4 @@ async fn test_collateral_disable_event_decoding() -> Result<(), Box<dyn std::err
     assert_eq!(event.user, decoded_event.user);
 
     Ok(())
-}
-
-fn generate_borrow_event_topics_field(&event: &BorrowEvent) -> Vec<H256> {
-    let topics = vec![
-        H256::from_slice(&[0u8; 32]),
-        event.reserve.into(),
-        event.on_behalf_of.into(),
-        H256::from(u16_to_bytes_array(event.referral_code)),
-    ];
-    topics
-}
-
-fn generate_repay_event_topics_field(&event: &RepayEvent) -> Vec<H256> {
-    let topics = vec![
-        H256::from_slice(&[0u8; 32]),
-        event.reserve.into(),
-        event.user.into(),
-        event.repayer.into(),
-    ];
-    topics
-}
-
-fn generate_collateral_event_topics_field<T: ReserveCollateralEvent>(event: T) -> Vec<H256> {
-    let topics = vec![
-        H256::from_slice(&[0u8; 32]),
-        event.get_reserve().into(),
-        event.get_user().into(),
-    ];
-    topics
-}
-
-fn generate_withdraw_event_topics_field(&event: &WithdrawEvent) -> Vec<H256> {
-    let topics = vec![
-        H256::from_slice(&[0u8; 32]),
-        event.reserve.into(),
-        event.user.into(),
-        event.to.into(),
-    ];
-    topics
-}
-
-fn generate_supply_event_topics_field(&event: &SupplyEvent) -> Vec<H256> {
-    let topics = vec![
-        H256::from_slice(&[0u8; 32]),
-        event.reserve.into(),
-        event.on_behalf_of.into(),
-        H256::from(u16_to_bytes_array(event.referral_code)),
-    ];
-    topics
-}
-
-fn generate_borrow_event_log_data_field(&event: &BorrowEvent) -> Bytes {
-    let user_bit_array = address_to_bytes_array(event.user);
-    let amount_bit_array = u256_to_bytes_array(event.amount);
-    let interest_rate_bit_array = u8_to_bytes_array(event.interest_rate_mode);
-    let borrow_rate_bit_array = u256_to_bytes_array(event.borrow_rate);
-
-    let mut data = Vec::new();
-    data.extend_from_slice(&user_bit_array);
-    data.extend_from_slice(&amount_bit_array);
-    data.extend_from_slice(&interest_rate_bit_array);
-    data.extend_from_slice(&borrow_rate_bit_array);
-    data.into()
-}
-
-fn generate_repay_event_log_data_field(&event: &RepayEvent) -> Bytes {
-    let amount_bit_array = u256_to_bytes_array(event.amount);
-    let use_a_tokens_bit_array = boolean_to_bytes_array(event.use_a_tokens);
-
-    let mut data = Vec::new();
-
-    data.extend_from_slice(&amount_bit_array);
-    data.extend_from_slice(&use_a_tokens_bit_array);
-    data.into()
-}
-
-fn generate_supply_event_log_data_field(&event: &SupplyEvent) -> Bytes {
-    let user_bit_array = address_to_bytes_array(event.user);
-    let amount_bit_array = u256_to_bytes_array(event.amount);
-
-    let mut data = Vec::new();
-    data.extend_from_slice(&user_bit_array);
-    data.extend_from_slice(&amount_bit_array);
-    data.into()
-}
-
-fn generate_withdraw_event_log_data_field(&event: &WithdrawEvent) -> Bytes {
-    let amount_bit_array = u256_to_bytes_array(event.amount);
-
-    let mut data = Vec::new();
-    data.extend_from_slice(&amount_bit_array);
-    data.into()
-}
-
-fn u256_to_bytes_array(number: U256) -> [u8; 32] {
-    let mut number_bytes = [0u8; 32];
-    number.to_big_endian(&mut number_bytes);
-    number_bytes
-}
-
-fn boolean_to_bytes_array(boolean: bool) -> [u8; 32] {
-    let mut bytes = [0u8; 32];
-    bytes[31] = if boolean { 1 } else { 0 };
-    bytes
-}
-
-fn u8_to_bytes_array(value: u8) -> [u8; 32] {
-    let mut bytes = [0u8; 32];
-    bytes[31] = value;
-    bytes
-}
-
-fn u16_to_bytes_array(value: u16) -> [u8; 32] {
-    let mut bytes = [0u8; 32];
-    bytes[30..32].copy_from_slice(&value.to_be_bytes());
-    bytes
-}
-
-fn address_to_bytes_array(address: Address) -> [u8; 32] {
-    let mut bytes = [0u8; 32];
-    bytes[12..32].copy_from_slice(&address.as_bytes());
-    bytes
 }

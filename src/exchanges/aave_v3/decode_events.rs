@@ -11,27 +11,22 @@ use ethers::core::types::{Log, U256};
 pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveEventType {
     match event_type {
         AaveUserEvent::WithDraw => {
-            println!("decoding withdraw event...{:#?}", log);
             let withdraw_event = decode_withdraw_event(log).unwrap();
             AaveEventType::WithdrawEvent(withdraw_event)
         }
         AaveUserEvent::Borrow => {
-            println!("decoding borrow event...");
             let borrow_event = decode_borrow_event(log).unwrap();
             AaveEventType::BorrowEvent(borrow_event)
         }
         AaveUserEvent::Repay => {
-            println!("decoding repay event...");
             let repay_event = decode_repay_event(log).unwrap();
             AaveEventType::RepayEvent(repay_event)
         }
         AaveUserEvent::Supply => {
-            println!("decoding supply event...");
             let supply_event = decode_supply_event(log).unwrap();
             AaveEventType::SupplyEvent(supply_event)
         }
         AaveUserEvent::ReserveUsedAsCollateralDisabled => {
-            println!("decoding reserve collateral enabled event..");
             let reserve_disable_event = decode_reserve_used_as_colladeral_event::<
                 ReserveUsedAsCollateralDisabledEvent,
             >(log)
@@ -39,7 +34,6 @@ pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveE
             AaveEventType::ReserveUsedAsCollateralDisabled(reserve_disable_event)
         }
         AaveUserEvent::ReserveUsedAsCollateralEnabled => {
-            println!("decoding reserve collateral disabled event...");
             let reserve_enable_event =
                 decode_reserve_used_as_colladeral_event::<ReserveUsedAsCollateralEnabledEvent>(log)
                     .unwrap();
@@ -74,7 +68,6 @@ pub fn decode_borrow_event(log: &Log) -> Result<BorrowEvent, Box<dyn std::error:
     let user = Address::from_slice(&data_slice[12..32]);
     let amount = U256::from_big_endian(&data_slice[32..64]);
     let interest_rate_mode = data_slice[95].clone(); // assuming 1 byte for interest rate mode
-    println!("getting borrow rate");
     let borrow_rate = U256::from_big_endian(&data_slice[96..128]);
 
     let borrow_event = BorrowEvent {

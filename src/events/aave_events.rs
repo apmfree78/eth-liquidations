@@ -5,10 +5,11 @@ use crate::exchanges::aave_v3::{
     user_data::AaveUserData,
 };
 use ethers::{prelude::*, utils::keccak256};
+use eyre::Result;
 use std::collections::HashMap;
 use std::sync::Arc;
+
 const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
-use eyre::Result;
 
 const WITHDRAW_SIGNATURE: &str = "Withdraw(address,address,address,uint256)";
 const RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE: &str =
@@ -23,8 +24,6 @@ pub async fn scan_and_update_aave_events(
     users: &mut Vec<AaveUserData>,
     client: &Arc<Provider<Ws>>,
 ) -> Result<()> {
-    let aave_event_map = setup_event_map();
-
     // Compute the Keccak-256 hashes of the event signatures
     let current_block = client.get_block_number().await?;
     let lookback_blocks = U64::from(1000);
@@ -55,18 +54,30 @@ pub async fn scan_and_update_aave_events(
         // .from_block(0);
         .from_block(from_block)
         .to_block(BlockNumber::Latest);
-    let logs = client.get_logs(&filter).await?;
-    println!("{} aave events found!", logs.iter().len());
+    let event_logs = client.get_logs(&filter).await?;
+    println!("{} aave events found!", event_logs.iter().len());
 
     // TODO - refactor users into a hashmap
+    update_users_with_events_from_logs(&event_logs, users).unwrap();
+    Ok(())
+}
+
+pub fn update_users_with_events_from_logs(
+    logs: &Vec<Log>,
+    users: &mut Vec<AaveUserData>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let aave_event_map = setup_event_map();
+
     for log in logs.iter() {
         if !log.topics.is_empty() {
             //determine which aave event was found
+            // println!("looping through logs");
             if let Some(aave_event_enum) = aave_event_map.get(&log.topics[0]) {
                 // println!("{:?} event: {:#?}", aave_event_enum, log);
 
                 // extract event data from log
                 let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);
+                // println!("event data => {:?}", aave_event_type_with_data);
 
                 // extract struct data from event enum
                 let event = extract_aave_event_data(&aave_event_type_with_data).unwrap();
@@ -76,7 +87,6 @@ pub async fn scan_and_update_aave_events(
             }
         }
     }
-
     Ok(())
 }
 
