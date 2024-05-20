@@ -116,6 +116,11 @@ impl Generate for AaveUserData {
             {
                 // save data to AvveUserData
                 aave_user_data.push(aave_user);
+            } else {
+                // TODO - get user data from pool contract
+                let aave_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
+                let user_data = aave_pool.get_user_account_data(aave_user.id).call().await?;
+                println!("user configuration data {:#?}", user_data);
             }
         }
 

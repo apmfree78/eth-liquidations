@@ -8,6 +8,10 @@ pub mod exchanges {
     }
 }
 
+pub mod mempool {
+    pub mod detect_price_update;
+}
+
 pub mod utils {
     pub mod type_conversion;
 }

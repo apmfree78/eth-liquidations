@@ -1,7 +1,9 @@
 use eth_liquadation::{
     exchanges::aave_v3::events::{
         BorrowEvent, RepayEvent, ReserveCollateralEvent, ReserveUsedAsCollateralDisabledEvent,
-        ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent,
+        ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent, BORROW_SIGNATURE,
+        REPAY_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
+        RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
     },
     utils::type_conversion::str_to_h256_hash,
 };
@@ -11,15 +13,6 @@ use eth_liquadation::utils::type_conversion::{
     address_to_bytes_array, boolean_to_bytes_array, u16_to_bytes_array, u256_to_bytes_array,
     u8_to_bytes_array,
 };
-
-const WITHDRAW_SIGNATURE: &str = "Withdraw(address,address,address,uint256)";
-const RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE: &str =
-    "ReserveUsedAsCollateralEnabled(address,address)";
-const RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE: &str =
-    "ReserveUsedAsCollateralDisabled(address,address)";
-const BORROW_SIGNATURE: &str = "Borrow(address,address,address,uint256,uint8,uint256,uint16)";
-const REPAY_SIGNATURE: &str = "Repay(address,address,address,uint256,bool)";
-const SUPPLY_SIGNATURE: &str = "Supply(address,address,address,uint256,uint16)";
 
 pub fn create_log_for_collateral_enable_event(
     event: ReserveUsedAsCollateralEnabledEvent,
