@@ -41,6 +41,7 @@ pub fn update_users_with_event_from_log(
     }
     Ok(())
 }
+
 pub async fn scan_and_update_aave_events(
     users: &mut Vec<AaveUserData>,
     client: &Arc<Provider<Ws>>,

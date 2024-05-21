@@ -16,3 +16,9 @@ pub static AAVE_V3_POOL_ADDRESS: Lazy<Address> = Lazy::new(|| {
         .parse()
         .expect("Invalid address")
 });
+
+pub static AAVE_V3_DATA_PROVIDER_ADDRESS: Lazy<Address> = Lazy::new(|| {
+    "0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3"
+        .parse()
+        .expect("Invalid address")
+});

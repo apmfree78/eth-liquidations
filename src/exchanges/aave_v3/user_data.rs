@@ -1,6 +1,7 @@
+use super::get_user_from_contract::get_aave_v3_user_from_data_provider;
 use super::get_users::{get_aave_v3_users, UserAccountData};
-use crate::abi::aave_v3_pool::AAVE_V3_POOL;
-use crate::data::address::AAVE_V3_POOL_ADDRESS;
+use crate::abi::{aave_v3_data_provider::AAVE_V3_DATA_PROVIDER, aave_v3_pool::AAVE_V3_POOL};
+use crate::data::address::{AAVE_V3_DATA_PROVIDER_ADDRESS, AAVE_V3_POOL_ADDRESS};
 use crate::data::erc20::{u256_to_big_decimal, Convert, Erc20Token, TOKEN_DATA};
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
@@ -39,6 +40,11 @@ pub trait Generate {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
     ) -> Result<Vec<AaveUserData>, Box<dyn std::error::Error>>;
+    async fn get_collateral_times_liquidation_factor_and_total_debt(
+        &self,
+        source_for_pricing: PricingSource,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -118,24 +124,30 @@ impl Generate for AaveUserData {
                 aave_user_data.push(aave_user);
             } else {
                 // TODO - get user data from pool contract
-                let aave_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
-                let user_data = aave_pool.get_user_account_data(aave_user.id).call().await?;
-                println!("user configuration data {:#?}", user_data);
+                let aave_user_data_result =
+                    get_aave_v3_user_from_data_provider(aave_user.id, &client).await;
+
+                match aave_user_data_result {
+                    Ok(aave_user) => {
+                        // check that health factor is valid for user
+                        aave_user_data.push(aave_user);
+                    }
+                    Err(error) => {
+                        println!("user did not fit criteria => {}", error);
+                    }
+                };
             }
         }
 
         println!("{} valid users saved", aave_user_data.len());
         Ok(aave_user_data)
     }
-}
 
-#[async_trait]
-impl HealthFactor for AaveUserData {
-    async fn get_health_factor_from_(
+    async fn get_collateral_times_liquidation_factor_and_total_debt(
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+    ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>> {
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
 
         let mut total_debt_usd = BigDecimal::zero();
@@ -186,11 +198,27 @@ impl HealthFactor for AaveUserData {
             }
         }
 
-        // println!("total debt {}", total_debt_usd);
-        let mut health_factor = BigDecimal::zero();
-        if total_debt_usd > BigDecimal::zero() {
-            health_factor = liquidation_threshold_collateral_sum / total_debt_usd;
-        }
+        Ok((liquidation_threshold_collateral_sum, total_debt_usd))
+    }
+}
+
+#[async_trait]
+impl HealthFactor for AaveUserData {
+    async fn get_health_factor_from_(
+        &self,
+        source_for_pricing: PricingSource,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+        let (liquidation_threshold_collateral_sum, current_total_debt) = self
+            .get_collateral_times_liquidation_factor_and_total_debt(source_for_pricing, &client)
+            .await?;
+
+        let health_factor = if current_total_debt > BigDecimal::zero() {
+            liquidation_threshold_collateral_sum / current_total_debt
+        } else {
+            println!("No valid health factor: {:#?}", self);
+            BigDecimal::from(0)
+        };
         Ok(health_factor)
     }
 

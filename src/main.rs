@@ -3,10 +3,10 @@ use eth_liquadation::exchanges::aave_v3::events::{
     BORROW_SIGNATURE, REPAY_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
     RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
 };
-use eth_liquadation::mempool::detect_price_update::detect_price_update;
 use eth_liquadation::{
     events::aave_events::scan_and_update_aave_events,
     exchanges::aave_v3::user_data::{AaveUserData, Generate},
+    mempool::detect_price_update::detect_price_update,
 };
 use ethers::abi::Address;
 use ethers::providers::Middleware;
@@ -32,60 +32,62 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut aave_user_list = AaveUserData::get_users(&client).await?;
 
-    let filter = Filter::new()
-        .address(AAVE_V3_POOL_ADDRESS.parse::<Address>()?)
-        .events(
-            [
-                WITHDRAW_SIGNATURE,
-                BORROW_SIGNATURE,
-                REPAY_SIGNATURE,
-                SUPPLY_SIGNATURE,
-                RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE,
-                RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
-            ]
-            .to_vec(),
-        );
-    // detect_price_update(&client).await?;
-    // Create multiple subscription streams.
-    let log_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
-        client
-            .subscribe_logs(&filter)
-            .await?
-            .map(|log| Ok(Event::Log(log)))
-            .boxed();
+    /*
+        let filter = Filter::new()
+            .address(AAVE_V3_POOL_ADDRESS.parse::<Address>()?)
+            .events(
+                [
+                    WITHDRAW_SIGNATURE,
+                    BORROW_SIGNATURE,
+                    REPAY_SIGNATURE,
+                    SUPPLY_SIGNATURE,
+                    RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE,
+                    RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
+                ]
+                .to_vec(),
+            );
+        // detect_price_update(&client).await?;
+        // Create multiple subscription streams.
+        let log_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
+            client
+                .subscribe_logs(&filter)
+                .await?
+                .map(|log| Ok(Event::Log(log)))
+                .boxed();
 
-    println!("Subscribed to logs");
+        println!("Subscribed to logs");
 
-    let tx_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
-        client
-            .subscribe_pending_txs()
-            .await?
-            .map(|tx| Ok(Event::PendingTransactions(tx)))
-            .boxed();
+        let tx_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
+            client
+                .subscribe_pending_txs()
+                .await?
+                .map(|tx| Ok(Event::PendingTransactions(tx)))
+                .boxed();
 
-    println!("Subscribed to pending transactions");
+        println!("Subscribed to pending transactions");
 
-    // Merge the streams into a single stream.
-    let combined_stream = stream::select_all(vec![log_stream, tx_stream]);
+        // Merge the streams into a single stream.
+        let combined_stream = stream::select_all(vec![log_stream, tx_stream]);
 
-    println!("Combined streams");
+        println!("Combined streams");
 
-    combined_stream
-        .for_each(|event| async {
-            match event {
-                Ok(Event::Log(log)) => {
-                    println!("new log found! ==> {:#?}", log);
-                    // TODO - set this up with Mutex
-                    // update_users_with_event_from_log(log, &mut aave_user_list)
+        combined_stream
+            .for_each(|event| async {
+                match event {
+                    Ok(Event::Log(log)) => {
+                        println!("new log found! ==> {:#?}", log);
+                        // TODO - set this up with Mutex
+                        // update_users_with_event_from_log(log, &mut aave_user_list)
+                    }
+                    Ok(Event::PendingTransactions(tx)) => {
+                        // println!("New pending transaction: {:?}", tx);
+                        let _ = detect_price_update(tx, &client).await;
+                    }
+                    Err(e) => eprintln!("Error: {:?}", e),
                 }
-                Ok(Event::PendingTransactions(tx)) => {
-                    // println!("New pending transaction: {:?}", tx);
-                    let _ = detect_price_update(tx, &client).await;
-                }
-                Err(e) => eprintln!("Error: {:?}", e),
-            }
-        })
-        .await;
+            })
+            .await;
+    */
 
     // Your code to handle the events goes here.
     // println!(" user list {:#?} ", aave_user_list);
