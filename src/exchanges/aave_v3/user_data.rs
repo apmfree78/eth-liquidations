@@ -60,6 +60,10 @@ pub trait HealthFactor {
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+    async fn is_user_valid_when_checking_against_official_health_factor(
+        &mut self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<bool, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -78,6 +82,8 @@ impl Generate for AaveUserData {
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
         println!("found { } users from aave v3 graphql", aave_users.len());
+        let mut valid_users_from_graphql: u16 = 0;
+        let mut valid_users_from_contract: u16 = 0;
         for user in &aave_users {
             let user_id: Address = user.id.parse()?;
             // println!("getting user account data from aave_v3_pool");
@@ -109,7 +115,7 @@ impl Generate for AaveUserData {
                 tokens: user_tokens,
             };
 
-            // validate user data - 10% of graphql data for aave users is not accurate
+            // validate user data - at least 10% of graphql data for aave users is not accurate
             let aave_user_health_factor = aave_user.health_factor.clone();
             let aave_user_calculated_health_factor = aave_user
                 .get_health_factor_from_(PricingSource::AaveOracle, &client)
@@ -121,15 +127,16 @@ impl Generate for AaveUserData {
                 && aave_user_calculated_health_factor < upper_bound
             {
                 // save data to AvveUserData
+                valid_users_from_graphql += 1;
                 aave_user_data.push(aave_user);
             } else {
-                // TODO - get user data from pool contract
+                // get user data from pool contract
                 let aave_user_data_result =
                     get_aave_v3_user_from_data_provider(aave_user.id, &client).await;
 
                 match aave_user_data_result {
                     Ok(aave_user) => {
-                        // check that health factor is valid for user
+                        valid_users_from_contract += 1;
                         aave_user_data.push(aave_user);
                     }
                     Err(error) => {
@@ -140,6 +147,14 @@ impl Generate for AaveUserData {
         }
 
         println!("{} valid users saved", aave_user_data.len());
+        println!(
+            "{} valid users saved from graphQL",
+            valid_users_from_graphql
+        );
+        println!(
+            "{} valid users saved from data provider contract",
+            valid_users_from_contract
+        );
         Ok(aave_user_data)
     }
 
@@ -235,5 +250,42 @@ impl HealthFactor for AaveUserData {
         self.health_factor = health_factor.clone();
 
         Ok(health_factor)
+    }
+
+    async fn is_user_valid_when_checking_against_official_health_factor(
+        &mut self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
+
+        let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
+        let (
+            _total_collateral_base,
+            _total_debt_base,
+            _available_borrows_base,
+            _current_liquidation_threshold,
+            _ltv,
+            health_factor,
+        ) = aave_v3_pool.get_user_account_data(self.id).call().await?;
+
+        let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
+        // println!("health factor {}", health_factor);
+
+        let aave_user_calculated_health_factor = self
+            .get_health_factor_from_(PricingSource::AaveOracle, &client)
+            .await?;
+
+        // println!(
+        //     "calculated health factor {}",
+        //     aave_user_calculated_health_factor
+        // );
+        // CHECK that health factor calculated from user data is
+        // within + or - 5% of official health factor we get from
+        // getUserAccount contract call
+        let lower_bound = BigDecimal::from_str("0.95")? * &health_factor;
+        let upper_bound = BigDecimal::from_str("1.05")? * &health_factor;
+
+        Ok(aave_user_calculated_health_factor > lower_bound
+            && aave_user_calculated_health_factor < upper_bound)
     }
 }

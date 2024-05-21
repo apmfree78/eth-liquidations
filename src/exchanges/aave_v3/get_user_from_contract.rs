@@ -1,0 +1,93 @@
+use super::get_users::{get_aave_v3_users, UserAccountData};
+use super::user_data::{AaveToken, AaveUserData, Generate, HealthFactor, PricingSource};
+use crate::abi::{aave_v3_data_provider::AAVE_V3_DATA_PROVIDER, aave_v3_pool::AAVE_V3_POOL};
+use crate::data::address::{AAVE_V3_DATA_PROVIDER_ADDRESS, AAVE_V3_POOL_ADDRESS};
+use crate::data::erc20::{u256_to_big_decimal, Convert, Erc20Token, TOKEN_DATA};
+use async_trait::async_trait;
+use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use ethers::providers::{Provider, Ws};
+use ethers::types::Address;
+use std::str::FromStr;
+use std::sync::Arc;
+
+pub async fn get_aave_v3_user_from_data_provider(
+    user_address: Address,
+    client: &Arc<Provider<Ws>>,
+) -> Result<AaveUserData, Box<dyn std::error::Error>> {
+    let aave_v3_data_pool =
+        AAVE_V3_DATA_PROVIDER::new(*AAVE_V3_DATA_PROVIDER_ADDRESS, client.clone());
+
+    let mut tokens = Vec::new();
+
+    for token in TOKEN_DATA.values() {
+        let token_address = token.address.parse()?;
+
+        let (
+            a_token_balance,
+            stable_debt,
+            variable_debt,
+            _principal_debt,
+            _scaled_variable_debt,
+            _borrow_rate,
+            _liquidity_rate,
+            _timestamp,
+            use_as_collateral,
+        ) = aave_v3_data_pool
+            .get_user_reserve_data(token_address, user_address)
+            .call()
+            .await?;
+
+        let total_debt = stable_debt + variable_debt;
+        let total_debt = u256_to_big_decimal(&total_debt);
+        let a_token_balance = u256_to_big_decimal(&a_token_balance);
+
+        if total_debt > BigDecimal::from(0) || a_token_balance > BigDecimal::from(0) {
+            tokens.push(AaveToken {
+                token: *token,
+                current_total_debt: total_debt,
+                usage_as_collateral_enabled: use_as_collateral,
+                current_atoken_balance: a_token_balance,
+                reserve_liquidation_bonus: BigDecimal::from(token.liquidation_bonus),
+                reserve_liquidation_threshold: BigDecimal::from(token.liquidation_threshold),
+            })
+        }
+    }
+
+    let mut user_data = AaveUserData {
+        id: user_address,
+        total_debt: BigDecimal::from(0), //placeholder value , will calculate below
+        colladeral_times_liquidation_factor: BigDecimal::from(0), //placeholder value , will calculate below
+        tokens,
+        health_factor: BigDecimal::from(0), //placeholder value , will calculate below
+    };
+
+    let (colladeral_times_liquidation_factor, total_debt) = user_data
+        .get_collateral_times_liquidation_factor_and_total_debt(PricingSource::AaveOracle, &client)
+        .await?;
+
+    if colladeral_times_liquidation_factor == BigDecimal::from(0)
+        && total_debt == BigDecimal::from(0)
+    {
+        return Err("no tokens as debt or collateral".into());
+    }
+
+    user_data.colladeral_times_liquidation_factor = colladeral_times_liquidation_factor;
+    user_data.total_debt = total_debt;
+
+    // ONLY calculate health factor AFTER you know colladeral_times_liquidation_factor and total_debt
+    let health_factor = user_data
+        .get_health_factor_from_(PricingSource::AaveOracle, &client)
+        .await?;
+
+    user_data.health_factor = health_factor;
+
+    // TODO - check health factor of user matches with official health factor
+    if user_data
+        .is_user_valid_when_checking_against_official_health_factor(&client)
+        .await?
+    {
+        Ok(user_data)
+    } else {
+        Err("user calculated health factor does not match official health factor".into())
+    }
+}
