@@ -12,8 +12,8 @@ pub const BORROW_SIGNATURE: &'static str =
     "Borrow(address,address,address,uint256,uint8,uint256,uint16)";
 pub const REPAY_SIGNATURE: &'static str = "Repay(address,address,address,uint256,bool)";
 pub const SUPPLY_SIGNATURE: &'static str = "Supply(address,address,address,uint256,uint16)";
-#[derive(Clone, Copy, Debug)]
 
+#[derive(Clone, Copy, Debug)]
 pub enum AaveUserEvent {
     WithDraw,
     Borrow,

@@ -1,8 +1,9 @@
 use crate::exchanges::aave_v3::{
     decode_events::create_aave_event_from_log,
     events::{AaveEvent, AaveEventType, AaveUserEvent},
+    get_user_from_contract::get_aave_v3_user_from_data_provider,
     update_user::{get_user_action_from_event, Update},
-    user_data::AaveUserData,
+    user_data::{AaveUserData, AaveUsersHash},
 };
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
@@ -16,9 +17,10 @@ use crate::exchanges::aave_v3::events::{
 
 const AAVE_V3_POOL_ADDRESS: &'static str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 
-pub fn update_users_with_event_from_log(
+pub async fn update_users_with_event_from_log(
     log: Log,
-    users: &mut Vec<AaveUserData>,
+    users: &mut AaveUsersHash,
+    client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let aave_event_map = setup_event_map();
 
@@ -36,16 +38,16 @@ pub fn update_users_with_event_from_log(
             let event = extract_aave_event_data(&aave_event_type_with_data).unwrap();
 
             // update aave user
-            update_aave_user(users, event).unwrap();
+            update_aave_user(users, event, &client).await?;
         }
     }
     Ok(())
 }
 
 pub async fn scan_and_update_aave_events(
-    users: &mut Vec<AaveUserData>,
+    users: &mut AaveUsersHash,
     client: &Arc<Provider<Ws>>,
-) -> Result<()> {
+) -> Result<(), Box<dyn std::error::Error>> {
     // Compute the Keccak-256 hashes of the event signatures
     let current_block = client.get_block_number().await?;
     let lookback_blocks = U64::from(1000);
@@ -80,13 +82,14 @@ pub async fn scan_and_update_aave_events(
     println!("{} aave events found!", event_logs.iter().len());
 
     // TODO - refactor users into a hashmap
-    update_users_with_events_from_logs(&event_logs, users).unwrap();
+    update_users_with_events_from_logs(&event_logs, users, &client).await?;
     Ok(())
 }
 
-pub fn update_users_with_events_from_logs(
+pub async fn update_users_with_events_from_logs(
     logs: &Vec<Log>,
-    users: &mut Vec<AaveUserData>,
+    users: &mut AaveUsersHash,
+    client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let aave_event_map = setup_event_map();
 
@@ -105,7 +108,7 @@ pub fn update_users_with_events_from_logs(
                 let event = extract_aave_event_data(&aave_event_type_with_data).unwrap();
 
                 // update aave user
-                update_aave_user(users, event).unwrap();
+                update_aave_user(users, event, &client).await?;
             }
         }
     }
@@ -153,23 +156,45 @@ pub fn extract_aave_event_data(
 }
 
 // TODO - refactor to make users a hashmap
-pub fn update_aave_user(
-    users: &mut Vec<AaveUserData>,
+// TODO #2 - if user user_address does not exist in our hashmap,
+// then use get_aave_v3_user_from_data_provider to get and add user
+pub async fn update_aave_user(
+    users: &mut AaveUsersHash,
     event: Box<dyn AaveEvent>,
+    client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user_address = event.get_user();
     let user_action = get_user_action_from_event(event);
     // println!("user action {:#?}", user_action);
-    for user in users.iter_mut() {
-        if user.id == user_address {
-            println!("updating user {:#?}", user);
-            if let Err(e) = user.update(&user_action) {
-                return Err(e);
-            } else {
-                println!("user updated! => {:#?}", user);
-                return Ok(());
-            }
+
+    if users.user_data.contains_key(&user_address) {
+        let user = users.user_data.get_mut(&user_address).unwrap();
+
+        println!("updating user {:#?}", user);
+        if let Err(e) = user.update(&user_action) {
+            return Err(e);
+        } else {
+            println!("user updated! => {:#?}", user);
+            return Ok(());
+        }
+    } else {
+        // get user from data provider contract
+        if let Ok(user) = get_aave_v3_user_from_data_provider(user_address, &client).await {
+            // ADD USER TO AaveUsersHealth
+        } else {
+            println!("no valid user found");
         }
     }
+    // for user in users.iter_mut() {
+    //     if user.id == user_address {
+    //         println!("updating user {:#?}", user);
+    //         if let Err(e) = user.update(&user_action) {
+    //             return Err(e);
+    //         } else {
+    //             println!("user updated! => {:#?}", user);
+    //             return Ok(());
+    //         }
+    //     }
+    // }
     Ok(())
 }

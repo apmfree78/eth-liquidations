@@ -2,13 +2,15 @@
 mod generate_logs;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
+use eth_liquadation::abi::aave_oracle::AddressesProviderCall;
 use eth_liquadation::data::erc20::Erc20Token;
 use eth_liquadation::events::aave_events::update_users_with_events_from_logs;
 use eth_liquadation::exchanges::aave_v3::events::{
     BorrowEvent, RepayEvent, ReserveUsedAsCollateralDisabledEvent,
     ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent,
 };
-use eth_liquadation::exchanges::aave_v3::user_data::{AaveToken, AaveUserData};
+use eth_liquadation::exchanges::aave_v3::user_data::{AaveToken, AaveUserData, AaveUsersHash};
+use ethers::abi::Address;
 use ethers::core::types::U256;
 use generate_logs::{
     create_log_for_collateral_disable_event, create_log_for_collateral_enable_event,
@@ -18,18 +20,24 @@ use crate::generate_logs::{
     create_log_for_borrow_event, create_log_for_repay_event, create_log_for_supply_event,
     create_log_for_withdraw_event,
 };
+use ethers::providers::{Provider, Ws};
+use std::collections::HashMap;
+use std::sync::Arc;
 
+const WS_URL: &'static str = "ws://localhost:8546";
 const AAVE_V3_POOL: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 
-#[test]
-fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::test]
+async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
     let amount_to_repay: u64 = 6000000000;
     let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
     let repay_event = RepayEvent {
         reserve: reserve_token.parse().unwrap(),
-        user: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
-            .parse()
-            .unwrap(),
+        user: user_address,
         repayer: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
             .parse()
             .unwrap(),
@@ -39,18 +47,22 @@ fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::Error>>
 
     let logs = vec![create_log_for_repay_event(&repay_event, AAVE_V3_POOL)];
 
-    let mut users = generate_mock_user_array()?;
+    let mut user_hash = generate_mock_user_hash()?;
+    // let mut users = user_hash.user_data.values();
     // println!("users => {:#?}", users);
 
     // now lets repay user debt and see if amount is updated
-    update_users_with_events_from_logs(&logs, &mut users)?;
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
 
     // println!("update users => {:#?}", users);
 
     let a_token_balance = BigDecimal::from_u64(30000000000).unwrap(); // should be unchanged
     let remaining_debt = BigDecimal::from_u64(20000000000).unwrap(); // lower remaining debt
 
-    for tokens in &users[0].tokens {
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.current_total_debt, remaining_debt);
             assert_eq!(tokens.current_atoken_balance, a_token_balance);
@@ -59,33 +71,37 @@ fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
-#[test]
-fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::test]
+async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn std::error::Error>>
+{
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
     let amount_to_repay: u64 = 6000000000;
     let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
     let repay_event = RepayEvent {
         reserve: reserve_token.parse().unwrap(),
-        user: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
-            .parse()
-            .unwrap(),
-        repayer: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
-            .parse()
-            .unwrap(),
+        user: user_address,
+        repayer: user_address,
         amount: amount_to_repay.into(),
         use_a_tokens: true,
     };
 
     let logs = vec![create_log_for_repay_event(&repay_event, AAVE_V3_POOL)];
 
-    let mut users = generate_mock_user_array()?;
+    let mut user_hash = generate_mock_user_hash()?;
 
     // now lets repay user debt and see if amount is updated
-    update_users_with_events_from_logs(&logs, &mut users)?;
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
 
     let a_token_balance = BigDecimal::from_u64(24000000000).unwrap(); // should be unchanged
     let remaining_debt = BigDecimal::from_u64(20000000000).unwrap(); // lower remaining debt
 
-    for tokens in &users[0].tokens {
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.current_total_debt, remaining_debt);
             assert_eq!(tokens.current_atoken_balance, a_token_balance);
@@ -94,8 +110,12 @@ fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn std::e
     Ok(())
 }
 
-#[test]
-fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::test]
+async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
     let amount_to_borrow: u64 = 4000000000;
     let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
     let borrow_event = BorrowEvent {
@@ -103,9 +123,7 @@ fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>> {
         user: "0x893411580e590d62ddbca8a703d61cc4a8c7b2b9"
             .parse()
             .unwrap(),
-        on_behalf_of: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
-            .parse()
-            .unwrap(),
+        on_behalf_of: user_address,
         amount: amount_to_borrow.into(),
         interest_rate_mode: 1,
         borrow_rate: U256::from(1000),
@@ -114,14 +132,17 @@ fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>> {
 
     let logs = vec![create_log_for_borrow_event(&borrow_event, AAVE_V3_POOL)];
 
-    let mut users = generate_mock_user_array()?;
+    let mut user_hash = generate_mock_user_hash()?;
 
     // now lets borrow tokens and take on more debt
-    update_users_with_events_from_logs(&logs, &mut users)?;
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
 
     let updated_debt = BigDecimal::from_u64(30000000000).unwrap(); // lower remaining debt
 
-    for tokens in &users[0].tokens {
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.current_total_debt, updated_debt);
         }
@@ -129,8 +150,12 @@ fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[test]
-fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::test]
+async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
     let amount_to_supply: u128 = 500000000000000000;
     let reserve_token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     let supply_event = SupplyEvent {
@@ -138,23 +163,24 @@ fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>> {
         user: "0x893411580e590d62ddbca8a703d61cc4a8c7b2b9"
             .parse()
             .unwrap(),
-        on_behalf_of: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
-            .parse()
-            .unwrap(),
+        on_behalf_of: user_address,
         amount: amount_to_supply.into(),
         referral_code: 0,
     };
 
     let logs = vec![create_log_for_supply_event(&supply_event, AAVE_V3_POOL)];
 
-    let mut users = generate_mock_user_array()?;
+    let mut user_hash = generate_mock_user_hash()?;
 
     // now lets supply tokens to exchange
-    update_users_with_events_from_logs(&logs, &mut users)?;
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
 
     let new_supply = BigDecimal::from_u128(15500000000000000000).unwrap();
 
-    for tokens in &users[0].tokens {
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.current_atoken_balance, new_supply);
         }
@@ -162,31 +188,34 @@ fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[test]
-fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::test]
+async fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
     let amount_to_withdraw: u128 = 15000000000000000000;
     let reserve_token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     let withdraw_event = WithdrawEvent {
         reserve: reserve_token.parse().unwrap(),
-        user: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
-            .parse()
-            .unwrap(),
-        to: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
-            .parse()
-            .unwrap(),
+        user: user_address,
+        to: user_address,
         amount: amount_to_withdraw.into(),
     };
 
     let logs = vec![create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL)];
 
-    let mut users = generate_mock_user_array()?;
+    let mut user_hash = generate_mock_user_hash()?;
 
     // now lets withdraw user tokens
-    update_users_with_events_from_logs(&logs, &mut users)?;
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
 
     let new_supply = BigDecimal::from(0);
 
-    for tokens in &users[0].tokens {
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.current_atoken_balance, new_supply);
         }
@@ -194,15 +223,18 @@ fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[test]
-fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::test]
+async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn std::error::Error>>
+{
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
     // DISABLE
     let reserve_token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     let collateral_disable_event = ReserveUsedAsCollateralDisabledEvent {
         reserve: reserve_token.parse().unwrap(),
-        user: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
-            .parse()
-            .unwrap(),
+        user: user_address,
     };
 
     let logs = vec![create_log_for_collateral_disable_event(
@@ -210,12 +242,15 @@ fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn std::
         AAVE_V3_POOL,
     )];
 
-    let mut users = generate_mock_user_array()?;
+    let mut user_hash = generate_mock_user_hash()?;
 
     // disable token usage as collateral
-    update_users_with_events_from_logs(&logs, &mut users)?;
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
 
-    for tokens in &users[0].tokens {
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.usage_as_collateral_enabled, false);
         }
@@ -235,9 +270,11 @@ fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn std::
     )];
 
     // enable token usage as collateral
-    update_users_with_events_from_logs(&logs, &mut users)?;
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
 
-    for tokens in &users[0].tokens {
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.usage_as_collateral_enabled, true);
         }
@@ -246,9 +283,10 @@ fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn std::
     Ok(())
 }
 
-fn generate_mock_user_array() -> Result<Vec<AaveUserData>, Box<dyn std::error::Error>> {
-    let users = vec![AaveUserData {
-        id: "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?,
+fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
+    let user_address: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+    let user_data = AaveUserData {
+        id: user_address,
         total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
         colladeral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
         tokens: vec![
@@ -284,7 +322,14 @@ fn generate_mock_user_array() -> Result<Vec<AaveUserData>, Box<dyn std::error::E
             },
         ],
         health_factor: BigDecimal::from_f32(1.545587076407477097).unwrap(),
-    }];
+    };
 
-    Ok(users)
+    let mut user_hash = HashMap::new();
+    user_hash.insert(user_address, user_data);
+
+    Ok(AaveUsersHash {
+        user_data: user_hash,
+        user_ids_by_token: HashMap::new(),
+        low_health_user_ids_by_token: HashMap::new(),
+    })
 }

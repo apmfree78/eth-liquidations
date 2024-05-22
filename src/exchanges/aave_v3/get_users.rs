@@ -206,6 +206,7 @@ pub struct Price {
     #[serde(rename = "priceInEth")]
     price_in_eth: Option<String>,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Data {
     users: Vec<AaveUser>,

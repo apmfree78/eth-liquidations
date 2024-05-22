@@ -1,14 +1,17 @@
 use super::get_user_from_contract::get_aave_v3_user_from_data_provider;
 use super::get_users::{get_aave_v3_users, UserAccountData};
-use crate::abi::{aave_v3_data_provider::AAVE_V3_DATA_PROVIDER, aave_v3_pool::AAVE_V3_POOL};
-use crate::data::address::{AAVE_V3_DATA_PROVIDER_ADDRESS, AAVE_V3_POOL_ADDRESS};
+use crate::abi::aave_v3_pool::AAVE_V3_POOL;
+use crate::data::address::AAVE_V3_POOL_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, Convert, Erc20Token, TOKEN_DATA};
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::providers::{Provider, Ws};
 use ethers::types::Address;
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+
+const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
 
 pub enum PricingSource {
     AaveOracle,
@@ -35,11 +38,23 @@ pub struct AaveUserData {
     pub health_factor: BigDecimal,
 }
 
+/*
+This below struct is single source of truth for all Aave v3 user data,
+this is the main data source that will be kept up to date based on user
+events found in logs and changes in token prices
+ */
+#[derive(Clone, Debug)]
+pub struct AaveUsersHash {
+    pub user_data: HashMap<Address, AaveUserData>,
+    pub user_ids_by_token: HashMap<Address, Address>,
+    pub low_health_user_ids_by_token: HashMap<Address, Address>,
+}
+
 #[async_trait]
 pub trait Generate {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
-    ) -> Result<Vec<AaveUserData>, Box<dyn std::error::Error>>;
+    ) -> Result<AaveUsersHash, Box<dyn std::error::Error>>;
     async fn get_collateral_times_liquidation_factor_and_total_debt(
         &self,
         source_for_pricing: PricingSource,
@@ -70,7 +85,7 @@ pub trait HealthFactor {
 impl Generate for AaveUserData {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
-    ) -> Result<Vec<AaveUserData>, Box<dyn std::error::Error>> {
+    ) -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
         println!("connecting to aave_v3_pool");
         let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
 
@@ -155,7 +170,38 @@ impl Generate for AaveUserData {
             "{} valid users saved from data provider contract",
             valid_users_from_contract
         );
-        Ok(aave_user_data)
+
+        let mut user_data_hash = HashMap::new();
+        // token address => user ids that own (or borrow) that token
+        let mut token_owned_by_user_hash = HashMap::new();
+        // token address => user ids that own (or borrow) that token AND have low health factor
+        let mut token_owned_by_user_hash_with_low_health_score = HashMap::new();
+
+        for user in &aave_user_data {
+            user_data_hash.insert(user.id, user.clone());
+
+            if user.health_factor
+                > BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32")
+            {
+                for token in &user.tokens {
+                    let token_address: Address = token.token.address.parse()?;
+                    token_owned_by_user_hash.insert(token_address, user.id);
+                }
+            } else {
+                // LOW HEALTH SCORE USERS
+                for token in &user.tokens {
+                    let token_address: Address = token.token.address.parse()?;
+                    token_owned_by_user_hash_with_low_health_score.insert(token_address, user.id);
+                }
+            }
+        }
+
+        // TODO - update to new struct that includes hashmaps
+        Ok(AaveUsersHash {
+            user_data: user_data_hash,
+            user_ids_by_token: token_owned_by_user_hash,
+            low_health_user_ids_by_token: token_owned_by_user_hash_with_low_health_score,
+        })
     }
 
     async fn get_collateral_times_liquidation_factor_and_total_debt(
