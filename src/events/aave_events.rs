@@ -3,7 +3,7 @@ use crate::exchanges::aave_v3::{
     events::{AaveEvent, AaveEventType, AaveUserEvent},
     get_user_from_contract::get_aave_v3_user_from_data_provider,
     update_user::{get_user_action_from_event, Update},
-    user_data::{AaveUserData, AaveUsersHash},
+    user_data::{AaveUserData, AaveUsersHash, UpdateUsers},
 };
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
@@ -178,12 +178,8 @@ pub async fn update_aave_user(
             return Ok(());
         }
     } else {
-        // get user from data provider contract
-        if let Ok(user) = get_aave_v3_user_from_data_provider(user_address, &client).await {
-            // ADD USER TO AaveUsersHealth
-        } else {
-            println!("no valid user found");
-        }
+        // add new user @ user_address since not in our database
+        users.add_new_user(user_address, &client).await?;
     }
     // for user in users.iter_mut() {
     //     if user.id == user_address {

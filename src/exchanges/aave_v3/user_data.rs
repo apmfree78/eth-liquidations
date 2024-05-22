@@ -5,8 +5,8 @@ use crate::data::address::AAVE_V3_POOL_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, Convert, Erc20Token, TOKEN_DATA};
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
-use ethers::types::Address;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -51,6 +51,15 @@ pub struct AaveUsersHash {
 }
 
 #[async_trait]
+pub trait UpdateUsers {
+    async fn add_new_user(
+        &mut self,
+        user_to_add: Address,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+}
+
+#[async_trait]
 pub trait Generate {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
@@ -79,6 +88,43 @@ pub trait HealthFactor {
         &mut self,
         client: &Arc<Provider<Ws>>,
     ) -> Result<bool, Box<dyn std::error::Error>>;
+}
+
+#[async_trait]
+impl UpdateUsers for AaveUsersHash {
+    async fn add_new_user(
+        &mut self,
+        user_to_add: Address,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        match get_aave_v3_user_from_data_provider(user_to_add, &client).await {
+            Ok(user) => {
+                // let health_factor = user.health_factor.clone();
+                // let user_id = user.id.clone();
+
+                if user.health_factor
+                    > BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32")
+                {
+                    for token in &user.tokens {
+                        let token_address: Address = token.token.address.parse()?;
+                        self.user_ids_by_token.insert(token_address, user.id);
+                    }
+                } else {
+                    // LOW HEALTH SCORE USERS
+                    for token in &user.tokens {
+                        let token_address: Address = token.token.address.parse()?;
+                        self.low_health_user_ids_by_token
+                            .insert(token_address, user.id);
+                    }
+                }
+
+                self.user_data.insert(user.id, user);
+                println!("new user successfully added")
+            }
+            Err(error) => println!("user did not fit criteria ==> {}", error),
+        };
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -196,7 +242,6 @@ impl Generate for AaveUserData {
             }
         }
 
-        // TODO - update to new struct that includes hashmaps
         Ok(AaveUsersHash {
             user_data: user_data_hash,
             user_ids_by_token: token_owned_by_user_hash,
@@ -321,10 +366,6 @@ impl HealthFactor for AaveUserData {
             .get_health_factor_from_(PricingSource::AaveOracle, &client)
             .await?;
 
-        // println!(
-        //     "calculated health factor {}",
-        //     aave_user_calculated_health_factor
-        // );
         // CHECK that health factor calculated from user data is
         // within + or - 5% of official health factor we get from
         // getUserAccount contract call
