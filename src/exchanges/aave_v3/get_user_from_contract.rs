@@ -1,13 +1,10 @@
-use super::get_users::{get_aave_v3_users, UserAccountData};
 use super::user_data::{AaveToken, AaveUserData, Generate, HealthFactor, PricingSource};
-use crate::abi::{aave_v3_data_provider::AAVE_V3_DATA_PROVIDER, aave_v3_pool::AAVE_V3_POOL};
-use crate::data::address::{AAVE_V3_DATA_PROVIDER_ADDRESS, AAVE_V3_POOL_ADDRESS};
-use crate::data::erc20::{u256_to_big_decimal, Convert, Erc20Token, TOKEN_DATA};
-use async_trait::async_trait;
-use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
+use crate::data::address::AAVE_V3_DATA_PROVIDER_ADDRESS;
+use crate::data::erc20::{u256_to_big_decimal, TOKEN_DATA};
+use bigdecimal::BigDecimal;
 use ethers::providers::{Provider, Ws};
 use ethers::types::Address;
-use std::str::FromStr;
 use std::sync::Arc;
 
 pub async fn get_aave_v3_user_from_data_provider(
@@ -65,10 +62,8 @@ pub async fn get_aave_v3_user_from_data_provider(
         .get_collateral_times_liquidation_factor_and_total_debt(PricingSource::AaveOracle, &client)
         .await?;
 
-    if colladeral_times_liquidation_factor == BigDecimal::from(0)
-        && total_debt == BigDecimal::from(0)
-    {
-        return Err("no tokens as debt or collateral".into());
+    if total_debt == BigDecimal::from(0) {
+        return Err("user has no debt".into());
     }
 
     user_data.colladeral_times_liquidation_factor = colladeral_times_liquidation_factor;

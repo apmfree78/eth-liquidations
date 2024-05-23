@@ -99,9 +99,6 @@ impl UpdateUsers for AaveUsersHash {
     ) -> Result<(), Box<dyn std::error::Error>> {
         match get_aave_v3_user_from_data_provider(user_to_add, &client).await {
             Ok(user) => {
-                // let health_factor = user.health_factor.clone();
-                // let user_id = user.id.clone();
-
                 if user.health_factor
                     > BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32")
                 {

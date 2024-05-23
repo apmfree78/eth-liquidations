@@ -155,9 +155,6 @@ pub fn extract_aave_event_data(
     }
 }
 
-// TODO - refactor to make users a hashmap
-// TODO #2 - if user user_address does not exist in our hashmap,
-// then use get_aave_v3_user_from_data_provider to get and add user
 pub async fn update_aave_user(
     users: &mut AaveUsersHash,
     event: Box<dyn AaveEvent>,
@@ -181,16 +178,6 @@ pub async fn update_aave_user(
         // add new user @ user_address since not in our database
         users.add_new_user(user_address, &client).await?;
     }
-    // for user in users.iter_mut() {
-    //     if user.id == user_address {
-    //         println!("updating user {:#?}", user);
-    //         if let Err(e) = user.update(&user_action) {
-    //             return Err(e);
-    //         } else {
-    //             println!("user updated! => {:#?}", user);
-    //             return Ok(());
-    //         }
-    //     }
-    // }
+
     Ok(())
 }

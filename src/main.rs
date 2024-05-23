@@ -15,6 +15,7 @@ use ethers::{
     core::types::{Filter, Log, TxHash},
     providers::{Provider, Ws},
 };
+use futures::lock::Mutex;
 use futures::{stream, StreamExt};
 use std::sync::Arc;
 
@@ -30,70 +31,79 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
-    let mut aave_user_list = AaveUserData::get_users(&client).await?;
+    let user_hash = AaveUserData::get_users(&client).await?;
 
-    /*
-        let filter = Filter::new()
-            .address(AAVE_V3_POOL_ADDRESS.parse::<Address>()?)
-            .events(
-                [
-                    WITHDRAW_SIGNATURE,
-                    BORROW_SIGNATURE,
-                    REPAY_SIGNATURE,
-                    SUPPLY_SIGNATURE,
-                    RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE,
-                    RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
-                ]
-                .to_vec(),
-            );
-        // detect_price_update(&client).await?;
-        // Create multiple subscription streams.
-        let log_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
-            client
-                .subscribe_logs(&filter)
-                .await?
-                .map(|log| Ok(Event::Log(log)))
-                .boxed();
+    let user_data = Arc::new(Mutex::new(user_hash));
+    let user_data_for_log = Arc::clone(&user_data);
 
-        println!("Subscribed to logs");
+    let filter = Filter::new()
+        .address(AAVE_V3_POOL_ADDRESS.parse::<Address>()?)
+        .events(
+            [
+                WITHDRAW_SIGNATURE,
+                BORROW_SIGNATURE,
+                REPAY_SIGNATURE,
+                SUPPLY_SIGNATURE,
+                RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE,
+                RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
+            ]
+            .to_vec(),
+        );
 
-        let tx_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
-            client
-                .subscribe_pending_txs()
-                .await?
-                .map(|tx| Ok(Event::PendingTransactions(tx)))
-                .boxed();
+    // Create multiple subscription streams.
+    let log_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
+        client
+            .subscribe_logs(&filter)
+            .await?
+            .map(|log| Ok(Event::Log(log)))
+            .boxed();
 
-        println!("Subscribed to pending transactions");
+    println!("Subscribed to logs");
 
-        // Merge the streams into a single stream.
-        let combined_stream = stream::select_all(vec![log_stream, tx_stream]);
+    let tx_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
+        client
+            .subscribe_pending_txs()
+            .await?
+            .map(|tx| Ok(Event::PendingTransactions(tx)))
+            .boxed();
 
-        println!("Combined streams");
+    println!("Subscribed to pending transactions");
 
-        combined_stream
-            .for_each(|event| async {
-                match event {
-                    Ok(Event::Log(log)) => {
-                        println!("new log found! ==> {:#?}", log);
-                        // TODO - set this up with Mutex
-                        // update_users_with_event_from_log(log, &mut aave_user_list)
+    // Merge the streams into a single stream.
+    let combined_stream = stream::select_all(vec![log_stream, tx_stream]);
+
+    println!("Combined streams");
+
+    combined_stream
+        .for_each(|event| async {
+            let client = Arc::clone(&client);
+            let user_data = Arc::clone(&user_data);
+            match event {
+                Ok(Event::Log(log)) => {
+                    println!("new log found! ==> {:#?}", log);
+
+                    let mut users = user_data.lock().await;
+                    if let Err(error) =
+                        update_users_with_event_from_log(log, &mut users, &client).await
+                    {
+                        println!("could not update users => {}", error);
                     }
-                    Ok(Event::PendingTransactions(tx)) => {
-                        // println!("New pending transaction: {:?}", tx);
-                        let _ = detect_price_update(tx, &client).await;
-                    }
-                    Err(e) => eprintln!("Error: {:?}", e),
                 }
-            })
-            .await;
-    */
+                Ok(Event::PendingTransactions(tx)) => {
+                    // println!("New pending transaction: {:?}", tx);
+                    if let Err(error) = detect_price_update(tx, &client).await {
+                        println!("problem with price update detection => {}", error);
+                    }
+                }
+                Err(e) => eprintln!("Error: {:?}", e),
+            }
+        })
+        .await;
 
     // Your code to handle the events goes here.
     // println!(" user list {:#?} ", aave_user_list);
 
     // scan_and_update_aave_events(&mut aave_user_list, &client).await?;
-    // for user in &aave_user_list {
     //     let calculated_health_factor = user
     //         .get_health_factor_from_(PricingSource::UniswapV3, &client)
     //         .await?;
