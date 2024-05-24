@@ -114,9 +114,12 @@ impl UpdateUsers for AaveUsersHash {
                             .insert(token_address, user.id);
                     }
                 }
-
+                let user_id = user.id;
                 self.user_data.insert(user.id, user);
-                println!("new user successfully added")
+                println!(
+                    "new user successfully added {:#?}",
+                    self.user_data.get(&user_id).unwrap()
+                )
             }
             Err(error) => println!("user did not fit criteria ==> {}", error),
         };

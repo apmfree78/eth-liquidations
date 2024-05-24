@@ -78,6 +78,7 @@ impl Convert for Erc20Token {
             || self.symbol == "LDO"
             || self.symbol == "rETH"
             || self.symbol == "LUSD"
+            || self.symbol == "RPL"
             || self.symbol == "weETH"
             || self.symbol == "wstETH"
             || self.symbol == "BAL")
@@ -386,6 +387,15 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
         liquidation_bonus: 10750,
         liquidation_threshold: 7500,
+    });
+
+    tokens.push(Erc20Token {
+        name: "Rocket Pool Protocol",
+        symbol: "RPL",
+        decimals: 18,
+        address: "0xD33526068D116cE69F19A9ee46F0bd304F21A51f",
+        liquidation_bonus: 0,
+        liquidation_threshold: 0,
     });
 
     let mut token_hash = HashMap::new();

@@ -151,6 +151,50 @@ async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>
 }
 
 #[tokio::test]
+async fn test_user_update_with_borrow_new_token() -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
+    let amount_to_borrow: u64 = 4000000000;
+    let reserve_token = "0x6B175474E89094C44Da98b954EedeAC495271d0F"; //DAI
+    let borrow_event = BorrowEvent {
+        reserve: reserve_token.parse().unwrap(),
+        user: "0x893411580e590d62ddbca8a703d61cc4a8c7b2b9"
+            .parse()
+            .unwrap(),
+        on_behalf_of: user_address,
+        amount: amount_to_borrow.into(),
+        interest_rate_mode: 1,
+        borrow_rate: U256::from(1000),
+        referral_code: 0,
+    };
+
+    let logs = vec![create_log_for_borrow_event(&borrow_event, AAVE_V3_POOL)];
+
+    let mut user_hash = generate_mock_user_hash()?;
+
+    // now lets borrow tokens and take on more debt
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+
+    let amount_to_borrow = BigDecimal::from_u64(amount_to_borrow).unwrap(); // lower remaining debt
+
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    // confirm new DAI token was added
+    assert_eq!(user.tokens.len(), 3);
+
+    for tokens in &user.tokens {
+        if tokens.token.address == reserve_token {
+            assert_eq!(tokens.current_atoken_balance, BigDecimal::from(0));
+            assert_eq!(tokens.current_total_debt, amount_to_borrow);
+        }
+    }
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
@@ -183,6 +227,48 @@ async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.current_atoken_balance, new_supply);
+        }
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_user_update_with_supply_to_new_token() -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
+    let amount_to_supply: u128 = 500000000000000000;
+    let reserve_token = "0x6B175474E89094C44Da98b954EedeAC495271d0F"; //DAI
+    let supply_event = SupplyEvent {
+        reserve: reserve_token.parse().unwrap(),
+        user: "0x893411580e590d62ddbca8a703d61cc4a8c7b2b9"
+            .parse()
+            .unwrap(),
+        on_behalf_of: user_address,
+        amount: amount_to_supply.into(),
+        referral_code: 0,
+    };
+
+    let logs = vec![create_log_for_supply_event(&supply_event, AAVE_V3_POOL)];
+
+    let mut user_hash = generate_mock_user_hash()?;
+
+    // now lets supply tokens to exchange
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+
+    let amount_to_supply = BigDecimal::from_u128(amount_to_supply).unwrap();
+
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    // confirm new DAI token was added
+    assert_eq!(user.tokens.len(), 3);
+
+    for tokens in &user.tokens {
+        if tokens.token.address == reserve_token {
+            assert_eq!(tokens.current_atoken_balance, amount_to_supply);
+            assert_eq!(tokens.current_total_debt, BigDecimal::from(0));
         }
     }
     Ok(())

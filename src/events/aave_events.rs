@@ -162,16 +162,21 @@ pub async fn update_aave_user(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user_address = event.get_user();
     let user_action = get_user_action_from_event(event);
-    // println!("user action {:#?}", user_action);
+    println!("user action {:#?}", user_action);
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
 
-        println!("updating user {:#?}", user);
+        println!("updating user {}", user.id);
+        println!("user debt ...{:?}", user.total_debt);
+        println!("user health factor...{:?}", user.health_factor);
         if let Err(e) = user.update(&user_action) {
             return Err(e);
         } else {
-            println!("user updated! => {:#?}", user);
+            println!("user updated!");
+            // TODO - ADD METHOD TO UPDATE stats after update
+            // println!("updated user debt ...{:?}", user.total_debt);
+            // println!("updated user health factor...{:?}", user.health_factor);
             return Ok(());
         }
     } else {

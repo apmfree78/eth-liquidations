@@ -31,11 +31,11 @@ pub trait Update {
 
 impl Update for AaveUserData {
     fn update(&mut self, aave_action: &AaveUserAction) -> Result<(), Box<dyn std::error::Error>> {
-        let token_address = &aave_action.token.address;
+        let token_address = aave_action.token.address.to_lowercase();
         match aave_action.user_event {
             AaveUserEvent::WithDraw => {
                 for token in &mut self.tokens {
-                    if token.token.address == *token_address {
+                    if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_atoken_balance -= aave_action.amount_transferred.clone();
                         return Ok(());
@@ -45,7 +45,7 @@ impl Update for AaveUserData {
             AaveUserEvent::Borrow => {
                 // find token in aave user data
                 for token in &mut self.tokens {
-                    if token.token.address == *token_address {
+                    if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_total_debt += aave_action.amount_transferred.clone();
                         return Ok(());
@@ -53,20 +53,28 @@ impl Update for AaveUserData {
                 }
 
                 // token does not exist , add it
-                let token = TOKEN_DATA.get(*token_address).unwrap();
-                self.tokens.push(AaveToken {
-                    token: *token,
-                    current_total_debt: aave_action.amount_transferred.clone(),
-                    usage_as_collateral_enabled: false,
-                    current_atoken_balance: BigDecimal::from(0),
-                    reserve_liquidation_threshold: BigDecimal::from(token.liquidation_threshold),
-                    reserve_liquidation_bonus: BigDecimal::from(token.liquidation_bonus),
-                })
+                if let Some(token) = TOKEN_DATA.get(&token_address) {
+                    self.tokens.push(AaveToken {
+                        token: *token,
+                        current_total_debt: aave_action.amount_transferred.clone(),
+                        usage_as_collateral_enabled: false,
+                        current_atoken_balance: BigDecimal::from(0),
+                        reserve_liquidation_threshold: BigDecimal::from(
+                            token.liquidation_threshold,
+                        ),
+                        reserve_liquidation_bonus: BigDecimal::from(token.liquidation_bonus),
+                    });
+                } else {
+                    panic!(
+                        "token address provided is invalid or doesn't exist! => {}",
+                        token_address
+                    );
+                }
             }
             AaveUserEvent::Repay => {
                 // find token in aave user data
                 for token in &mut self.tokens {
-                    if token.token.address == *token_address {
+                    if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_total_debt -= aave_action.amount_transferred.clone();
 
@@ -86,27 +94,36 @@ impl Update for AaveUserData {
             }
             AaveUserEvent::Supply => {
                 for token in &mut self.tokens {
-                    if token.token.address == *token_address {
+                    if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_atoken_balance += aave_action.amount_transferred.clone();
                         return Ok(());
                     };
                 }
+
                 // token does not exist , add it
-                let token = TOKEN_DATA.get(*token_address).unwrap();
-                self.tokens.push(AaveToken {
-                    token: *token,
-                    current_total_debt: BigDecimal::from(0),
-                    usage_as_collateral_enabled: false,
-                    current_atoken_balance: aave_action.amount_transferred.clone(),
-                    reserve_liquidation_threshold: BigDecimal::from(token.liquidation_threshold),
-                    reserve_liquidation_bonus: BigDecimal::from(token.liquidation_bonus),
-                })
+                if let Some(token) = TOKEN_DATA.get(&token_address) {
+                    self.tokens.push(AaveToken {
+                        token: *token,
+                        current_total_debt: BigDecimal::from(0),
+                        usage_as_collateral_enabled: false,
+                        current_atoken_balance: aave_action.amount_transferred.clone(),
+                        reserve_liquidation_threshold: BigDecimal::from(
+                            token.liquidation_threshold,
+                        ),
+                        reserve_liquidation_bonus: BigDecimal::from(token.liquidation_bonus),
+                    });
+                } else {
+                    panic!(
+                        "token address provided is invalid or doesn't exist! => {}",
+                        token_address
+                    );
+                }
             }
             AaveUserEvent::ReserveUsedAsCollateralEnabled => {
                 // find token in aave user data
                 for token in &mut self.tokens {
-                    if token.token.address == *token_address {
+                    if token.token.address.to_lowercase() == token_address {
                         // update
                         token.usage_as_collateral_enabled = true;
                         return Ok(());
@@ -116,7 +133,7 @@ impl Update for AaveUserData {
             AaveUserEvent::ReserveUsedAsCollateralDisabled => {
                 // find token in aave user data
                 for token in &mut self.tokens {
-                    if token.token.address == *token_address {
+                    if token.token.address.to_lowercase() == token_address {
                         // update
                         token.usage_as_collateral_enabled = false;
                         return Ok(());

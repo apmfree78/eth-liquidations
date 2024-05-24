@@ -80,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let user_data = Arc::clone(&user_data);
             match event {
                 Ok(Event::Log(log)) => {
-                    println!("new log found! ==> {:#?}", log);
+                    // println!("new log found! ==> {:#?}", log);
 
                     let mut users = user_data.lock().await;
                     if let Err(error) =

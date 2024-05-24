@@ -32,9 +32,9 @@ pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>)
                     if data.starts_with(&transmit_hash) {
                         println!("TRANSMIT FOUND!!!");
                         println!("Transaction to address: {:?}", to);
-                        println!("Transaction data (hex encoded): {:?}", tx.input);
-                        println!("Method ID: {:?}", method_id);
-                        println!("transmit_hash: {:?}", &transmit_hash);
+                        // println!("Transaction data (hex encoded): {:?}", tx.input);
+                        // println!("Method ID: {:?}", method_id);
+                        // println!("transmit_hash: {:?}", &transmit_hash);
 
                         // let function = Function {
                         //     state_mutability: StateMutability::NonPayable,
