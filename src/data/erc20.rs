@@ -75,12 +75,14 @@ impl Convert for Erc20Token {
             || self.symbol == "CRV"
             || self.symbol == "AAVE"
             || self.symbol == "1INCH"
+            || self.symbol == "FXS"
             || self.symbol == "LDO"
             || self.symbol == "rETH"
             || self.symbol == "LUSD"
             || self.symbol == "RPL"
             || self.symbol == "weETH"
             || self.symbol == "wstETH"
+            || self.symbol == "osETH"
             || self.symbol == "BAL")
             && base_token_symbol == "USDC"
         {
@@ -180,6 +182,15 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
         liquidation_bonus: 10600,
         liquidation_threshold: 8100,
+    });
+
+    tokens.push(Erc20Token {
+        name: "Staked ETH",
+        symbol: "osETH",
+        decimals: 18,
+        address: "0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38",
+        liquidation_bonus: 10750,
+        liquidation_threshold: 7500,
     });
 
     tokens.push(Erc20Token {
@@ -396,6 +407,33 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xD33526068D116cE69F19A9ee46F0bd304F21A51f",
         liquidation_bonus: 0,
         liquidation_threshold: 0,
+    });
+
+    tokens.push(Erc20Token {
+        name: "Frax Share",
+        symbol: "FXS",
+        decimals: 18,
+        address: "0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0",
+        liquidation_bonus: 11000,
+        liquidation_threshold: 4200,
+    });
+
+    tokens.push(Erc20Token {
+        name: "StargateToken",
+        symbol: "STG",
+        decimals: 18,
+        address: "0xAf5191B0De278C7286d6C7CC6ab6BB8A73bA2Cd6",
+        liquidation_bonus: 11000,
+        liquidation_threshold: 3700,
+    });
+
+    tokens.push(Erc20Token {
+        name: "Kyber Network Crystal v2",
+        symbol: "KNC",
+        decimals: 18,
+        address: "0xdeFA4e8a7bcBA345F687a2f1456F5Edd9CE97202",
+        liquidation_bonus: 11000,
+        liquidation_threshold: 3700,
     });
 
     let mut token_hash = HashMap::new();

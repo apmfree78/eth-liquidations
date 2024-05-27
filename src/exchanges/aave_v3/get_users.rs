@@ -2,10 +2,11 @@ use crate::data::erc20::{Convert, TOKEN_DATA};
 use crate::exchanges::aave_v3::user_data::AaveToken;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use core::panic;
 use ethers::providers::{Provider, Ws};
 use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
-use serde_json;
+use serde_json::{self, json};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -149,7 +150,13 @@ impl UserAccountData for AaveUser {
         let mut user_token_list: Vec<AaveToken> = Vec::new();
 
         for r in &self.reserves {
-            let token = TOKEN_DATA.get(&*r.reserve.symbol).unwrap();
+            let token = TOKEN_DATA.get(&*r.reserve.symbol).unwrap_or_else(|| {
+                panic!(
+                    "could not find token with symbol, and name: {} => {} ",
+                    r.reserve.symbol, r.reserve.name
+                )
+            });
+
             // println!("getting price of {} in usd", token.symbol);
             // let token_price_eth = token.get_token_price_in_("USDC", &client).await?;
 
@@ -198,13 +205,6 @@ pub struct Reserve {
     reserve_liquidation_threshold: String,
     #[serde(rename = "reserveLiquidationBonus")]
     reserve_liquidation_bonus: String,
-    price: Price,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Price {
-    #[serde(rename = "priceInEth")]
-    price_in_eth: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -220,8 +220,8 @@ pub struct Response {
 
 pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error>> {
     let query = r#"
-    {
-     users(where: {borrowedReservesCount_gt: 0}) {
+    { 
+     users(first: 1000, where: {borrowedReservesCount_gt: 0}) {
         id
         borrowedReservesCount
         reserves {
@@ -280,3 +280,176 @@ pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Er
         }
     }
 }
+
+pub async fn get_all_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error>> {
+    let query = r#"
+    query GetUsers($lastID: String) {
+     users(first: 1000, where: { borrowedReservesCount_gt: 0, id_gt: $lastID }) {
+        id
+        borrowedReservesCount
+        reserves {
+          currentATokenBalance
+          currentStableDebt
+          currentVariableDebt
+          currentTotalDebt
+          reserve {
+            id
+            name
+            symbol
+            usageAsCollateralEnabled
+            reserveLiquidationThreshold
+            reserveLiquidationBonus
+            price {
+              priceInEth
+            }
+          }
+        }
+      }
+    }"#;
+
+    let client = Client::new();
+    let mut all_users = Vec::<AaveUser>::new();
+    let mut id_cursor = "0".to_string();
+
+    loop {
+        let response = client
+            .post("https://api.thegraph.com/subgraphs/name/aave/protocol-v3")
+            .header(header::CONTENT_TYPE, "application/json")
+            .json(&serde_json::json!({
+            "query": query,
+            "variables": {
+                "lastID": id_cursor,
+            }
+            }))
+            .send()
+            .await?;
+
+        let raw_response = response.text().await?;
+        // println!("Raw JSON response: {}", raw_response);
+
+        let response: Response = serde_json::from_str(&raw_response)?;
+
+        if let Some(errors) = response.errors {
+            for error in errors {
+                println!("Error: {:?}", error);
+            }
+            return Err("GraphQL errors occurred".into());
+        }
+
+        match response.data {
+            Some(mut data) => {
+                if data.users.is_empty() {
+                    println!("no more users found");
+                    break;
+                } else {
+                    println!("{} users found", data.users.len());
+
+                    // find last element of array to index users
+                    let last_element = data.users.last().unwrap();
+                    id_cursor = last_element.id.clone();
+                    all_users.append(&mut data.users);
+                }
+            }
+            None => {
+                println!("Data field not found in the response.");
+                break;
+            }
+        };
+    }
+
+    Ok(all_users)
+}
+
+// pub async fn get_all_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error>> {
+//     let client = Client::new();
+//     let mut after_cursor: Option<String> = None;
+//     let mut more_pages = true;
+//     let mut all_users = Vec::new();
+//     let query = r#"
+//         query GetUsers($first: Int, $after: String) {
+//             users(first: $first, after: $after, where: {borrowedReservesCount_gt: 0}) {
+//                 edges {
+//                     node {
+//                         id
+//                         borrowedReservesCount
+//                         reserves {
+//                             currentATokenBalance
+//                             currentStableDebt
+//                             currentVariableDebt
+//                             currentTotalDebt
+//                             reserve {
+//                                 id
+//                                 name
+//                                 symbol
+//                                 usageAsCollateralEnabled
+//                                 reserveLiquidationThreshold
+//                                 reserveLiquidationBonus
+//                                 price {
+//                                     priceInEth
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//                 pageInfo {
+//                     endCursor
+//                     hasNextPage
+//                 }
+//             }
+//         }"#;
+
+//     while more_pages {
+//         let variables = if let Some(cursor) = &after_cursor {
+//             json!({
+//                 "first": 100,
+//                 "after": cursor
+//             })
+//         } else {
+//             json!({
+//                 "first": 100
+//             })
+//         };
+
+//         let response = client
+//             .post("https://api.thegraph.com/subgraphs/name/aave/protocol-v3")
+//             .header(header::CONTENT_TYPE, "application/json")
+//             .json(&json!({
+//                 "query": query,
+//                 "variables": variables,
+//             }))
+//             .send()
+//             .await?;
+
+//         let raw_response = response.text().await?;
+
+//         let response: PaginatedResponse = serde_json::from_str(&raw_response)?;
+
+//         if let Some(errors) = response.errors {
+//             for error in errors {
+//                 println!("Error: {:?}", error);
+//             }
+//             return Err("GraphQL errors occurred".into()); // Convert the static string error into a Box<dyn Error>
+//         }
+
+//         match response.data {
+//             Some(data) => {
+//                 if data.users.edges.is_empty() {
+//                     println!("no user object found");
+//                 } else {
+//                     println!("user object found");
+//                     for edge in data.users.edges {
+//                         all_users.push(edge.node);
+//                     }
+//                 }
+
+//                 more_pages = data.users.page_info.has_next_page;
+//                 after_cursor = data.users.page_info.end_cursor
+//             }
+//             None => {
+//                 println!("Data field not found in the response.");
+//             }
+//         }
+//     }
+
+//     Ok(all_users)
+// }

@@ -1,5 +1,5 @@
 use super::get_user_from_contract::get_aave_v3_user_from_data_provider;
-use super::get_users::{get_aave_v3_users, UserAccountData};
+use super::get_users::{get_aave_v3_users, get_all_aave_v3_users, UserAccountData};
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
 use crate::data::address::AAVE_V3_POOL_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, Convert, Erc20Token, TOKEN_DATA};
@@ -138,7 +138,8 @@ impl Generate for AaveUserData {
         // store all data that we need for user
         let mut aave_user_data: Vec<AaveUserData> = Vec::new();
 
-        let aave_users = get_aave_v3_users().await?;
+        // let aave_users = get_aave_v3_users().await?;
+        let aave_users = get_all_aave_v3_users().await?;
         println!("got aave_v3 users");
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
