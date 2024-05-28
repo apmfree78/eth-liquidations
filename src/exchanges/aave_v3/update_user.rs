@@ -3,7 +3,6 @@ use super::user_data::{AaveToken, AaveUserData};
 use crate::data::erc20::{address_to_string, u256_to_big_decimal, TOKEN_DATA};
 use bigdecimal::BigDecimal;
 use core::panic;
-use uniswap_sdk_core::prelude::BigDecimal;
 
 pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
     let token_address = event.get_reserve();
@@ -17,13 +16,13 @@ pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
     let amount = event.get_amount();
     let amount = u256_to_big_decimal(&amount);
 
-    return AaveUserAction {
+    AaveUserAction {
         user_event: event.get_type(),
         user_address: event.get_user(),
         token: *token,
         amount_transferred: amount,
         use_a_tokens: event.get_use_a_tokens(),
-    };
+    }
 }
 
 pub trait Update {
@@ -36,7 +35,7 @@ impl Update for AaveUserData {
         let mut token_index: Option<usize> = None;
         match aave_action.user_event {
             AaveUserEvent::WithDraw => {
-                for (index, token) in &mut self.tokens.iter().enumerate() {
+                for (index, token) in self.tokens.iter_mut().enumerate() {
                     if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_atoken_balance -= aave_action.amount_transferred.clone();
@@ -90,7 +89,7 @@ impl Update for AaveUserData {
             }
             AaveUserEvent::Repay => {
                 // find token in aave user data
-                for (index, token) in &mut self.tokens.iter().enumerate() {
+                for (index, token) in self.tokens.iter_mut().enumerate() {
                     if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_total_debt -= aave_action.amount_transferred.clone();
