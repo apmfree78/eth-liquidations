@@ -63,12 +63,18 @@ pub trait UpdateUsers {
 pub trait Generate {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
+        get_all_users: bool,
     ) -> Result<AaveUsersHash, Box<dyn std::error::Error>>;
     async fn get_collateral_times_liquidation_factor_and_total_debt(
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
     ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>>;
+    async fn update_meta_data(
+        &mut self,
+        source_for_pricing: PricingSource,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -131,6 +137,7 @@ impl UpdateUsers for AaveUsersHash {
 impl Generate for AaveUserData {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
+        get_all_users: bool,
     ) -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
         println!("connecting to aave_v3_pool");
         let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
@@ -139,7 +146,12 @@ impl Generate for AaveUserData {
         let mut aave_user_data: Vec<AaveUserData> = Vec::new();
 
         // let aave_users = get_aave_v3_users().await?;
-        let aave_users = get_all_aave_v3_users().await?;
+        let aave_users = if get_all_users {
+            get_all_aave_v3_users().await?
+        } else {
+            get_aave_v3_users().await?
+        };
+
         println!("got aave_v3 users");
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
@@ -306,6 +318,30 @@ impl Generate for AaveUserData {
         }
 
         Ok((liquidation_threshold_collateral_sum, total_debt_usd))
+    }
+
+    async fn update_meta_data(
+        &mut self,
+        source_for_pricing: PricingSource,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let (colladeral_times_liquidation_factor, total_debt) = self
+            .get_collateral_times_liquidation_factor_and_total_debt(
+                PricingSource::UniswapV3,
+                &client,
+            )
+            .await?;
+
+        self.colladeral_times_liquidation_factor = colladeral_times_liquidation_factor;
+        self.total_debt = total_debt;
+
+        // now with updated  debt and collateral values ,  we can find health factor
+        let health_factor = self
+            .get_health_factor_from_(PricingSource::UniswapV3, &client)
+            .await?;
+
+        self.health_factor = health_factor;
+        Ok(())
     }
 }
 

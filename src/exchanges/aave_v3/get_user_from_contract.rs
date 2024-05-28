@@ -58,23 +58,13 @@ pub async fn get_aave_v3_user_from_data_provider(
         health_factor: BigDecimal::from(0), //placeholder value , will calculate below
     };
 
-    let (colladeral_times_liquidation_factor, total_debt) = user_data
-        .get_collateral_times_liquidation_factor_and_total_debt(PricingSource::AaveOracle, &client)
+    user_data
+        .update_meta_data(PricingSource::UniswapV3, &client)
         .await?;
 
-    if total_debt == BigDecimal::from(0) {
+    if user_data.total_debt == BigDecimal::from(0) {
         return Err("user has no debt".into());
     }
-
-    user_data.colladeral_times_liquidation_factor = colladeral_times_liquidation_factor;
-    user_data.total_debt = total_debt;
-
-    // ONLY calculate health factor AFTER you know colladeral_times_liquidation_factor and total_debt
-    let health_factor = user_data
-        .get_health_factor_from_(PricingSource::AaveOracle, &client)
-        .await?;
-
-    user_data.health_factor = health_factor;
 
     // TODO - check health factor of user matches with official health factor
     if user_data

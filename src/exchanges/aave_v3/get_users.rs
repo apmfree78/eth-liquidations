@@ -221,7 +221,7 @@ pub struct Response {
 pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error>> {
     let query = r#"
     { 
-     users(first: 1000, where: {borrowedReservesCount_gt: 0}) {
+     users(first: 100, where: {borrowedReservesCount_gt: 0}) {
         id
         borrowedReservesCount
         reserves {

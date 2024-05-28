@@ -18,7 +18,7 @@ async fn test_that_health_factor_is_self_consistent_in_user_data(
     // Round both to four decimal places
     let scale = 3;
 
-    let aave_users_hash: AaveUsersHash = AaveUserData::get_users(&client).await?;
+    let aave_users_hash: AaveUsersHash = AaveUserData::get_users(&client, false).await?;
 
     for user in aave_users_hash.user_data.values() {
         let given_health_factor = &user.health_factor.with_scale(scale);
@@ -44,7 +44,7 @@ async fn test_that_calculated_health_factor_roughly_matches_given_one(
 
     // Round both to four decimal places
 
-    let aave_users_hash: AaveUsersHash = AaveUserData::get_users(&client).await?;
+    let aave_users_hash: AaveUsersHash = AaveUserData::get_users(&client, false).await?;
 
     for user in aave_users_hash.user_data.values() {
         let given_health_factor = user.health_factor.clone();

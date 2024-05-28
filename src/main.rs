@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
-    let user_hash = AaveUserData::get_users(&client).await?;
+    let user_hash = AaveUserData::get_users(&client, true).await?;
 
     let user_data = Arc::new(Mutex::new(user_hash));
     let user_data_for_log = Arc::clone(&user_data);

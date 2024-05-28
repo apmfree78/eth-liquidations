@@ -3,7 +3,7 @@ use crate::exchanges::aave_v3::{
     events::{AaveEvent, AaveEventType, AaveUserEvent},
     get_user_from_contract::get_aave_v3_user_from_data_provider,
     update_user::{get_user_action_from_event, Update},
-    user_data::{AaveUserData, AaveUsersHash, UpdateUsers},
+    user_data::{AaveUserData, AaveUsersHash, Generate, PricingSource, UpdateUsers},
 };
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
@@ -166,7 +166,6 @@ pub async fn update_aave_user(
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
-
         println!("updating user {}", user.id);
         println!("user debt ...{:?}", user.total_debt);
         println!("user health factor...{:?}", user.health_factor);
@@ -175,8 +174,11 @@ pub async fn update_aave_user(
         } else {
             println!("user updated!");
             // TODO - ADD METHOD TO UPDATE stats after update
-            // println!("updated user debt ...{:?}", user.total_debt);
-            // println!("updated user health factor...{:?}", user.health_factor);
+
+            user.update_meta_data(PricingSource::UniswapV3, &client)
+                .await?;
+            println!("updated user debt ...{:?}", user.total_debt);
+            println!("updated user health factor...{:?}", user.health_factor);
             return Ok(());
         }
     } else {
