@@ -72,6 +72,136 @@ async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::E
 }
 
 #[tokio::test]
+async fn test_user_update_with_full_repay_then_withdraw_event(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
+    // test that  when  user repays debt and withdraws a token balance token is removed
+    let amount_to_repay: u64 = 26000000000;
+    let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+    let repay_event = RepayEvent {
+        reserve: reserve_token.parse().unwrap(),
+        user: user_address,
+        repayer: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
+            .parse()
+            .unwrap(),
+        amount: amount_to_repay.into(),
+        use_a_tokens: false,
+    };
+
+    let logs = vec![create_log_for_repay_event(&repay_event, AAVE_V3_POOL)];
+
+    let mut user_hash = generate_mock_user_hash()?;
+    // let mut users = user_hash.user_data.values();
+    // println!("users => {:#?}", users);
+
+    // now lets repay user debt and see if amount is updated
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+
+    let a_token_balance = BigDecimal::from_u64(30000000000).unwrap(); // should be unchanged
+    let remaining_debt = BigDecimal::from(0); // lower remaining debt
+
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    for tokens in &user.tokens {
+        if tokens.token.address == reserve_token {
+            assert_eq!(tokens.current_total_debt, remaining_debt);
+            assert_eq!(tokens.current_atoken_balance, a_token_balance);
+        }
+    }
+
+    let amount_to_withdraw: u64 = 30000000000;
+    let withdraw_event = WithdrawEvent {
+        reserve: reserve_token.parse().unwrap(),
+        user: user_address,
+        to: user_address,
+        amount: amount_to_withdraw.into(),
+    };
+
+    let logs = vec![create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL)];
+
+    // now lets withdraw remaining a token balance
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    println!("update users => {:#?}", user);
+    // check that token was removed
+    assert_eq!(user.tokens.len(), 1);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_user_update_with_full_withdraw_then_repay_event(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+    let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+
+    let amount_to_withdraw: u64 = 30000000000;
+    let withdraw_event = WithdrawEvent {
+        reserve: reserve_token.parse().unwrap(),
+        user: user_address,
+        to: user_address,
+        amount: amount_to_withdraw.into(),
+    };
+
+    let logs = vec![create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL)];
+
+    let mut user_hash = generate_mock_user_hash()?;
+    // let mut users = user_hash.user_data.values();
+    // println!("users => {:#?}", users);
+
+    // now lets repay user debt and see if amount is updated
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+
+    let remaining_debt = BigDecimal::from_u64(26000000000).unwrap(); // should be unchanged
+    let a_token_balance = BigDecimal::from(0); // lower remaining debt
+
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    for tokens in &user.tokens {
+        if tokens.token.address == reserve_token {
+            assert_eq!(tokens.current_total_debt, remaining_debt);
+            assert_eq!(tokens.current_atoken_balance, a_token_balance);
+        }
+    }
+
+    // test that  when  user repays debt and withdraws a token balance token is removed
+    let amount_to_repay: u64 = 26000000000;
+    let repay_event = RepayEvent {
+        reserve: reserve_token.parse().unwrap(),
+        user: user_address,
+        repayer: "0x024889be330d20bfb132faf5c73ee0fd81e96e71"
+            .parse()
+            .unwrap(),
+        amount: amount_to_repay.into(),
+        use_a_tokens: false,
+    };
+
+    let logs = vec![create_log_for_repay_event(&repay_event, AAVE_V3_POOL)];
+
+    // now lets withdraw remaining a token balance
+    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    println!("update users => {:#?}", user);
+    // check that token was removed
+    assert_eq!(user.tokens.len(), 1);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn std::error::Error>>
 {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
