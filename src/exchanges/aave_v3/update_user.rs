@@ -3,6 +3,7 @@ use super::user_data::{AaveToken, AaveUserData};
 use crate::data::erc20::{address_to_string, u256_to_big_decimal, TOKEN_DATA};
 use bigdecimal::BigDecimal;
 use core::panic;
+use uniswap_sdk_core::prelude::BigDecimal;
 
 pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
     let token_address = event.get_reserve();
@@ -32,15 +33,31 @@ pub trait Update {
 impl Update for AaveUserData {
     fn update(&mut self, aave_action: &AaveUserAction) -> Result<(), Box<dyn std::error::Error>> {
         let token_address = aave_action.token.address.to_lowercase();
+        let mut token_index: Option<usize> = None;
         match aave_action.user_event {
             AaveUserEvent::WithDraw => {
-                for token in &mut self.tokens {
+                for (index, token) in &mut self.tokens.iter().enumerate() {
                     if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_atoken_balance -= aave_action.amount_transferred.clone();
-                        return Ok(());
+
+                        // if token has no debt or a token balance then remove
+                        if token.current_total_debt == BigDecimal::from(0)
+                            && token.current_atoken_balance == BigDecimal::from(0)
+                        {
+                            token_index = Some(index);
+                            break;
+                        } else {
+                            return Ok(());
+                        }
                     };
                 }
+
+                // if  no  debt or a token balance then  remove token
+                if let Some(index) = token_index {
+                    self.tokens.remove(index);
+                }
+                return Ok(());
             }
             AaveUserEvent::Borrow => {
                 // find token in aave user data
@@ -73,7 +90,7 @@ impl Update for AaveUserData {
             }
             AaveUserEvent::Repay => {
                 // find token in aave user data
-                for token in &mut self.tokens {
+                for (index, token) in &mut self.tokens.iter().enumerate() {
                     if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_total_debt -= aave_action.amount_transferred.clone();
@@ -88,9 +105,24 @@ impl Update for AaveUserData {
                                 token.current_atoken_balance = BigDecimal::from(0)
                             }
                         }
-                        return Ok(());
+
+                        // if token has no debt or a token balance then remove
+                        if token.current_total_debt == BigDecimal::from(0)
+                            && token.current_atoken_balance == BigDecimal::from(0)
+                        {
+                            token_index = Some(index);
+                            break;
+                        } else {
+                            return Ok(());
+                        }
                     };
                 }
+
+                // if  no  debt or a token balance then  remove token
+                if let Some(index) = token_index {
+                    self.tokens.remove(index);
+                }
+                return Ok(());
             }
             AaveUserEvent::Supply => {
                 for token in &mut self.tokens {
