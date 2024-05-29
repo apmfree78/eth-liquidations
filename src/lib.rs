@@ -2,10 +2,10 @@ pub mod exchanges {
     pub mod aave_v3 {
         pub mod decode_events;
         pub mod events;
+        pub mod get_user_api;
         pub mod get_user_from_contract;
-        pub mod get_users;
         pub mod update_user;
-        pub mod user_data;
+        pub mod user_structs;
     }
 }
 

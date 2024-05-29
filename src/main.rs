@@ -3,9 +3,10 @@ use eth_liquadation::exchanges::aave_v3::events::{
     BORROW_SIGNATURE, REPAY_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
     RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
 };
+use eth_liquadation::exchanges::aave_v3::user_structs::SampleSize;
 use eth_liquadation::{
     events::aave_events::scan_and_update_aave_events,
-    exchanges::aave_v3::user_data::{AaveUserData, Generate},
+    exchanges::aave_v3::user_structs::{AaveUserData, Generate},
     mempool::detect_price_update::detect_price_update,
 };
 use ethers::abi::Address;
@@ -31,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
-    let user_hash = AaveUserData::get_users(&client, true).await?;
+    let user_hash = AaveUserData::get_users(&client, SampleSize::All).await?;
 
     let user_data = Arc::new(Mutex::new(user_hash));
     let user_data_for_log = Arc::clone(&user_data);

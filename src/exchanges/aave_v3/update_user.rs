@@ -1,5 +1,5 @@
 use super::events::{AaveEvent, AaveUserAction, AaveUserEvent};
-use super::user_data::{AaveToken, AaveUserData};
+use super::user_structs::{AaveToken, AaveUserData};
 use crate::data::erc20::{address_to_string, u256_to_big_decimal, TOKEN_DATA};
 use bigdecimal::BigDecimal;
 use core::panic;

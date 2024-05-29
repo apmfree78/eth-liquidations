@@ -1,6 +1,6 @@
 use bigdecimal::BigDecimal;
-use eth_liquadation::exchanges::aave_v3::user_data::{
-    AaveUserData, AaveUsersHash, Generate, HealthFactor, PricingSource,
+use eth_liquadation::exchanges::aave_v3::user_structs::{
+    AaveUserData, AaveUsersHash, Generate, HealthFactor, PricingSource, SampleSize,
 };
 use ethers::providers::{Provider, Ws};
 use std::collections::HashMap;
@@ -18,7 +18,8 @@ async fn test_that_health_factor_is_self_consistent_in_user_data(
     // Round both to four decimal places
     let scale = 3;
 
-    let aave_users_hash: AaveUsersHash = AaveUserData::get_users(&client, false).await?;
+    let aave_users_hash: AaveUsersHash =
+        AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
 
     for user in aave_users_hash.user_data.values() {
         let given_health_factor = &user.health_factor.with_scale(scale);
@@ -44,7 +45,8 @@ async fn test_that_calculated_health_factor_roughly_matches_given_one(
 
     // Round both to four decimal places
 
-    let aave_users_hash: AaveUsersHash = AaveUserData::get_users(&client, false).await?;
+    let aave_users_hash: AaveUsersHash =
+        AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
 
     for user in aave_users_hash.user_data.values() {
         let given_health_factor = user.health_factor.clone();

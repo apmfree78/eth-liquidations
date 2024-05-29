@@ -9,7 +9,7 @@ use eth_liquadation::exchanges::aave_v3::events::{
     BorrowEvent, RepayEvent, ReserveUsedAsCollateralDisabledEvent,
     ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent,
 };
-use eth_liquadation::exchanges::aave_v3::user_data::{AaveToken, AaveUserData, AaveUsersHash};
+use eth_liquadation::exchanges::aave_v3::user_structs::{AaveToken, AaveUserData, AaveUsersHash};
 use ethers::abi::Address;
 use ethers::core::types::U256;
 use generate_logs::{

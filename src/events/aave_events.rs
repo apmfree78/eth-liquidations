@@ -3,7 +3,7 @@ use crate::exchanges::aave_v3::{
     events::{AaveEvent, AaveEventType, AaveUserEvent},
     get_user_from_contract::get_aave_v3_user_from_data_provider,
     update_user::{get_user_action_from_event, Update},
-    user_data::{AaveUserData, AaveUsersHash, Generate, PricingSource, UpdateUsers},
+    user_structs::{AaveUserData, AaveUsersHash, Generate, PricingSource, UpdateUsers},
 };
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;

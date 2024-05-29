@@ -1,5 +1,5 @@
+use super::get_user_api::{get_aave_v3_users, get_all_aave_v3_users, UserAccountData};
 use super::get_user_from_contract::get_aave_v3_user_from_data_provider;
-use super::get_users::{get_aave_v3_users, get_all_aave_v3_users, UserAccountData};
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
 use crate::data::address::AAVE_V3_POOL_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, Convert, Erc20Token, TOKEN_DATA};
@@ -18,11 +18,15 @@ pub enum PricingSource {
     UniswapV3,
 }
 
+pub enum SampleSize {
+    SmallBatch, // up to 100 users
+    All,        // all users
+}
+
 #[derive(Clone, Debug)]
 pub struct AaveToken {
     pub token: Erc20Token,
     pub current_total_debt: BigDecimal,
-    // pub token_price_eth: BigDecimal,
     pub usage_as_collateral_enabled: bool,
     pub current_atoken_balance: BigDecimal,
     pub reserve_liquidation_threshold: BigDecimal,
@@ -63,7 +67,7 @@ pub trait UpdateUsers {
 pub trait Generate {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
-        get_all_users: bool,
+        sample_size: SampleSize,
     ) -> Result<AaveUsersHash, Box<dyn std::error::Error>>;
     async fn get_collateral_times_liquidation_factor_and_total_debt(
         &self,
@@ -137,7 +141,7 @@ impl UpdateUsers for AaveUsersHash {
 impl Generate for AaveUserData {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
-        get_all_users: bool,
+        sample_size: SampleSize,
     ) -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
         println!("connecting to aave_v3_pool");
         let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
@@ -146,10 +150,9 @@ impl Generate for AaveUserData {
         let mut aave_user_data: Vec<AaveUserData> = Vec::new();
 
         // let aave_users = get_aave_v3_users().await?;
-        let aave_users = if get_all_users {
-            get_all_aave_v3_users().await?
-        } else {
-            get_aave_v3_users().await?
+        let aave_users = match sample_size {
+            SampleSize::All => get_all_aave_v3_users().await?,
+            SampleSize::SmallBatch => get_aave_v3_users().await?,
         };
 
         println!("got aave_v3 users");
