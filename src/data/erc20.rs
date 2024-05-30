@@ -23,6 +23,7 @@ pub struct Erc20Token {
     pub address: &'static str,
     pub liquidation_bonus: u16,
     pub liquidation_threshold: u16,
+    pub chain_link_price_feed: &'static str,
 }
 
 #[async_trait]
@@ -173,6 +174,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
         liquidation_bonus: 10500,
         liquidation_threshold: 8300,
+        chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
     });
 
     tokens.push(Erc20Token {
@@ -182,6 +184,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
         liquidation_bonus: 10600,
         liquidation_threshold: 8100,
+        // custom oracle need to look for hash of "latestAnswer" in mempool
+        chain_link_price_feed: "0xB4aB0c94159bc2d8C133946E7241368fc2F2a010",
     });
 
     tokens.push(Erc20Token {
@@ -191,6 +195,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xf1C9acDc66974dFB6dEcB12aA385b9cD01190E38",
         liquidation_bonus: 10750,
         liquidation_threshold: 7500,
+        // custom oracle
+        chain_link_price_feed: "0x0a2af898cec35197e6944d9e0f525c2626393442",
     });
 
     tokens.push(Erc20Token {
@@ -200,6 +206,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         liquidation_bonus: 10450,
         liquidation_threshold: 7800,
+        // custom oracle need to look for hash of "latestAnswer" in mempool
+        chain_link_price_feed: "0x736bF902680e68989886e9807CD7Db4B3E015d3C",
     });
 
     tokens.push(Erc20Token {
@@ -209,6 +217,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
         liquidation_bonus: 10500,
         liquidation_threshold: 7700,
+        // custom oracle need to look for hash of "latestAnswer" in mempool
+        chain_link_price_feed: "0xaEb897E1Dc6BbdceD3B9D551C71a8cf172F27AC4",
     });
 
     tokens.push(Erc20Token {
@@ -218,6 +228,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
         liquidation_bonus: 10700,
         liquidation_threshold: 6800,
+        chain_link_price_feed: "0x2c1d072e956AFFC0D435Cb7AC38EF18d24d9127c",
     });
 
     tokens.push(Erc20Token {
@@ -227,6 +238,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xdac17f958d2ee523a2206206994597c13d831ec7",
         liquidation_bonus: 10450,
         liquidation_threshold: 7800,
+        // custom oracle need to look for hash of "latestAnswer" in mempool
+        chain_link_price_feed: "0xc26d4a1c46d884cff6de9800b6ae7a8cf48b4ff8",
     });
 
     tokens.push(Erc20Token {
@@ -236,6 +249,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
         liquidation_bonus: 10500,
         liquidation_threshold: 8300,
+        chain_link_price_feed: "0x230e0321cf38f09e247e50afc7801ea2351fe56f",
     });
 
     tokens.push(Erc20Token {
@@ -245,6 +259,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xae78736Cd615f374D3085123A210448E74Fc6393",
         liquidation_bonus: 10750,
         liquidation_threshold: 7700,
+        // custom oracle
+        chain_link_price_feed: "0x5AE8365D0a30D67145f0c55A08760C250559dB64",
     });
 
     tokens.push(Erc20Token {
@@ -254,6 +270,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2",
         liquidation_bonus: 10850,
         liquidation_threshold: 7000,
+        chain_link_price_feed: "0xec1D1B3b0443256cc3860e24a46F108e699484Aa",
     });
 
     tokens.push(Erc20Token {
@@ -263,6 +280,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xBe9895146f7AF43049ca1c1AE358B0541Ea49704",
         liquidation_bonus: 10750,
         liquidation_threshold: 7700,
+        // custom oracle need to look for hash of "latestAnswer" in mempool
+        chain_link_price_feed: "0x6243d2F41b4ec944F731f647589E28d9745a2674",
     });
 
     tokens.push(Erc20Token {
@@ -272,6 +291,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
         liquidation_bonus: 0,
         liquidation_threshold: 0,
+        // custom oracle
+        chain_link_price_feed: "0x150bae7ce224555d39afdbc6cb4b8204e594e022",
     });
 
     tokens.push(Erc20Token {
@@ -281,6 +302,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32",
         liquidation_bonus: 10900,
         liquidation_threshold: 5000,
+        chain_link_price_feed: "0xb01e6c9af83879b8e06a092f0dd94309c0d497e4",
     });
 
     tokens.push(Erc20Token {
@@ -290,6 +312,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
         liquidation_bonus: 11000,
         liquidation_threshold: 7400,
+        chain_link_price_feed: "0x553303d460EE0afB37EdFf9bE42922D8FF63220e",
     });
 
     tokens.push(Erc20Token {
@@ -299,6 +322,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
         liquidation_bonus: 10850,
         liquidation_threshold: 6400,
+        chain_link_price_feed: "0xDC3EA94CD0AC27d9A86C180091e7f78C683d3699",
     });
 
     tokens.push(Erc20Token {
@@ -308,6 +332,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x111111111117dC0aa78b770fA6A738034120C302",
         liquidation_bonus: 10750,
         liquidation_threshold: 6700,
+        chain_link_price_feed: "0xc929ad75B72593967DE83E7F7Cda0493458261D9",
     });
 
     tokens.push(Erc20Token {
@@ -317,6 +342,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0",
         liquidation_bonus: 10450,
         liquidation_threshold: 7700,
+        // custom oracle need to look for hash of "latestAnswer" in mempool
+        chain_link_price_feed: "0x9ecdfacca946614cc32af63f3dbe50959244f3af",
     });
 
     tokens.push(Erc20Token {
@@ -326,6 +353,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
         liquidation_bonus: 10800,
         liquidation_threshold: 4900,
+        chain_link_price_feed: "0x5C00128d4d1c2F4f652C267d7bcdD7aC99C16E16",
     });
 
     tokens.push(Erc20Token {
@@ -335,6 +363,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xba100000625a3754423978a60c9317c58a424e3D",
         liquidation_bonus: 10830,
         liquidation_threshold: 5900,
+        chain_link_price_feed: "0xdF2917806E30300537aEB49A7663062F4d1F2b5F",
     });
 
     tokens.push(Erc20Token {
@@ -344,6 +373,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xD533a949740bb3306d119CC777fa900bA034cd52",
         liquidation_bonus: 10830,
         liquidation_threshold: 4100,
+        // custom oracle need to look for hash of "latestAnswer" in mempool
+        chain_link_price_feed: "0xCd627aA160A6fA45Eb793D19Ef54f5062F20f33f",
     });
 
     tokens.push(Erc20Token {
@@ -353,6 +384,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x853d955aCEf822Db058eb8505911ED77F175b99e",
         liquidation_bonus: 10600,
         liquidation_threshold: 7200,
+        // custom oracle
+        chain_link_price_feed: "0x45d270263bbee500cf8adcf2abc0ac227097b036",
     });
 
     tokens.push(Erc20Token {
@@ -362,6 +395,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
         liquidation_bonus: 0,
         liquidation_threshold: 0,
+        chain_link_price_feed: "0x02AeE5b225366302339748951E1a924617b8814F",
     });
 
     tokens.push(Erc20Token {
@@ -371,6 +405,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
         liquidation_bonus: 0,
         liquidation_threshold: 0,
+        // gho custom oracle
+        chain_link_price_feed: "0xd110cac5d8682a3b045d5524a9903e031d70fccd",
     });
 
     tokens.push(Erc20Token {
@@ -380,6 +416,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
         liquidation_bonus: 10750,
         liquidation_threshold: 7300,
+        chain_link_price_feed: "0x547a514d5e3769680Ce22B2361c10Ea13619e8a9",
     });
 
     tokens.push(Erc20Token {
@@ -389,6 +426,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x83F20F44975D03b1b09e64809B757c47f942BEeA",
         liquidation_bonus: 10450,
         liquidation_threshold: 7800,
+        chain_link_price_feed: "0x29081f7ab5a644716efcdc10d5c926c5fee9f72b",
     });
 
     tokens.push(Erc20Token {
@@ -398,6 +436,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
         liquidation_bonus: 10750,
         liquidation_threshold: 7500,
+        // custom oracle need to look for hash of "latestAnswer" in mempool
+        chain_link_price_feed: "0xf112aF6F0A332B815fbEf3Ff932c057E570b62d3",
     });
 
     tokens.push(Erc20Token {
@@ -407,6 +447,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xD33526068D116cE69F19A9ee46F0bd304F21A51f",
         liquidation_bonus: 0,
         liquidation_threshold: 0,
+        chain_link_price_feed: "0x4E155eD98aFE9034b7A5962f6C84c86d869daA9d",
     });
 
     tokens.push(Erc20Token {
@@ -416,6 +457,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0",
         liquidation_bonus: 11000,
         liquidation_threshold: 4200,
+        chain_link_price_feed: "0x6Ebc52C8C1089be9eB3945C4350B68B8E4C2233f",
     });
 
     tokens.push(Erc20Token {
@@ -425,6 +467,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xAf5191B0De278C7286d6C7CC6ab6BB8A73bA2Cd6",
         liquidation_bonus: 11000,
         liquidation_threshold: 3700,
+        chain_link_price_feed: "0x7A9f34a0Aa917D438e9b6E630067062B7F8f6f3d",
     });
 
     tokens.push(Erc20Token {
@@ -434,6 +477,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xdeFA4e8a7bcBA345F687a2f1456F5Edd9CE97202",
         liquidation_bonus: 11000,
         liquidation_threshold: 3700,
+        chain_link_price_feed: "0xf8fF43E991A81e6eC886a3D281A2C6cC19aE70Fc",
     });
 
     let mut token_hash = HashMap::new();

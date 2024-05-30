@@ -7,6 +7,7 @@ use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::str::FromStr;
+use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AaveUser {

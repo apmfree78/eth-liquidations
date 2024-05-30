@@ -2,7 +2,6 @@
 mod generate_logs;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
-use eth_liquadation::abi::aave_oracle::AddressesProviderCall;
 use eth_liquadation::data::erc20::Erc20Token;
 use eth_liquadation::events::aave_events::update_users_with_events_from_logs;
 use eth_liquadation::exchanges::aave_v3::events::{
@@ -514,6 +513,7 @@ fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>
                     address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
                     liquidation_bonus: 10500,
                     liquidation_threshold: 8300,
+                    chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -529,6 +529,7 @@ fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>
                     address: "0xdac17f958d2ee523a2206206994597c13d831ec7",
                     liquidation_bonus: 10450,
                     liquidation_threshold: 7800,
+                    chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
                 },
                 current_total_debt: BigDecimal::from_u64(26000000000).unwrap(),
                 usage_as_collateral_enabled: true,
