@@ -1,11 +1,16 @@
+use crate::data::erc20::TOKEN_DATA;
+use crate::utils::type_conversion::address_to_string;
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
 use std::sync::Arc;
 
-use crate::data::erc20::TOKEN_DATA;
-
 pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>) -> Result<()> {
     let transmit_signature = "transmit(bytes,bytes32[],bytes32[],bytes32)";
+
+    abigen!(
+        AGGREGATOR,
+        r#"[function description() external view returns (string)]"#
+    );
 
     // Compute the Keccak-256 hashes of the event signatures
     // let transmit_hash = H256::from(keccak256(transmit_signature.as_bytes()));
@@ -34,12 +39,16 @@ pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>)
                     if data.starts_with(&transmit_hash) {
                         println!("TRANSMIT FOUND!!!");
                         println!("Transaction from address: {:?}", to);
+                        let contract = AGGREGATOR::new(to, client.clone());
                         // println!("data => {:?}", data);
-
-                        if let Some(token) = TOKEN_DATA.get(&to.to_string()) {
+                        if let Ok(description) = contract.description().call().await {
+                            println!("aggregator for {}", description);
+                        }
+                        let to = address_to_string(to).to_lowercase();
+                        if let Some(token) = TOKEN_DATA.get(&*to) {
                             println!("price updated for {} => {}", token.name, token.symbol);
                         } else {
-                            println!("unknown price feed => {:?}", to);
+                            println!("unknown price feed");
                         };
 
                         // println!("Transaction data (hex encoded): {:?}", tx.input);

@@ -108,7 +108,7 @@ impl UpdateUsers for AaveUsersHash {
         user_to_add: Address,
         client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        match get_aave_v3_user_from_data_provider(user_to_add, &client).await {
+        match get_aave_v3_user_from_data_provider(user_to_add, client).await {
             Ok(user) => {
                 if user.health_factor
                     > BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32")
@@ -125,12 +125,11 @@ impl UpdateUsers for AaveUsersHash {
                             .insert(token_address, user.id);
                     }
                 }
-                let user_id = user.id;
                 self.user_data.insert(user.id, user);
-                println!(
-                    "new user successfully added {:?}",
-                    self.user_data.get(&user_id).unwrap()
-                )
+                // println!(
+                //     "new user successfully added {:?}",
+                //     self.user_data.get(&user_id).unwrap()
+                // )
             }
             Err(error) => println!("user did not fit criteria ==> {}", error),
         };
@@ -196,7 +195,7 @@ impl Generate for AaveUserData {
             // validate user data - at least 10% of graphql data for aave users is not accurate
             let aave_user_health_factor = aave_user.health_factor.clone();
             let aave_user_calculated_health_factor = aave_user
-                .get_health_factor_from_(PricingSource::AaveOracle, &client)
+                .get_health_factor_from_(PricingSource::AaveOracle, client)
                 .await?;
             let lower_bound = BigDecimal::from_str("0.95")? * &aave_user_health_factor;
             let upper_bound = BigDecimal::from_str("1.05")? * &aave_user_health_factor;
@@ -210,7 +209,7 @@ impl Generate for AaveUserData {
             } else {
                 // get user data from pool contract
                 let aave_user_data_result =
-                    get_aave_v3_user_from_data_provider(aave_user.id, &client).await;
+                    get_aave_v3_user_from_data_provider(aave_user.id, client).await;
 
                 match aave_user_data_result {
                     Ok(aave_user) => {
@@ -294,8 +293,7 @@ impl Generate for AaveUserData {
             // *************************************
 
             if current_total_debt > BigDecimal::zero() {
-                let current_total_debt_usd =
-                    &current_total_debt * &token_price_usd / &token_decimal_factor;
+                let current_total_debt_usd = &current_total_debt * &token_price_usd;
 
                 // 3. add current total debt to total debt
                 total_debt_usd += &current_total_debt_usd;
@@ -308,8 +306,7 @@ impl Generate for AaveUserData {
                 // *************************************
 
                 if current_atoken_balance > BigDecimal::zero() {
-                    let current_atoken_usd =
-                        &current_atoken_balance * &token_price_usd / &token_decimal_factor;
+                    let current_atoken_usd = &current_atoken_balance * &token_price_usd;
 
                     // 5. update liquidity threshold colleral sum
                     let liquidation_threshold = r.reserve_liquidation_threshold.clone();
@@ -373,7 +370,7 @@ impl HealthFactor for AaveUserData {
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
         // obtain latest health factor
         let health_factor = self
-            .get_health_factor_from_(source_for_pricing, &client)
+            .get_health_factor_from_(source_for_pricing, client)
             .await?;
 
         self.health_factor = health_factor.clone();

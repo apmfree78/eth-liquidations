@@ -36,3 +36,7 @@ pub fn address_to_bytes_array(address: Address) -> [u8; 32] {
     bytes[12..32].copy_from_slice(&address.as_bytes());
     bytes
 }
+
+pub fn address_to_string(address: Address) -> String {
+    format!("{:?}", address)
+}

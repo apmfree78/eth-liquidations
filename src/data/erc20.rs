@@ -258,6 +258,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10500,
         liquidation_threshold: 8300,
         chain_link_price_feed: "0x230e0321cf38f09e247e50afc7801ea2351fe56f",
+        // track with movement of ETH
         chainlink_aggregator: "0xdBe1941BFbe4410D6865b9b7078e0b49af144D2d", // BTC/USD
     });
 
@@ -338,7 +339,6 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
         liquidation_bonus: 10850,
         liquidation_threshold: 6400,
-        // 0x373BCe97bec13BfA8A5f07Cc578EC2D77f80c589
         chain_link_price_feed: "0xDC3EA94CD0AC27d9A86C180091e7f78C683d3699",
         chainlink_aggregator: "0x06ce8be8729b6ba18dd3416e3c223a5d4db5e755",
     });
@@ -406,7 +406,6 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x853d955aCEf822Db058eb8505911ED77F175b99e",
         liquidation_bonus: 10600,
         liquidation_threshold: 7200,
-        // custom oracle
         chain_link_price_feed: "0x45d270263bbee500cf8adcf2abc0ac227097b036",
         chainlink_aggregator: "0x9d78092775dfe715dfe1b0d71ac1a4d6e3652559",
     });
@@ -529,6 +528,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
     // copy hashmap with chain link price feed as index
     for token in &tokens {
         if !token.chainlink_aggregator.is_empty() {
+            println!("adding in chainlink aggregator");
             token_hash.insert(
                 token.chainlink_aggregator.to_string().to_lowercase(),
                 *token,
@@ -561,8 +561,4 @@ pub async fn generate_token(
 
 pub fn u256_to_big_decimal(value: &U256) -> BigDecimal {
     BigDecimal::from_str(&value.to_string()).unwrap()
-}
-
-pub fn address_to_string(address: Address) -> String {
-    format!("{:?}", address)
 }
