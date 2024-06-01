@@ -528,10 +528,12 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
 
     // copy hashmap with chain link price feed as index
     for token in &tokens {
-        token_hash.insert(
-            token.chain_link_price_feed.to_string().to_lowercase(),
-            *token,
-        );
+        if !token.chainlink_aggregator.is_empty() {
+            token_hash.insert(
+                token.chainlink_aggregator.to_string().to_lowercase(),
+                *token,
+            );
+        }
     }
 
     token_hash

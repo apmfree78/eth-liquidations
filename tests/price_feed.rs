@@ -66,22 +66,22 @@ async fn find_price_aggregators_are_valid() -> Result<(), Box<dyn std::error::Er
             println!("**********************************************************************");
             println!("for token => {}", token.name);
             println!(" symbol => {}", token.symbol);
-            println!(" token price feed {}", token.chain_link_price_feed);
+            println!(" token aggregator {}", token.chainlink_aggregator);
             println!("token aggregator address {}", aggregator_address);
             println!("**********************************************************************");
+            assert_eq!(
+                token.chainlink_aggregator.to_lowercase(),
+                aggregator_address.to_lowercase()
+            );
         } else {
             println!("no valid aggregator found for...");
             println!("for token => {}", token.name);
             println!(" symbol => {}", token.symbol);
-            println!(" token price feed {}", token.chain_link_price_feed);
+            println!(
+                " token chain_link_price_feed {}",
+                token.chain_link_price_feed
+            );
         }
-        // .method::<_, Address>("aggregator", ())?
-        // .call()
-        // .await?;
-        // assert_eq!(
-        //     token.chain_link_price_feed.to_lowercase(),
-        //     token_price_feed.to_lowercase()
-        // );
     }
 
     Ok(())
