@@ -2,6 +2,8 @@ use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
 use std::sync::Arc;
 
+use crate::data::erc20::TOKEN_DATA;
+
 pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>) -> Result<()> {
     let transmit_signature = "transmit(bytes,bytes32[],bytes32[],bytes32)";
 
@@ -24,14 +26,22 @@ pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>)
                 // To decode this, you would need the ABI of the contract being interacted with
                 // Decode the input data
                 if tx.input.0.len() >= 4 {
-                    let data = &tx.input.0.as_ref();
+                    let data = tx.input.0;
 
                     // Method ID and parameters
-                    let method_id = &data[0..4];
+                    // let method_id = &data[0..4];
                     // println!("Transaction to address: {:?}", to);
                     if data.starts_with(&transmit_hash) {
                         println!("TRANSMIT FOUND!!!");
-                        println!("Transaction to address: {:?}", to);
+                        println!("Transaction from address: {:?}", to);
+                        // println!("data => {:?}", data);
+
+                        if let Some(token) = TOKEN_DATA.get(&to.to_string()) {
+                            println!("price updated for {} => {}", token.name, token.symbol);
+                        } else {
+                            println!("unknown price feed => {:?}", to);
+                        };
+
                         // println!("Transaction data (hex encoded): {:?}", tx.input);
                         // println!("Method ID: {:?}", method_id);
                         // println!("transmit_hash: {:?}", &transmit_hash);

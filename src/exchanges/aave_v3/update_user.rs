@@ -7,12 +7,10 @@ use core::panic;
 pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
     let token_address = event.get_reserve();
     let token_address = address_to_string(token_address);
-    let token;
-    if let Some(_token) = TOKEN_DATA.get(token_address.trim()) {
-        token = _token;
-    } else {
-        panic!("No token found for address: {}", token_address)
-    }
+
+    let token = TOKEN_DATA
+        .get(token_address.trim())
+        .unwrap_or_else(|| panic!("No token found for address: {}", token_address));
     let amount = event.get_amount();
     let amount = u256_to_big_decimal(&amount);
 

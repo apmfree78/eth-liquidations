@@ -1,23 +1,21 @@
-use eth_liquadation::events::aave_events::update_users_with_event_from_log;
-use eth_liquadation::exchanges::aave_v3::events::{
-    BORROW_SIGNATURE, REPAY_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
-    RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
-};
-use eth_liquadation::exchanges::aave_v3::user_structs::SampleSize;
 use eth_liquadation::{
-    events::aave_events::scan_and_update_aave_events,
-    exchanges::aave_v3::user_structs::{AaveUserData, Generate},
+    events::aave_events::update_users_with_event_from_log,
+    exchanges::aave_v3::{
+        events::{
+            BORROW_SIGNATURE, REPAY_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
+            RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
+        },
+        user_structs::{AaveUserData, Generate, SampleSize},
+    },
     mempool::detect_price_update::detect_price_update,
 };
-use ethers::abi::Address;
-use ethers::providers::Middleware;
-use ethers::types::H256;
 use ethers::{
+    abi::Address,
     core::types::{Filter, Log, TxHash},
+    providers::Middleware,
     providers::{Provider, Ws},
 };
-use futures::lock::Mutex;
-use futures::{stream, StreamExt};
+use futures::{lock::Mutex, stream, StreamExt};
 use std::sync::Arc;
 
 const WS_URL: &'static str = "ws://localhost:8546";
@@ -32,10 +30,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
-    let user_hash = AaveUserData::get_users(&client, SampleSize::All).await?;
+    let user_hash = AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
 
     let user_data = Arc::new(Mutex::new(user_hash));
-    let user_data_for_log = Arc::clone(&user_data);
 
     let filter = Filter::new()
         .address(AAVE_V3_POOL_ADDRESS.parse::<Address>()?)
@@ -101,28 +98,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .await;
 
-    // Your code to handle the events goes here.
-    // println!(" user list {:#?} ", aave_user_list);
-
-    // scan_and_update_aave_events(&mut aave_user_list, &client).await?;
-    //     let calculated_health_factor = user
-    //         .get_health_factor_from_(PricingSource::UniswapV3, &client)
-    //         .await?;
-
-    //     // TODO - 10% of graphl data is corrupted and unrealiable for user token amount ( and maybe
-    //     // the tokens themselves) please clean out this corrupted data
-    //     println!(" user data {:#?}", user);
-    //     println!("----------------------------------------");
-    //     println!(" user heath factor {}", user.health_factor);
-    //     println!(
-    //         " user heath factor oracle {}",
-    //         user.get_health_factor_from_(PricingSource::AaveOracle, &client)
-    //             .await?
-    //     );
-    //     println!(" user heath factor ft {}", calculated_health_factor);
-    //     if calculated_health_factor > BigDecimal::from(10) * &user.health_factor {
-    //         println!(" user data {:#?}", user);
-    //     }
-    // }
     Ok(())
 }

@@ -32,10 +32,15 @@ pub async fn update_users_with_event_from_log(
 
             // extract event data from log
             let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);
-            println!("event data => {:?}", aave_event_type_with_data);
+            // println!("event data => {:?}", aave_event_type_with_data);
 
             // extract struct data from event enum
-            let event = extract_aave_event_data(&aave_event_type_with_data).unwrap();
+            let event = extract_aave_event_data(&aave_event_type_with_data).unwrap_or_else(|err| {
+                panic!(
+                    "count not extract data from event {:#?} with error {}",
+                    aave_event_type_with_data, err
+                );
+            });
 
             // update aave user
             update_aave_user(users, event, &client).await?;

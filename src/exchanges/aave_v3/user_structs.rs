@@ -13,6 +13,7 @@ use std::sync::Arc;
 
 const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
 
+#[derive(Clone, Copy, Debug)]
 pub enum PricingSource {
     AaveOracle,
     UniswapV3,
@@ -127,7 +128,7 @@ impl UpdateUsers for AaveUsersHash {
                 let user_id = user.id;
                 self.user_data.insert(user.id, user);
                 println!(
-                    "new user successfully added {:#?}",
+                    "new user successfully added {:?}",
                     self.user_data.get(&user_id).unwrap()
                 )
             }
@@ -329,10 +330,7 @@ impl Generate for AaveUserData {
         client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let (colladeral_times_liquidation_factor, total_debt) = self
-            .get_collateral_times_liquidation_factor_and_total_debt(
-                PricingSource::UniswapV3,
-                &client,
-            )
+            .get_collateral_times_liquidation_factor_and_total_debt(source_for_pricing, &client)
             .await?;
 
         self.colladeral_times_liquidation_factor = colladeral_times_liquidation_factor;
@@ -340,7 +338,7 @@ impl Generate for AaveUserData {
 
         // now with updated  debt and collateral values ,  we can find health factor
         let health_factor = self
-            .get_health_factor_from_(PricingSource::UniswapV3, &client)
+            .get_health_factor_from_(source_for_pricing, &client)
             .await?;
 
         self.health_factor = health_factor;
@@ -362,7 +360,7 @@ impl HealthFactor for AaveUserData {
         let health_factor = if current_total_debt > BigDecimal::zero() {
             liquidation_threshold_collateral_sum / current_total_debt
         } else {
-            println!("No valid health factor: {:#?}", self);
+            println!("No valid health factor");
             BigDecimal::from(0)
         };
         Ok(health_factor)

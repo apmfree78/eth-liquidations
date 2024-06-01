@@ -24,6 +24,7 @@ pub struct Erc20Token {
     pub liquidation_bonus: u16,
     pub liquidation_threshold: u16,
     pub chain_link_price_feed: &'static str,
+    pub chainlink_aggregator: &'static str,
 }
 
 #[async_trait]
@@ -175,6 +176,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10500,
         liquidation_threshold: 8300,
         chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+        chainlink_aggregator: "0xe62b71cf983019bff55bc83b48601ce8419650cc",
     });
 
     tokens.push(Erc20Token {
@@ -186,6 +188,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 8100,
         // track with movement of ETH
         chain_link_price_feed: "0xB4aB0c94159bc2d8C133946E7241368fc2F2a010",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -197,6 +200,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 7500,
         // track with movement of ETH
         chain_link_price_feed: "0x0a2af898cec35197e6944d9e0f525c2626393442",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -208,6 +212,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 7800,
         // do not track
         chain_link_price_feed: "0x736bF902680e68989886e9807CD7Db4B3E015d3C",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -219,6 +224,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 7700,
         // do not track
         chain_link_price_feed: "0xaEb897E1Dc6BbdceD3B9D551C71a8cf172F27AC4",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -229,6 +235,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10700,
         liquidation_threshold: 6800,
         chain_link_price_feed: "0x2c1d072e956AFFC0D435Cb7AC38EF18d24d9127c",
+        chainlink_aggregator: "0x20807cf61ad17c31837776fa39847a2fa1839e81",
     });
 
     tokens.push(Erc20Token {
@@ -240,6 +247,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 7800,
         // do not track
         chain_link_price_feed: "0xc26d4a1c46d884cff6de9800b6ae7a8cf48b4ff8",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -250,6 +258,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10500,
         liquidation_threshold: 8300,
         chain_link_price_feed: "0x230e0321cf38f09e247e50afc7801ea2351fe56f",
+        chainlink_aggregator: "0xdBe1941BFbe4410D6865b9b7078e0b49af144D2d", // BTC/USD
     });
 
     tokens.push(Erc20Token {
@@ -261,6 +270,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 7700,
         // also track with ETH movement
         chain_link_price_feed: "0x536218f9E9Eb48863970252233c8F271f554C2d0", // rETH/ETH
+        chainlink_aggregator: "0x9cb248e68fb81d0cfe7d6b3265fe6bf123a71fe0",
     });
 
     tokens.push(Erc20Token {
@@ -271,6 +281,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10850,
         liquidation_threshold: 7000,
         chain_link_price_feed: "0xec1D1B3b0443256cc3860e24a46F108e699484Aa",
+        chainlink_aggregator: "0x71febc2f741f113af322e1b576ef005a4424574f",
     });
 
     tokens.push(Erc20Token {
@@ -282,6 +293,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 7700,
         // track with movement of ETH
         chain_link_price_feed: "0x6243d2F41b4ec944F731f647589E28d9745a2674",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -293,6 +305,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 0,
         // do not track
         chain_link_price_feed: "0x150bae7ce224555d39afdbc6cb4b8204e594e022",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -303,6 +316,8 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10900,
         liquidation_threshold: 5000,
         chain_link_price_feed: "0xb01e6c9af83879b8e06a092f0dd94309c0d497e4",
+        // track with movement of ETH
+        chainlink_aggregator: "0x7898AcCC83587C3C55116c5230C17a6Cd9C71bad", // LDO/ETH
     });
 
     tokens.push(Erc20Token {
@@ -313,6 +328,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 11000,
         liquidation_threshold: 7400,
         chain_link_price_feed: "0x553303d460EE0afB37EdFf9bE42922D8FF63220e",
+        chainlink_aggregator: "0x373bce97bec13bfa8a5f07cc578ec2d77f80c589",
     });
 
     tokens.push(Erc20Token {
@@ -322,7 +338,9 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
         liquidation_bonus: 10850,
         liquidation_threshold: 6400,
+        // 0x373BCe97bec13BfA8A5f07Cc578EC2D77f80c589
         chain_link_price_feed: "0xDC3EA94CD0AC27d9A86C180091e7f78C683d3699",
+        chainlink_aggregator: "0x06ce8be8729b6ba18dd3416e3c223a5d4db5e755",
     });
 
     tokens.push(Erc20Token {
@@ -333,6 +351,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10750,
         liquidation_threshold: 6700,
         chain_link_price_feed: "0xc929ad75B72593967DE83E7F7Cda0493458261D9",
+        chainlink_aggregator: "0xd2bdd1e01fd2f8d7d42b209c111c7b32158b5a42",
     });
 
     tokens.push(Erc20Token {
@@ -344,6 +363,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 7700,
         // do not track
         chain_link_price_feed: "0x9ecdfacca946614cc32af63f3dbe50959244f3af",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -354,6 +374,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10800,
         liquidation_threshold: 4900,
         chain_link_price_feed: "0x5C00128d4d1c2F4f652C267d7bcdD7aC99C16E16",
+        chainlink_aggregator: "0x780f1bd91a5a22ede36d4b2b2c0eccb9b1726a28",
     });
 
     tokens.push(Erc20Token {
@@ -364,6 +385,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10830,
         liquidation_threshold: 5900,
         chain_link_price_feed: "0xdF2917806E30300537aEB49A7663062F4d1F2b5F",
+        chainlink_aggregator: "0xbd9350a3a2fd6e3ad0a053a567f2609a1bf6c505",
     });
 
     tokens.push(Erc20Token {
@@ -374,6 +396,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10830,
         liquidation_threshold: 4100,
         chain_link_price_feed: "0xCd627aA160A6fA45Eb793D19Ef54f5062F20f33f",
+        chainlink_aggregator: "0xb4c4a493ab6356497713a78ffa6c60fb53517c63",
     });
 
     tokens.push(Erc20Token {
@@ -385,6 +408,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 7200,
         // custom oracle
         chain_link_price_feed: "0x45d270263bbee500cf8adcf2abc0ac227097b036",
+        chainlink_aggregator: "0x9d78092775dfe715dfe1b0d71ac1a4d6e3652559",
     });
 
     tokens.push(Erc20Token {
@@ -396,6 +420,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 0,
         // do not track
         chain_link_price_feed: "0x02AeE5b225366302339748951E1a924617b8814F",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -405,8 +430,9 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
         liquidation_bonus: 0,
         liquidation_threshold: 0,
-        // gho custom oracle
+        // gho custom oracle -- do not track stablecoin
         chain_link_price_feed: "0xd110cac5d8682a3b045d5524a9903e031d70fccd",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -417,6 +443,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 10750,
         liquidation_threshold: 7300,
         chain_link_price_feed: "0x547a514d5e3769680Ce22B2361c10Ea13619e8a9",
+        chainlink_aggregator: "0x8116b273cd75d79c382afacc706659ded5e0a59d",
     });
 
     tokens.push(Erc20Token {
@@ -426,7 +453,9 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         address: "0x83F20F44975D03b1b09e64809B757c47f942BEeA",
         liquidation_bonus: 10450,
         liquidation_threshold: 7800,
+        // do not track
         chain_link_price_feed: "0x29081f7ab5a644716efcdc10d5c926c5fee9f72b",
+        chainlink_aggregator: "",
     });
 
     tokens.push(Erc20Token {
@@ -438,6 +467,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_threshold: 7500,
         // ALSO track with ETH movement
         chain_link_price_feed: "0x5c9C449BbC9a6075A2c061dF312a35fd1E05fF22", // weETH/ETH
+        chainlink_aggregator: "0x4df36f726d8059d881294166db52c1d13e976fe7",
     });
 
     tokens.push(Erc20Token {
@@ -448,6 +478,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 0,
         liquidation_threshold: 0,
         chain_link_price_feed: "0x4E155eD98aFE9034b7A5962f6C84c86d869daA9d",
+        chainlink_aggregator: "0x5df960959de45a2ba9dc11e6fd6f77107f43256c",
     });
 
     tokens.push(Erc20Token {
@@ -458,6 +489,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 11000,
         liquidation_threshold: 4200,
         chain_link_price_feed: "0x6Ebc52C8C1089be9eB3945C4350B68B8E4C2233f",
+        chainlink_aggregator: "0x9d78092775dfe715dfe1b0d71ac1a4d6e3652559",
     });
 
     tokens.push(Erc20Token {
@@ -468,6 +500,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 11000,
         liquidation_threshold: 3700,
         chain_link_price_feed: "0x7A9f34a0Aa917D438e9b6E630067062B7F8f6f3d",
+        chainlink_aggregator: "0x73455b8acd6d205544cbc034a6f6cab58c56ef47",
     });
 
     tokens.push(Erc20Token {
@@ -478,6 +511,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
         liquidation_bonus: 11000,
         liquidation_threshold: 3700,
         chain_link_price_feed: "0xf8fF43E991A81e6eC886a3D281A2C6cC19aE70Fc",
+        chainlink_aggregator: "0xbc60258f775683ea28048030806ad3a80c4a33ae",
     });
 
     let mut token_hash = HashMap::new();
@@ -490,6 +524,14 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
     // copy hashmap with token address as index
     for token in &tokens {
         token_hash.insert(token.address.to_string().to_lowercase(), *token);
+    }
+
+    // copy hashmap with chain link price feed as index
+    for token in &tokens {
+        token_hash.insert(
+            token.chain_link_price_feed.to_string().to_lowercase(),
+            *token,
+        );
     }
 
     token_hash
