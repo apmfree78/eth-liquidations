@@ -51,8 +51,8 @@ events found in logs and changes in token prices
 #[derive(Clone, Debug)]
 pub struct AaveUsersHash {
     pub user_data: HashMap<Address, AaveUserData>,
-    pub user_ids_by_token: HashMap<Address, Address>,
-    pub low_health_user_ids_by_token: HashMap<Address, Address>,
+    pub user_ids_by_token: HashMap<Address, Vec<Address>>,
+    pub low_health_user_ids_by_token: HashMap<Address, Vec<Address>>,
 }
 
 #[async_trait]
@@ -60,6 +60,22 @@ pub trait UpdateUsers {
     async fn add_new_user(
         &mut self,
         user_to_add: Address,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    // check user health factor and if its in the right token => user id mapping, move if necessary
+    async fn update_token_to_user_mapping_for_(
+        &mut self,
+        user_id: Address,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    async fn remove_user_from_token_to_user_mapping(
+        &mut self,
+        user_id: Address,
+        token: Address,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    async fn add_user_for_token_to_user_mapping(
+        &mut self,
+        user_id: Address,
+        token_address: Address,
         client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>>;
 }
@@ -123,14 +139,32 @@ impl UpdateUsers for AaveUsersHash {
                 {
                     for token in &user.tokens {
                         let token_address: Address = token.token.address.parse()?;
-                        self.user_ids_by_token.insert(token_address, user.id);
+
+                        let mut users = self
+                            .user_ids_by_token
+                            .entry(token_address)
+                            .or_insert_with(Vec::new)
+                            .clone();
+
+                        users.push(user_to_add);
+
+                        self.user_ids_by_token.insert(token_address, users);
                     }
                 } else {
                     // LOW HEALTH SCORE USERS
                     for token in &user.tokens {
                         let token_address: Address = token.token.address.parse()?;
+
+                        let mut users = self
+                            .low_health_user_ids_by_token
+                            .entry(token_address)
+                            .or_insert_with(Vec::new)
+                            .clone();
+
+                        users.push(user_to_add);
+
                         self.low_health_user_ids_by_token
-                            .insert(token_address, user.id);
+                            .insert(token_address, users);
                     }
                 }
                 self.user_data.insert(user.id, user);
@@ -141,6 +175,179 @@ impl UpdateUsers for AaveUsersHash {
             }
             Err(error) => println!("user did not fit criteria ==> {}", error),
         };
+        Ok(())
+    }
+
+    async fn update_token_to_user_mapping_for_(
+        &mut self,
+        user_id: Address,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // get user health factor
+
+        // if health factor is less than HEALTH_FACTOR_THRESHOLD then
+        // then user belongs in  low health factor hash map
+        let user = self.user_data.get(&user_id).expect("Invalid user id");
+        let health_factor = user.health_factor.clone();
+
+        let low_health_factor =
+            health_factor <= BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
+
+        if low_health_factor {
+            for token in &user.tokens {
+                let token_address: Address = token.token.address.parse()?;
+
+                if self.user_ids_by_token.contains_key(&token_address) {
+                    let mut users = self
+                        .user_ids_by_token
+                        .entry(token_address)
+                        .or_insert_with(Vec::new)
+                        .clone();
+
+                    if let Some(index) = users.iter().position(|&id| id == user_id) {
+                        users.remove(index);
+
+                        // update mapping with user id removed
+                        self.user_ids_by_token.insert(token_address, users);
+                    };
+
+                    // move OR add user id to low health factor mapping
+                    let mut users = self
+                        .low_health_user_ids_by_token
+                        .entry(token_address)
+                        .or_insert_with(Vec::new)
+                        .clone();
+
+                    users.push(user_id);
+
+                    self.low_health_user_ids_by_token
+                        .insert(token_address, users);
+                }
+            }
+        } else {
+            // for health factor above HEALTH_FACTOR_THRESHOLD
+            for token in &user.tokens {
+                let token_address: Address = token.token.address.parse()?;
+
+                if self
+                    .low_health_user_ids_by_token
+                    .contains_key(&token_address)
+                {
+                    let mut users = self
+                        .low_health_user_ids_by_token
+                        .entry(token_address)
+                        .or_insert_with(Vec::new)
+                        .clone();
+
+                    if let Some(index) = users.iter().position(|&id| id == user_id) {
+                        users.remove(index);
+
+                        // update mapping with user id removed
+                        self.low_health_user_ids_by_token
+                            .insert(token_address, users);
+                    };
+
+                    // move OR add user id to standard mapping
+                    let mut users = self
+                        .user_ids_by_token
+                        .entry(token_address)
+                        .or_insert_with(Vec::new)
+                        .clone();
+
+                    users.push(user_id);
+
+                    self.user_ids_by_token.insert(token_address, users);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn remove_user_from_token_to_user_mapping(
+        &mut self,
+        user_id: Address,
+        token_address: Address,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // get user health factor
+
+        if self.user_ids_by_token.contains_key(&token_address) {
+            let mut users = self
+                .user_ids_by_token
+                .entry(token_address)
+                .or_insert_with(Vec::new)
+                .clone();
+
+            if let Some(index) = users.iter().position(|&id| id == user_id) {
+                users.remove(index);
+
+                self.user_ids_by_token.insert(token_address, users);
+
+                return Ok(());
+            };
+        } else {
+            println!("token is not present, no need to remove it");
+        }
+
+        if self
+            .low_health_user_ids_by_token
+            .contains_key(&token_address)
+        {
+            let mut users = self
+                .low_health_user_ids_by_token
+                .entry(token_address)
+                .or_insert_with(Vec::new)
+                .clone();
+
+            if let Some(index) = users.iter().position(|&id| id == user_id) {
+                users.remove(index);
+
+                self.low_health_user_ids_by_token
+                    .insert(token_address, users);
+            };
+        }
+
+        Ok(())
+    }
+
+    async fn add_user_for_token_to_user_mapping(
+        &mut self,
+        user_id: Address,
+        token_address: Address,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // get user health factor
+
+        let user = self.user_data.get(&user_id).expect("Invalid user id");
+        let health_factor = user
+            .get_health_factor_from_(PricingSource::UniswapV3, client)
+            .await?;
+
+        let low_health_factor =
+            health_factor <= BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
+
+        if low_health_factor {
+            let mut users = self
+                .low_health_user_ids_by_token
+                .entry(token_address)
+                .or_insert_with(Vec::new)
+                .clone();
+
+            users.push(user_id);
+
+            self.low_health_user_ids_by_token
+                .insert(token_address, users);
+        } else {
+            let mut users = self
+                .user_ids_by_token
+                .entry(token_address)
+                .or_insert_with(Vec::new)
+                .clone();
+
+            users.push(user_id);
+
+            self.user_ids_by_token.insert(token_address, users);
+        }
+
         Ok(())
     }
 }
@@ -243,25 +450,37 @@ impl GenerateUsers for AaveUserData {
 
         let mut user_data_hash = HashMap::new();
         // token address => user ids that own (or borrow) that token
-        let mut token_owned_by_user_hash = HashMap::new();
+        let mut token_owned_by_user_hash = HashMap::<Address, Vec<Address>>::new();
         // token address => user ids that own (or borrow) that token AND have low health factor
-        let mut token_owned_by_user_hash_with_low_health_score = HashMap::new();
+        let mut token_owned_by_user_hash_with_low_health_score =
+            HashMap::<Address, Vec<Address>>::new();
 
         for user in &aave_user_data {
             user_data_hash.insert(user.id, user.clone());
 
-            if user.health_factor
-                > BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32")
-            {
-                for token in &user.tokens {
-                    let token_address: Address = token.token.address.parse()?;
-                    token_owned_by_user_hash.insert(token_address, user.id);
-                }
-            } else {
-                // LOW HEALTH SCORE USERS
-                for token in &user.tokens {
-                    let token_address: Address = token.token.address.parse()?;
-                    token_owned_by_user_hash_with_low_health_score.insert(token_address, user.id);
+            let has_low_health_factor = user.health_factor
+                == BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
+
+            for token in &user.tokens {
+                let token_address: Address = token.token.address.parse()?;
+
+                let mut user_ids = token_owned_by_user_hash
+                    .entry(token_address)
+                    .or_insert_with(Vec::new)
+                    .clone();
+
+                let mut low_health_user_ids = token_owned_by_user_hash_with_low_health_score
+                    .entry(token_address)
+                    .or_insert_with(Vec::new)
+                    .clone();
+
+                if has_low_health_factor {
+                    low_health_user_ids.push(user.id);
+                    token_owned_by_user_hash_with_low_health_score
+                        .insert(token_address, low_health_user_ids);
+                } else {
+                    user_ids.push(user.id);
+                    token_owned_by_user_hash.insert(token_address, user_ids);
                 }
             }
         }

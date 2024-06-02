@@ -66,7 +66,6 @@ pub async fn get_aave_v3_user_from_data_provider(
         return Err("user has no debt".into());
     }
 
-    // TODO - check health factor of user matches with official health factor
     if user_data
         .is_user_valid_when_checking_against_official_health_factor(&client)
         .await?

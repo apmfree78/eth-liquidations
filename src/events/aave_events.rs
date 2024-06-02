@@ -42,7 +42,7 @@ pub async fn update_users_with_event_from_log(
             });
 
             // update aave user
-            update_aave_user(users, event, &client).await?;
+            update_aave_user(users, event, client).await?;
         }
     }
     Ok(())
@@ -85,7 +85,6 @@ pub async fn scan_and_update_aave_events(
     let event_logs = client.get_logs(&filter).await?;
     println!("{} aave events found!", event_logs.iter().len());
 
-    // TODO - refactor users into a hashmap
     update_users_with_events_from_logs(&event_logs, users, &client).await?;
     Ok(())
 }
@@ -170,24 +169,29 @@ pub async fn update_aave_user(
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
-        println!("updating user {}", user.id);
+        let user_id = user.id;
+        println!("updating user {}", user_id);
         println!("user debt ...{:?}", user.total_debt);
         println!("user health factor...{:?}", user.health_factor);
+        // TODO - refactor to match statement to capture removed token if any
         if let Err(e) = user.update(&user_action) {
             return Err(e);
         } else {
             println!("user updated!");
-            // TODO - ADD METHOD TO UPDATE stats after update
 
-            user.update_meta_data(PricingSource::UniswapV3, &client)
+            user.update_meta_data(PricingSource::UniswapV3, client)
                 .await?;
             println!("updated user debt ...{:?}", user.total_debt);
             println!("updated user health factor...{:?}", user.health_factor);
+
+            // update token => user mappings , includes adding new tokens
+            users.update_token_to_user_mapping_for_(user_id).await?;
+
             return Ok(());
         }
     } else {
         // add new user @ user_address since not in our database
-        users.add_new_user(user_address, &client).await?;
+        users.add_new_user(user_address, client).await?;
     }
 
     Ok(())

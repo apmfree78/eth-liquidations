@@ -29,6 +29,8 @@ pub trait Update {
 }
 
 impl Update for AaveUserData {
+    // TODO - refactor to return RemovedTokenOrNone enum { None, RemovedToken(Address)}
+    // we will return address of token that is removed from user if one is removed
     fn update(&mut self, aave_action: &AaveUserAction) -> Result<(), Box<dyn std::error::Error>> {
         let token_address = aave_action.token.address.to_lowercase();
         let mut token_index: Option<usize> = None;
