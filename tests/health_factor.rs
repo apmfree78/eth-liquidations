@@ -1,6 +1,6 @@
 use bigdecimal::BigDecimal;
 use eth_liquadation::exchanges::aave_v3::user_structs::{
-    AaveUserData, AaveUsersHash, Generate, HealthFactor, PricingSource, SampleSize,
+    AaveUserData, AaveUsersHash, GenerateUsers, HealthFactor, PricingSource, SampleSize,
 };
 use ethers::providers::{Provider, Ws};
 use std::collections::HashMap;

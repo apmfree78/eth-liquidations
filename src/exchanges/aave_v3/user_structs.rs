@@ -65,16 +65,24 @@ pub trait UpdateUsers {
 }
 
 #[async_trait]
-pub trait Generate {
+pub trait GenerateUsers {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
     ) -> Result<AaveUsersHash, Box<dyn std::error::Error>>;
+}
+
+#[async_trait]
+pub trait GetUserData {
     async fn get_collateral_times_liquidation_factor_and_total_debt(
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
     ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>>;
+}
+
+#[async_trait]
+pub trait UpdateUserData {
     async fn update_meta_data(
         &mut self,
         source_for_pricing: PricingSource,
@@ -138,7 +146,7 @@ impl UpdateUsers for AaveUsersHash {
 }
 
 #[async_trait]
-impl Generate for AaveUserData {
+impl GenerateUsers for AaveUserData {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
@@ -264,7 +272,10 @@ impl Generate for AaveUserData {
             low_health_user_ids_by_token: token_owned_by_user_hash_with_low_health_score,
         })
     }
+}
 
+#[async_trait]
+impl GetUserData for AaveUserData {
     async fn get_collateral_times_liquidation_factor_and_total_debt(
         &self,
         source_for_pricing: PricingSource,
@@ -320,7 +331,10 @@ impl Generate for AaveUserData {
 
         Ok((liquidation_threshold_collateral_sum, total_debt_usd))
     }
+}
 
+#[async_trait]
+impl UpdateUserData for AaveUserData {
     async fn update_meta_data(
         &mut self,
         source_for_pricing: PricingSource,

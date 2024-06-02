@@ -5,7 +5,7 @@ use eth_liquadation::{
             BORROW_SIGNATURE, REPAY_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
             RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
         },
-        user_structs::{AaveUserData, Generate, SampleSize},
+        user_structs::{AaveUserData, GenerateUsers, SampleSize},
     },
     mempool::detect_price_update::detect_price_update,
 };
