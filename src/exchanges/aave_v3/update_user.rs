@@ -5,6 +5,11 @@ use crate::utils::type_conversion::address_to_string;
 use bigdecimal::BigDecimal;
 use core::panic;
 
+pub enum TokenToRemove {
+    TokenToRemove(String),
+    None,
+}
+
 pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
     let token_address = event.get_reserve();
     let token_address = address_to_string(token_address);
@@ -25,13 +30,19 @@ pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
 }
 
 pub trait Update {
-    fn update(&mut self, aave_action: &AaveUserAction) -> Result<(), Box<dyn std::error::Error>>;
+    fn update(
+        &mut self,
+        aave_action: &AaveUserAction,
+    ) -> Result<TokenToRemove, Box<dyn std::error::Error>>;
 }
 
 impl Update for AaveUserData {
     // TODO - refactor to return RemovedTokenOrNone enum { None, RemovedToken(Address)}
     // we will return address of token that is removed from user if one is removed
-    fn update(&mut self, aave_action: &AaveUserAction) -> Result<(), Box<dyn std::error::Error>> {
+    fn update(
+        &mut self,
+        aave_action: &AaveUserAction,
+    ) -> Result<TokenToRemove, Box<dyn std::error::Error>> {
         let token_address = aave_action.token.address.to_lowercase();
         let mut token_index: Option<usize> = None;
         match aave_action.user_event {
@@ -48,7 +59,7 @@ impl Update for AaveUserData {
                             token_index = Some(index);
                             break;
                         } else {
-                            return Ok(());
+                            return Ok(TokenToRemove::None);
                         }
                     };
                 }
@@ -56,8 +67,9 @@ impl Update for AaveUserData {
                 // if  no  debt or a token balance then  remove token
                 if let Some(index) = token_index {
                     self.tokens.remove(index);
+                    return Ok(TokenToRemove::TokenToRemove(token_address));
                 }
-                return Ok(());
+                return Ok(TokenToRemove::None);
             }
             AaveUserEvent::Borrow => {
                 // find token in aave user data
@@ -65,7 +77,7 @@ impl Update for AaveUserData {
                     if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_total_debt += aave_action.amount_transferred.clone();
-                        return Ok(());
+                        return Ok(TokenToRemove::None);
                     };
                 }
 
@@ -113,7 +125,7 @@ impl Update for AaveUserData {
                             token_index = Some(index);
                             break;
                         } else {
-                            return Ok(());
+                            return Ok(TokenToRemove::None);
                         }
                     };
                 }
@@ -121,15 +133,16 @@ impl Update for AaveUserData {
                 // if  no  debt or a token balance then  remove token
                 if let Some(index) = token_index {
                     self.tokens.remove(index);
+                    return Ok(TokenToRemove::TokenToRemove(token_address));
                 }
-                return Ok(());
+                return Ok(TokenToRemove::None);
             }
             AaveUserEvent::Supply => {
                 for token in &mut self.tokens {
                     if token.token.address.to_lowercase() == token_address {
                         // update
                         token.current_atoken_balance += aave_action.amount_transferred.clone();
-                        return Ok(());
+                        return Ok(TokenToRemove::None);
                     };
                 }
 
@@ -158,7 +171,7 @@ impl Update for AaveUserData {
                     if token.token.address.to_lowercase() == token_address {
                         // update
                         token.usage_as_collateral_enabled = true;
-                        return Ok(());
+                        return Ok(TokenToRemove::None);
                     };
                 }
             }
@@ -168,12 +181,12 @@ impl Update for AaveUserData {
                     if token.token.address.to_lowercase() == token_address {
                         // update
                         token.usage_as_collateral_enabled = false;
-                        return Ok(());
+                        return Ok(TokenToRemove::None);
                     };
                 }
             }
             _ => {}
         }
-        Ok(())
+        return Ok(TokenToRemove::None);
     }
 }

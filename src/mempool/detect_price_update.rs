@@ -33,9 +33,6 @@ pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>)
                 if tx.input.0.len() >= 4 {
                     let data = tx.input.0;
 
-                    // Method ID and parameters
-                    // let method_id = &data[0..4];
-                    // println!("Transaction to address: {:?}", to);
                     if data.starts_with(&transmit_hash) {
                         println!("TRANSMIT FOUND!!!");
                         println!("Transaction from address: {:?}", to);
@@ -50,43 +47,10 @@ pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>)
                         } else {
                             println!("unknown price feed");
                         };
-
-                        // println!("Transaction data (hex encoded): {:?}", tx.input);
-                        // println!("Method ID: {:?}", method_id);
-                        // println!("transmit_hash: {:?}", &transmit_hash);
-
-                        // let function = Function {
-                        //     state_mutability: StateMutability::NonPayable,
-                        //     name: "transmit".to_owned(),
-                        //     inputs: vec![
-                        //         ParamType::Bytes,
-                        //         ParamType::Array(Box::new(ParamType::FixedBytes(32))),
-                        //         ParamType::Array(Box::new(ParamType::FixedBytes(32))),
-                        //         ParamType::FixedBytes(32),
-                        //     ],
-                        //     outputs: vec![],
-                        //     constant: Some(false),
-                        // };
                     }
                 }
-                // let to_address = &data[8..72];
-                // let value = &data[72..];
-
-                // // Convert parameters from hex to more readable formats
-                // let to_address_str = hex_encode(&data[8..40]); // Get the next 32 bytes for the address, encode to hex string
-                // let to_address = Address::from_str(&format!("0x{}", to_address_str)).unwrap();
-                // let value_str = hex_encode(&data[36..]); // Adjust the slice range as needed
-                // let value = U256::from_str_radix(&value_str, 16).unwrap();
-
-                // println!("To Address: {:?}", to_address);
-                // println!("Value: {:?}", value);
             }
         }
-        // Other transaction details
-        // println!("Value transferred (in Wei): {:?}", tx.value);
-        // println!("Gas Price: {:?}", tx.gas_price);
-    } else {
-        // println!("Transaction not found or pending confirmation");
     }
     Ok(())
 }

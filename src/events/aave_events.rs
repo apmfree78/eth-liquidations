@@ -1,11 +1,12 @@
 use crate::exchanges::aave_v3::{
     decode_events::create_aave_event_from_log,
     events::{AaveEvent, AaveEventType, AaveUserEvent},
-    update_user::{get_user_action_from_event, Update},
+    update_user::{get_user_action_from_event, TokenToRemove, Update},
     user_structs::{AaveUsersHash, PricingSource, UpdateUserData, UpdateUsers},
 };
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
+use futures::TryFutureExt;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -169,26 +170,43 @@ pub async fn update_aave_user(
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
-        let user_id = user.id;
+        let user_id = user.id.clone();
+
         println!("updating user {}", user_id);
         println!("user debt ...{:?}", user.total_debt);
         println!("user health factor...{:?}", user.health_factor);
         // TODO - refactor to match statement to capture removed token if any
-        if let Err(e) = user.update(&user_action) {
-            return Err(e);
-        } else {
-            println!("user updated!");
+        let token_to_remove = match user.update(&user_action) {
+            Ok(remove_token) => match remove_token {
+                TokenToRemove::TokenToRemove(token_address) => {
+                    // there is a token to remove
+                    let token_address: Address = token_address.parse()?;
+                    Some(token_address)
+                }
+                TokenToRemove::None => None, // no token to remove
+            },
+            Err(err) => return Err(err),
+        };
 
-            user.update_meta_data(PricingSource::UniswapV3, client)
-                .await?;
-            println!("updated user debt ...{:?}", user.total_debt);
-            println!("updated user health factor...{:?}", user.health_factor);
+        println!("user updated!");
 
-            // update token => user mappings , includes adding new tokens
-            users.update_token_to_user_mapping_for_(user_id).await?;
+        user.update_meta_data(PricingSource::UniswapV3, client)
+            .await?;
+        println!("updated user debt ...{:?}", user.total_debt);
+        println!("updated user health factor...{:?}", user.health_factor);
 
-            return Ok(());
-        }
+        // update token => user mappings , includes adding new tokens
+        users.update_token_to_user_mapping_for_(user_id)?;
+
+        // check if there is token to remove, if so removie it
+        if let Some(token_address) = token_to_remove {
+            users
+                .remove_user_from_token_user_mapping(user_id, token_address)
+                .unwrap_or_else(|err| {
+                    println!("could not remove user from token mapping => {}", err)
+                });
+        };
+        return Ok(());
     } else {
         // add new user @ user_address since not in our database
         users.add_new_user(user_address, client).await?;

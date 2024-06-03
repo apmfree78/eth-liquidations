@@ -548,7 +548,7 @@ fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>
 
     Ok(AaveUsersHash {
         user_data: user_hash,
-        user_ids_by_token: HashMap::new(),
+        standard_user_ids_by_token: HashMap::new(),
         low_health_user_ids_by_token: HashMap::new(),
     })
 }
