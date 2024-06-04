@@ -20,6 +20,7 @@ pub mod utils {
 pub mod data {
     pub mod address;
     pub mod erc20;
+    pub mod token_price_hash;
 }
 
 pub mod abi {

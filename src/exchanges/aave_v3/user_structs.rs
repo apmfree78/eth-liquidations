@@ -17,6 +17,7 @@ const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
 pub enum PricingSource {
     AaveOracle,
     UniswapV3,
+    TokenPriceHash,
 }
 
 pub enum SampleSize {

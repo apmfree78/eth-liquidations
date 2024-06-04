@@ -1,4 +1,6 @@
+use bigdecimal::BigDecimal;
 use eth_liquadation::{
+    data::token_price_hash::{self, generate_token_price_hash},
     events::aave_events::update_users_with_event_from_log,
     exchanges::aave_v3::{
         events::{
@@ -16,7 +18,7 @@ use ethers::{
     providers::{Provider, Ws},
 };
 use futures::{lock::Mutex, stream, StreamExt};
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 const WS_URL: &str = "ws://localhost:8546";
 const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
@@ -31,6 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Arc::new(provider);
 
     let user_hash = AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
+    let token_price_hash = generate_token_price_hash().await?;
 
     let user_data = Arc::new(Mutex::new(user_hash));
 
