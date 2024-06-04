@@ -17,7 +17,7 @@ const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
 pub enum PricingSource {
     AaveOracle,
     UniswapV3,
-    TokenPriceHash,
+    SavedTokenPrice,
 }
 
 pub enum SampleSize {
@@ -591,12 +591,12 @@ impl GetUserData for AaveUserData {
 
             // 1. get token price USD
             let token_price_usd = match source_for_pricing {
-                PricingSource::UniswapV3 => token.get_token_price_in_("USDC", &client).await?,
-                PricingSource::AaveOracle => token.get_token_oracle_price(&client).await?,
+                PricingSource::UniswapV3 => token.get_token_price_in_("USDC", client).await?,
+                PricingSource::AaveOracle => token.get_token_oracle_price(client).await?,
+                PricingSource::SavedTokenPrice => {
+                    token.get_saved_price_from_token_price_hash().await?
+                }
             };
-
-            let token_decimal_factor =
-                BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
 
             // 2. get get current total debt in USD
             // *************************************

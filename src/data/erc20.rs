@@ -1,4 +1,5 @@
 use super::address::AAVE_ORACLE_ADDRESS;
+use super::token_price_hash::get_saved_token_price;
 use crate::abi::aave_oracle::AAVE_ORACLE;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
@@ -40,6 +41,10 @@ pub trait Convert {
     async fn get_token_oracle_price(
         &self,
         client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+
+    async fn get_saved_price_from_token_price_hash(
+        &self,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 }
 
@@ -154,6 +159,15 @@ impl Convert for Erc20Token {
         let token_price_oracle = token_price_oracle / oracle_decimal_factor;
 
         Ok(token_price_oracle)
+    }
+
+    async fn get_saved_price_from_token_price_hash(
+        &self,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+        // TODO - COMPLETE!
+        let token_price = get_saved_token_price(self.address.to_lowercase()).await?;
+
+        Ok(token_price)
     }
 }
 

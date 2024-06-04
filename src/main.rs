@@ -33,7 +33,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Arc::new(provider);
 
     let user_hash = AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
-    let token_price_hash = generate_token_price_hash().await?;
+
+    // Initialize TOKEN_PRICE_HASH global hashmap of token prices
+    if let Err(e) = generate_token_price_hash(&client).await {
+        eprintln!("Failed to initialize token prices: {}", e);
+    }
 
     let user_data = Arc::new(Mutex::new(user_hash));
 
