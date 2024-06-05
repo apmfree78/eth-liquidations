@@ -68,8 +68,6 @@ pub enum UserType {
 
 #[async_trait]
 pub trait UpdateUsers {
-    // TODO - create method to scan all users that hold specific token, find and update health factor
-    // then return user id with health factors below 1
     async fn update_users_health_factor_by_token_and_return_liquidation_candidates(
         &mut self,
         token_address: Address,
@@ -402,6 +400,8 @@ impl UpdateUsers for AaveUsersHash {
     //
     //     Ok(())
     // }
+
+    // TODO --> REFACTOR THIS , will only update token price of token that was updated by Transmit
     async fn update_users_health_factor_by_token_and_return_liquidation_candidates(
         &mut self,
         token_address: Address,

@@ -170,12 +170,12 @@ pub async fn update_aave_user(
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
-        let user_id = user.id.clone();
+        let user_id = user.id;
 
         println!("updating user {}", user_id);
         println!("user debt ...{:?}", user.total_debt);
         println!("user health factor...{:?}", user.health_factor);
-        // TODO - refactor to match statement to capture removed token if any
+
         let token_to_remove = match user.update(&user_action) {
             Ok(remove_token) => match remove_token {
                 TokenToRemove::TokenToRemove(token_address) => {
@@ -190,7 +190,7 @@ pub async fn update_aave_user(
 
         println!("user updated!");
 
-        user.update_meta_data(PricingSource::UniswapV3, client)
+        user.update_meta_data(PricingSource::AaveOracle, client)
             .await?;
         println!("updated user debt ...{:?}", user.total_debt);
         println!("updated user health factor...{:?}", user.health_factor);

@@ -37,8 +37,6 @@ pub trait Update {
 }
 
 impl Update for AaveUserData {
-    // TODO - refactor to return RemovedTokenOrNone enum { None, RemovedToken(Address)}
-    // we will return address of token that is removed from user if one is removed
     fn update(
         &mut self,
         aave_action: &AaveUserAction,

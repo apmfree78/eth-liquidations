@@ -164,7 +164,6 @@ impl Convert for Erc20Token {
     async fn get_saved_price_from_token_price_hash(
         &self,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
-        // TODO - COMPLETE!
         let token_price = get_saved_token_price(self.address.to_lowercase()).await?;
 
         Ok(token_price)

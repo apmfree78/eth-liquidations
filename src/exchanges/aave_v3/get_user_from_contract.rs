@@ -59,7 +59,7 @@ pub async fn get_aave_v3_user_from_data_provider(
     };
 
     user_data
-        .update_meta_data(PricingSource::UniswapV3, &client)
+        .update_meta_data(PricingSource::AaveOracle, client)
         .await?;
 
     if user_data.total_debt == BigDecimal::from(0) {
@@ -67,7 +67,7 @@ pub async fn get_aave_v3_user_from_data_provider(
     }
 
     if user_data
-        .is_user_valid_when_checking_against_official_health_factor(&client)
+        .is_user_valid_when_checking_against_official_health_factor(client)
         .await?
     {
         Ok(user_data)
