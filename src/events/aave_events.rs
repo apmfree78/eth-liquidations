@@ -190,7 +190,7 @@ pub async fn update_aave_user(
 
         println!("user updated!");
 
-        user.update_meta_data(PricingSource::AaveOracle, client)
+        user.update_meta_data(PricingSource::SavedTokenPrice, client)
             .await?;
         println!("updated user debt ...{:?}", user.total_debt);
         println!("updated user health factor...{:?}", user.health_factor);

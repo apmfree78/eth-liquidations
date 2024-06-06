@@ -5,7 +5,10 @@ use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
 use std::sync::Arc;
 
-pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>) -> Result<()> {
+pub async fn detect_price_update(
+    pending_tx: TxHash,
+    client: &Arc<Provider<Ws>>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let transmit_signature = "transmit(bytes,bytes32[],bytes32[],bytes32)";
 
     abigen!(
@@ -47,9 +50,8 @@ pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>)
                             println!("price updated for {} => {}", token.name, token.symbol);
 
                             // update price of token
-                            // TODO - fix below
-                            // let token_price = token.get_token_price_in_("USDC", client).await?;
-                            // set_saved_token_price(token.address, token_price).await?;
+                            let token_price = token.get_token_price_in_("USDC", client).await?;
+                            set_saved_token_price(token.address, token_price).await?;
 
                             // TODO - UPDATE USERS HERE
                         } else {

@@ -20,7 +20,7 @@ use ethers::{
     providers::{Provider, Ws},
 };
 use futures::{lock::Mutex, stream, StreamExt};
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 const WS_URL: &str = "ws://localhost:8546";
 const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";

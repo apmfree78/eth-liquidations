@@ -409,14 +409,14 @@ impl UpdateUsers for AaveUsersHash {
         client: &Arc<Provider<Ws>>,
     ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>> {
         // track already updated users and liquidation candidates
-        let liquidation_candidates = Vec::<Address>::new();
+        let mut liquidation_candidates = Vec::<Address>::new();
 
         match user_type {
             UserType::LowHealth => {
                 let low_health_users = self
                     .low_health_user_ids_by_token
                     .entry(token_address)
-                    .or_insert_with(Vec::new);
+                    .or_default();
 
                 for user_id in low_health_users {
                     let user = self
@@ -428,11 +428,39 @@ impl UpdateUsers for AaveUsersHash {
                         .await?;
 
                     // TODO - find if user has health factor < 1 and add to arry if true
+                    if user.health_factor < BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).unwrap() {
+                        liquidation_candidates.push(user.id);
+                    }
                 }
             }
-            UserType::Standard => {}
+            UserType::Standard => {
+                let standard_users = self
+                    .standard_user_ids_by_token
+                    .entry(token_address)
+                    .or_default();
+
+                for user_id in standard_users {
+                    let user = self
+                        .user_data
+                        .get_mut(user_id)
+                        .unwrap_or_else(|| panic!("could not find user with user id"));
+
+                    user.update_meta_data(PricingSource::SavedTokenPrice, client)
+                        .await?;
+
+                    // TODO - find if user has health factor < 1 and add to arry if true
+                    if user.health_factor < BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).unwrap() {
+                        liquidation_candidates.push(user.id);
+                    }
+                }
+            }
         }
-        Ok(UsersToLiquidate::None)
+
+        if liquidation_candidates.is_empty() {
+            Ok(UsersToLiquidate::None)
+        } else {
+            Ok(UsersToLiquidate::Users(liquidation_candidates))
+        }
     }
 }
 
@@ -497,27 +525,6 @@ impl GenerateUsers for AaveUserData {
                 .get_health_factor_from_(PricingSource::AaveOracle, client)
                 .await?;
 
-            // let (col, debt) = aave_user
-            //     .get_collateral_times_liquidation_factor_and_total_debt(
-            //         PricingSource::AaveOracle,
-            //         client,
-            //     )
-            //     .await?;
-            //
-            // println!("calculated collateral is => {:?}", col);
-            //
-            // println!(
-            //     "collateral is => {:?}",
-            //     colladeral_times_liquidation_factor.clone()
-            // );
-            // println!("calculated debt is => {:?}", debt);
-            // println!("debt is => {:?}", total_debt);
-
-            // println!(
-            //     "calculated health factor => {:?}",
-            //     aave_user_calculated_health_factor
-            // );
-            // println!("official health factor => {:?}", aave_user_health_factor);
             let lower_bound = BigDecimal::from_str("0.95")? * &aave_user_health_factor;
             let upper_bound = BigDecimal::from_str("1.05")? * &aave_user_health_factor;
 
@@ -721,7 +728,6 @@ impl HealthFactor for AaveUserData {
         Ok(health_factor)
     }
 
-    // TODO - FIX THIS
     async fn is_user_valid_when_checking_against_official_health_factor(
         &mut self,
         client: &Arc<Provider<Ws>>,
