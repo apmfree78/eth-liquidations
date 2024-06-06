@@ -1,6 +1,8 @@
 use bigdecimal::BigDecimal;
 use eth_liquadation::{
-    data::token_price_hash::{self, generate_token_price_hash},
+    data::token_price_hash::{
+        self, generate_token_price_hash, print_saved_token_prices, TOKEN_PRICE_HASH,
+    },
     events::aave_events::update_users_with_event_from_log,
     exchanges::aave_v3::{
         events::{
@@ -38,6 +40,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Err(e) = generate_token_price_hash(&client).await {
         eprintln!("Failed to initialize token prices: {}", e);
     }
+
+    print_saved_token_prices().await?;
 
     let user_data = Arc::new(Mutex::new(user_hash));
 

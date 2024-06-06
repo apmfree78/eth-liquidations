@@ -54,3 +54,11 @@ pub async fn set_saved_token_price(
     token_prices.insert(token_address.to_lowercase(), new_token_price);
     Ok(())
 }
+
+pub async fn print_saved_token_prices() -> Result<(), Box<dyn std::error::Error>> {
+    let token_price_hash = Arc::clone(&TOKEN_PRICE_HASH);
+    let mut token_prices = token_price_hash.lock().await;
+
+    println!("saved token price => {:#?}", token_prices);
+    Ok(())
+}

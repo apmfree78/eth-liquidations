@@ -6,7 +6,6 @@ use crate::exchanges::aave_v3::{
 };
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
-use futures::TryFutureExt;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -15,7 +14,7 @@ use crate::exchanges::aave_v3::events::{
     RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
 };
 
-const AAVE_V3_POOL_ADDRESS: &'static str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
+const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 
 pub async fn update_users_with_event_from_log(
     log: Log,
@@ -86,7 +85,7 @@ pub async fn scan_and_update_aave_events(
     let event_logs = client.get_logs(&filter).await?;
     println!("{} aave events found!", event_logs.iter().len());
 
-    update_users_with_events_from_logs(&event_logs, users, &client).await?;
+    update_users_with_events_from_logs(&event_logs, users, client).await?;
     Ok(())
 }
 
@@ -109,10 +108,11 @@ pub async fn update_users_with_events_from_logs(
                 // println!("event data => {:?}", aave_event_type_with_data);
 
                 // extract struct data from event enum
-                let event = extract_aave_event_data(&aave_event_type_with_data).unwrap();
+                let event = extract_aave_event_data(&aave_event_type_with_data)
+                    .unwrap_or_else(|err| panic!("could not extract aave event data => {}", err));
 
                 // update aave user
-                update_aave_user(users, event, &client).await?;
+                update_aave_user(users, event, client).await?;
             }
         }
     }

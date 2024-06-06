@@ -408,6 +408,9 @@ impl UpdateUsers for AaveUsersHash {
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
     ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>> {
+        // track already updated users and liquidation candidates
+        let liquidation_candidates = Vec::<Address>::new();
+
         match user_type {
             UserType::LowHealth => {
                 let low_health_users = self
@@ -421,7 +424,7 @@ impl UpdateUsers for AaveUsersHash {
                         .get_mut(user_id)
                         .unwrap_or_else(|| panic!("could not find user with user id"));
 
-                    user.update_meta_data(PricingSource::UniswapV3, client)
+                    user.update_meta_data(PricingSource::SavedTokenPrice, client)
                         .await?;
 
                     // TODO - find if user has health factor < 1 and add to arry if true
@@ -493,6 +496,28 @@ impl GenerateUsers for AaveUserData {
             let aave_user_calculated_health_factor = aave_user
                 .get_health_factor_from_(PricingSource::AaveOracle, client)
                 .await?;
+
+            // let (col, debt) = aave_user
+            //     .get_collateral_times_liquidation_factor_and_total_debt(
+            //         PricingSource::AaveOracle,
+            //         client,
+            //     )
+            //     .await?;
+            //
+            // println!("calculated collateral is => {:?}", col);
+            //
+            // println!(
+            //     "collateral is => {:?}",
+            //     colladeral_times_liquidation_factor.clone()
+            // );
+            // println!("calculated debt is => {:?}", debt);
+            // println!("debt is => {:?}", total_debt);
+
+            // println!(
+            //     "calculated health factor => {:?}",
+            //     aave_user_calculated_health_factor
+            // );
+            // println!("official health factor => {:?}", aave_user_health_factor);
             let lower_bound = BigDecimal::from_str("0.95")? * &aave_user_health_factor;
             let upper_bound = BigDecimal::from_str("1.05")? * &aave_user_health_factor;
 
@@ -583,11 +608,13 @@ impl GetUserData for AaveUserData {
     ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>> {
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
 
-        let mut total_debt_usd = BigDecimal::zero();
-        let mut liquidation_threshold_collateral_sum = BigDecimal::zero();
+        let mut total_debt_usd = BigDecimal::from(0);
+        let mut liquidation_threshold_collateral_sum = BigDecimal::from(0);
 
         for r in &self.tokens {
             let token = TOKEN_DATA.get(&*r.token.symbol).unwrap();
+            let token_decimal_factor =
+                BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
 
             // 1. get token price USD
             let token_price_usd = match source_for_pricing {
@@ -603,8 +630,9 @@ impl GetUserData for AaveUserData {
             let current_total_debt = r.current_total_debt.clone();
             // *************************************
 
-            if current_total_debt > BigDecimal::zero() {
-                let current_total_debt_usd = &current_total_debt * &token_price_usd;
+            if current_total_debt > BigDecimal::from(0) {
+                let current_total_debt_usd =
+                    &current_total_debt * &token_price_usd / &token_decimal_factor;
 
                 // 3. add current total debt to total debt
                 total_debt_usd += &current_total_debt_usd;
@@ -616,15 +644,16 @@ impl GetUserData for AaveUserData {
                 let current_atoken_balance = r.current_atoken_balance.clone();
                 // *************************************
 
-                if current_atoken_balance > BigDecimal::zero() {
-                    let current_atoken_usd = &current_atoken_balance * &token_price_usd;
+                if current_atoken_balance > BigDecimal::from(0) {
+                    let current_atoken_usd =
+                        &current_atoken_balance * &token_price_usd / &token_decimal_factor;
 
                     // 5. update liquidity threshold colleral sum
                     let liquidation_threshold = r.reserve_liquidation_threshold.clone();
                     // *************************************
 
                     liquidation_threshold_collateral_sum +=
-                        current_atoken_usd * &liquidation_threshold / &bps_factor;
+                        &current_atoken_usd * &liquidation_threshold / &bps_factor;
                 }
             }
         }
@@ -665,7 +694,7 @@ impl HealthFactor for AaveUserData {
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
         let (liquidation_threshold_collateral_sum, current_total_debt) = self
-            .get_collateral_times_liquidation_factor_and_total_debt(source_for_pricing, &client)
+            .get_collateral_times_liquidation_factor_and_total_debt(source_for_pricing, client)
             .await?;
 
         let health_factor = if current_total_debt > BigDecimal::zero() {
@@ -692,6 +721,7 @@ impl HealthFactor for AaveUserData {
         Ok(health_factor)
     }
 
+    // TODO - FIX THIS
     async fn is_user_valid_when_checking_against_official_health_factor(
         &mut self,
         client: &Arc<Provider<Ws>>,
@@ -712,7 +742,7 @@ impl HealthFactor for AaveUserData {
         // println!("health factor {}", health_factor);
 
         let aave_user_calculated_health_factor = self
-            .get_health_factor_from_(PricingSource::AaveOracle, &client)
+            .get_health_factor_from_(PricingSource::AaveOracle, client)
             .await?;
 
         // CHECK that health factor calculated from user data is

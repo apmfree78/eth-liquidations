@@ -1,4 +1,5 @@
-use crate::data::erc20::TOKEN_DATA;
+use crate::data::erc20::{Convert, TOKEN_DATA};
+use crate::data::token_price_hash::set_saved_token_price;
 use crate::utils::type_conversion::address_to_string;
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
@@ -44,6 +45,13 @@ pub async fn detect_price_update(pending_tx: TxHash, client: &Arc<Provider<Ws>>)
                         let to = address_to_string(to).to_lowercase();
                         if let Some(token) = TOKEN_DATA.get(&*to) {
                             println!("price updated for {} => {}", token.name, token.symbol);
+
+                            // update price of token
+                            // TODO - fix below
+                            // let token_price = token.get_token_price_in_("USDC", client).await?;
+                            // set_saved_token_price(token.address, token_price).await?;
+
+                            // TODO - UPDATE USERS HERE
                         } else {
                             println!("unknown price feed");
                         };
