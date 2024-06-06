@@ -54,6 +54,11 @@ pub async fn detect_price_update(
                             set_saved_token_price(token.address, token_price).await?;
 
                             // TODO - UPDATE USERS HERE
+                            // 1. update low health user health factor (that own or borrow token)
+                            // 2. check if liquidation candidates found
+                            // 3.  update standard user health factor (that own or borrow token)
+                            // 4. repeat step 2
+                            // 5. clean up - update token ==> user mapping for all users with updated health factors
                         } else {
                             println!("unknown price feed");
                         };

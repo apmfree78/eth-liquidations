@@ -1,8 +1,10 @@
+use crate::exchanges::aave_v3::implementations::aave_user_data::{HealthFactor, UpdateUserData};
 use crate::exchanges::aave_v3::{
     decode_events::create_aave_event_from_log,
     events::{AaveEvent, AaveEventType, AaveUserEvent},
+    implementations::aave_users_hash::UpdateUsers,
     update_user::{get_user_action_from_event, TokenToRemove, Update},
-    user_structs::{AaveUsersHash, PricingSource, UpdateUserData, UpdateUsers},
+    user_structs::{AaveUsersHash, PricingSource},
 };
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;

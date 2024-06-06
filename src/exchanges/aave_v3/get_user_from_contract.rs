@@ -1,4 +1,5 @@
-use super::user_structs::{AaveToken, AaveUserData, HealthFactor, PricingSource, UpdateUserData};
+use super::implementations::aave_user_data::{HealthFactor, UpdateUserData};
+use super::user_structs::{AaveToken, AaveUserData, PricingSource};
 use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::data::address::AAVE_V3_DATA_PROVIDER_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, TOKEN_DATA};

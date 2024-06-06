@@ -1,9 +1,9 @@
 use bigdecimal::BigDecimal;
-use eth_liquadation::exchanges::aave_v3::user_structs::{
-    AaveUserData, AaveUsersHash, GenerateUsers, HealthFactor, PricingSource, SampleSize,
+use eth_liquadation::exchanges::aave_v3::{
+    implementations::aave_user_data::{GenerateUsers, HealthFactor},
+    user_structs::{AaveUserData, AaveUsersHash, PricingSource, SampleSize},
 };
 use ethers::providers::{Provider, Ws};
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 

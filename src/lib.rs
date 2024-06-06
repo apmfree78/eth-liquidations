@@ -6,6 +6,10 @@ pub mod exchanges {
         pub mod get_user_from_contract;
         pub mod update_user;
         pub mod user_structs;
+        pub mod implementations {
+            pub mod aave_user_data;
+            pub mod aave_users_hash;
+        }
     }
 }
 
