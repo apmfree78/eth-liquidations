@@ -1,5 +1,5 @@
 use eth_liquadation::abi::erc20::ERC20;
-use eth_liquadation::data::erc20::TOKEN_DATA;
+use eth_liquadation::data::erc20::{TOKEN_DATA, UNIQUE_TOKEN_DATA};
 use ethers::prelude::*;
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ async fn test_token_data_matches_token_contract() -> Result<(), Box<dyn std::err
     let client = Arc::new(provider);
 
     println!(" number of test to run {} ", 4 * TOKEN_DATA.len());
-    for token in TOKEN_DATA.values() {
+    for token in UNIQUE_TOKEN_DATA.values() {
         if token.name == "Maker" {
             continue;
         }

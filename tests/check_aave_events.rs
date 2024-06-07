@@ -166,7 +166,7 @@ fn test_collateral_enable_event_decoding() -> Result<(), Box<dyn std::error::Err
             .unwrap(),
     };
 
-    let log = create_log_for_collateral_enable_event(event.clone(), AAVE_V3_POOL);
+    let log = create_log_for_collateral_enable_event(event, AAVE_V3_POOL);
 
     // decode log
     let decoded_event =
@@ -191,7 +191,7 @@ fn test_collateral_disable_event_decoding() -> Result<(), Box<dyn std::error::Er
             .unwrap(),
     };
 
-    let log = create_log_for_collateral_disable_event(event.clone(), AAVE_V3_POOL);
+    let log = create_log_for_collateral_disable_event(event, AAVE_V3_POOL);
 
     // decode log
     let decoded_event =

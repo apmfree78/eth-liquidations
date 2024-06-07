@@ -1,4 +1,4 @@
-use crate::exchanges::aave_v3::implementations::aave_user_data::{HealthFactor, UpdateUserData};
+use crate::exchanges::aave_v3::implementations::aave_user_data::UpdateUserData;
 use crate::exchanges::aave_v3::{
     decode_events::create_aave_event_from_log,
     events::{AaveEvent, AaveEventType, AaveUserEvent},
@@ -92,7 +92,7 @@ pub async fn scan_and_update_aave_events(
 }
 
 pub async fn update_users_with_events_from_logs(
-    logs: &Vec<Log>,
+    logs: &[Log],
     users: &mut AaveUsersHash,
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -106,7 +106,7 @@ pub async fn update_users_with_events_from_logs(
                 // println!("{:?} event: {:#?}", aave_event_enum, log);
 
                 // extract event data from log
-                let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);
+                let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, log);
                 // println!("event data => {:?}", aave_event_type_with_data);
 
                 // extract struct data from event enum

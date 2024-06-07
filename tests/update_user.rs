@@ -23,7 +23,7 @@ use ethers::providers::{Provider, Ws};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-const WS_URL: &'static str = "ws://localhost:8546";
+const WS_URL: &str = "ws://localhost:8546";
 const AAVE_V3_POOL: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 
 #[tokio::test]
@@ -467,7 +467,7 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
 
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
-            assert_eq!(tokens.usage_as_collateral_enabled, false);
+            assert!(tokens.usage_as_collateral_enabled);
         }
     }
 
@@ -491,7 +491,7 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
 
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
-            assert_eq!(tokens.usage_as_collateral_enabled, true);
+            assert!(tokens.usage_as_collateral_enabled);
         }
     }
 
@@ -540,7 +540,7 @@ fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>
                 reserve_liquidation_bonus: BigDecimal::from(10450),
             },
         ],
-        health_factor: BigDecimal::from_f32(1.545587076407477097).unwrap(),
+        health_factor: BigDecimal::from_f32(1.545587).unwrap(),
     };
 
     let mut user_hash = HashMap::new();

@@ -51,15 +51,17 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
                     let data = tx.input.0;
 
                     if data.starts_with(&transmit_hash) {
-                        println!("TRANSMIT FOUND!!!");
-                        println!("Transaction from address: {:?}", to);
-                        let contract = AGGREGATOR::new(to, client.clone());
-                        // println!("data => {:?}", data);
-                        if let Ok(description) = contract.description().call().await {
-                            println!("aggregator for {}", description);
-                        }
-                        let to = address_to_string(to).to_lowercase();
-                        if let Some(token) = TOKEN_DATA.get(&*to) {
+                        let to_address = address_to_string(to).to_lowercase();
+                        if let Some(token) = TOKEN_DATA.get(&*to_address) {
+
+                            println!("TRANSMIT FOUND!!!");
+                            println!("Transaction from address: {:?}", to);
+                            let contract = AGGREGATOR::new(to, client.clone());
+                            // println!("data => {:?}", data);
+                            if let Ok(description) = contract.description().call().await {
+                                println!("aggregator for {}", description);
+                            }
+
                             println!("price updated for {} => {}", token.name, token.symbol);
 
                             // TODO - handle case where ETH price is update -> will update all ETH and ETH related tokens
@@ -90,9 +92,7 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
                             // 5. clean up - update token ==> user mapping for all users with updated health factors
                             // use => update_token_to_user_mapping_for_all_users_with_token_(...)
                             users.update_token_to_user_mapping_for_all_users_with_token_(token_address)?;
-                        } else {
-                            println!("unknown price feed");
-                        };
+                        }
                     }
                 }
             }

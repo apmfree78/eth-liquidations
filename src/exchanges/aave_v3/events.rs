@@ -3,15 +3,14 @@ use bigdecimal::BigDecimal;
 use ethers::abi::Address;
 use ethers::core::types::U256;
 
-pub const WITHDRAW_SIGNATURE: &'static str = "Withdraw(address,address,address,uint256)";
-pub const RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE: &'static str =
+pub const WITHDRAW_SIGNATURE: &str = "Withdraw(address,address,address,uint256)";
+pub const RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE: &str =
     "ReserveUsedAsCollateralEnabled(address,address)";
-pub const RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE: &'static str =
+pub const RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE: &str =
     "ReserveUsedAsCollateralDisabled(address,address)";
-pub const BORROW_SIGNATURE: &'static str =
-    "Borrow(address,address,address,uint256,uint8,uint256,uint16)";
-pub const REPAY_SIGNATURE: &'static str = "Repay(address,address,address,uint256,bool)";
-pub const SUPPLY_SIGNATURE: &'static str = "Supply(address,address,address,uint256,uint16)";
+pub const BORROW_SIGNATURE: &str = "Borrow(address,address,address,uint256,uint8,uint256,uint16)";
+pub const REPAY_SIGNATURE: &str = "Repay(address,address,address,uint256,bool)";
+pub const SUPPLY_SIGNATURE: &str = "Supply(address,address,address,uint256,uint16)";
 
 #[derive(Clone, Copy, Debug)]
 pub enum AaveUserEvent {

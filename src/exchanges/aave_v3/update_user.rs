@@ -185,6 +185,6 @@ impl Update for AaveUserData {
             }
             _ => {}
         }
-        return Ok(TokenToRemove::None);
+        Ok(TokenToRemove::None)
     }
 }

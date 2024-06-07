@@ -302,7 +302,7 @@ impl HealthFactor for AaveUserData {
         let health_factor = if current_total_debt > BigDecimal::zero() {
             liquidation_threshold_collateral_sum / current_total_debt
         } else {
-            println!("No valid health factor");
+            println!("no health factor as use as no debt");
             BigDecimal::from(0)
         };
         Ok(health_factor)
@@ -345,6 +345,12 @@ impl HealthFactor for AaveUserData {
         let aave_user_calculated_health_factor = self
             .get_health_factor_from_(PricingSource::AaveOracle, client)
             .await?;
+
+        println!("official health factor => {:?}", health_factor);
+        println!(
+            "calculated health factor => {:?}",
+            aave_user_calculated_health_factor
+        );
 
         // CHECK that health factor calculated from user data is
         // within + or - 5% of official health factor we get from

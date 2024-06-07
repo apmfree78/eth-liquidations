@@ -1,15 +1,10 @@
 // create function to get price feed data  using aave_oracle getSourceOfAsset method
 
-use eth_liquadation::abi::aave_oracle::AAVE_ORACLE;
 use eth_liquadation::data::erc20::TOKEN_DATA;
 use eth_liquadation::utils::type_conversion::address_to_string;
 use ethers::abi::Address;
-use ethers::contract::{abigen, Contract};
-use ethers::{
-    core::abi::Abi,
-    providers::{Provider, Ws},
-};
-// use std::str::FromStr;
+use ethers::contract::abigen;
+use ethers::providers::{Provider, Ws};
 use std::{ops::Deref, sync::Arc};
 
 // #[tokio::test]

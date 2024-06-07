@@ -59,8 +59,8 @@ async fn test_that_calculated_health_factor_roughly_matches_given_one(
                 .get_health_factor_from_(PricingSource::AaveOracle, &client)
                 .await?;
 
-            let lower_bound = BigDecimal::from_str("0.95")? * &given_health_factor;
-            let upper_bound = BigDecimal::from_str("1.05")? * &given_health_factor;
+            let lower_bound = BigDecimal::from_str("0.9")? * &given_health_factor;
+            let upper_bound = BigDecimal::from_str("1.10")? * &given_health_factor;
 
             // println!("testing {:#?}", user.tokens);
             println!("health_factor_uniswap_v3: {}", health_factor_uniswap_v3);

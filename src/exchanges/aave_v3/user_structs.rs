@@ -1,15 +1,7 @@
-use super::get_user_api::{get_aave_v3_users, get_all_aave_v3_users, UserAccountData};
-use super::get_user_from_contract::get_aave_v3_user_from_data_provider;
-use crate::abi::aave_v3_pool::AAVE_V3_POOL;
-use crate::data::address::AAVE_V3_POOL_ADDRESS;
-use crate::data::erc20::{u256_to_big_decimal, Convert, Erc20Token, TOKEN_DATA};
-use async_trait::async_trait;
-use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use crate::data::erc20::Erc20Token;
+use bigdecimal::BigDecimal;
 use ethers::abi::Address;
-use ethers::providers::{Provider, Ws};
 use std::collections::HashMap;
-use std::str::FromStr;
-use std::sync::Arc;
 
 pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
 

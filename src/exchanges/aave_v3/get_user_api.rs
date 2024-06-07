@@ -7,7 +7,6 @@ use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::str::FromStr;
-use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AaveUser {
@@ -38,12 +37,12 @@ impl UserAccountData for AaveUser {
             // println!("getting price of {} in usd", token.symbol);
             // let token_price_eth = token.get_token_price_in_("USDC", &client).await?;
 
-            let current_total_debt = BigDecimal::from_str(&*r.current_total_debt)?;
-            let current_atoken_balance = BigDecimal::from_str(&*r.current_atoken_balance).unwrap();
+            let current_total_debt = BigDecimal::from_str(&r.current_total_debt)?;
+            let current_atoken_balance = BigDecimal::from_str(&r.current_atoken_balance).unwrap();
             let reserve_liquidation_threshold =
-                BigDecimal::from_str(&*r.reserve.reserve_liquidation_threshold).unwrap();
+                BigDecimal::from_str(&r.reserve.reserve_liquidation_threshold).unwrap();
             let reserve_liquidation_bonus =
-                BigDecimal::from_str(&*r.reserve.reserve_liquidation_bonus).unwrap();
+                BigDecimal::from_str(&r.reserve.reserve_liquidation_bonus).unwrap();
             let usage_as_collateral_enabled = r.reserve.usage_as_collateral_enabled;
             // get debt, colladeral, liquidation threshold, bonus, and usage colladeral boolean
             user_token_list.push(AaveToken {
@@ -146,15 +145,15 @@ pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Er
         Some(data) => {
             if data.users.is_empty() {
                 println!("no user object found");
-                return Ok(vec![]);
+                Ok(vec![])
             } else {
                 println!("user object found");
-                return Ok(data.users);
+                Ok(data.users)
             }
         }
         None => {
             println!("Data field not found in the response.");
-            return Ok(vec![]);
+            Ok(vec![])
         }
     }
 }

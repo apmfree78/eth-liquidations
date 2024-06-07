@@ -67,7 +67,7 @@ pub fn decode_borrow_event(log: &Log) -> Result<BorrowEvent, Box<dyn std::error:
     // Extract the Address directly from data slice assuming first 20 bytes are the address
     let user = Address::from_slice(&data_slice[12..32]);
     let amount = U256::from_big_endian(&data_slice[32..64]);
-    let interest_rate_mode = data_slice[95].clone(); // assuming 1 byte for interest rate mode
+    let interest_rate_mode = data_slice[95]; // assuming 1 byte for interest rate mode
     let borrow_rate = U256::from_big_endian(&data_slice[96..128]);
 
     let borrow_event = BorrowEvent {

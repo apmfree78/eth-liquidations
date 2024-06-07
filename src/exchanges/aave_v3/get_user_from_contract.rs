@@ -2,7 +2,7 @@ use super::implementations::aave_user_data::{HealthFactor, UpdateUserData};
 use super::user_structs::{AaveToken, AaveUserData, PricingSource};
 use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::data::address::AAVE_V3_DATA_PROVIDER_ADDRESS;
-use crate::data::erc20::{u256_to_big_decimal, TOKEN_DATA};
+use crate::data::erc20::{u256_to_big_decimal, UNIQUE_TOKEN_DATA};
 use bigdecimal::BigDecimal;
 use ethers::providers::{Provider, Ws};
 use ethers::types::Address;
@@ -17,7 +17,7 @@ pub async fn get_aave_v3_user_from_data_provider(
 
     let mut tokens = Vec::new();
 
-    for token in TOKEN_DATA.values() {
+    for token in UNIQUE_TOKEN_DATA.values() {
         let token_address = token.address.parse()?;
 
         let (
@@ -62,6 +62,8 @@ pub async fn get_aave_v3_user_from_data_provider(
     user_data
         .update_meta_data(PricingSource::AaveOracle, client)
         .await?;
+
+    println!("new user => {:#?}", user_data);
 
     if user_data.total_debt == BigDecimal::from(0) {
         return Err("user has no debt".into());
