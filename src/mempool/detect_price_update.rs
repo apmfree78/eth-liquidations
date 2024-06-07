@@ -1,11 +1,24 @@
-use crate::data::erc20::{Convert, TOKEN_DATA};
-use crate::data::token_price_hash::set_saved_token_price;
+use crate::{data::{
+    erc20::{Convert, TOKEN_DATA},
+    token_price_hash::set_saved_token_price,
+}, exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate}};
+use crate::exchanges::aave_v3::{
+    implementations::aave_users_hash::UpdateUsers, user_structs::AaveUsersHash,
+};
 use crate::utils::type_conversion::address_to_string;
+use abi::Address;
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
 use std::sync::Arc;
 
-pub async fn detect_price_update(
+use ethers::{
+    core::types::TxHash,
+    providers::{Provider, Ws},
+};
+use futures::lock::Mutex;
+
+pub async fn detect_price_update_and_find_users_to_liquidate(
+    user_data: &Arc<Mutex<AaveUsersHash>>,
     pending_tx: TxHash,
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -49,97 +62,40 @@ pub async fn detect_price_update(
                         if let Some(token) = TOKEN_DATA.get(&*to) {
                             println!("price updated for {} => {}", token.name, token.symbol);
 
+                            // TODO - handle case where ETH price is update -> will update all ETH and ETH related tokens
                             // update price of token
                             let token_price = token.get_token_price_in_("USDC", client).await?;
+                            let token_address: Address = token.address.parse()?;
                             set_saved_token_price(token.address, token_price).await?;
 
-                            // TODO - UPDATE USERS HERE
+                            let mut users = user_data.lock().await;
                             // 1. update low health user health factor (that own or borrow token)
                             // 2. check if liquidation candidates found
+                            if let Ok(liquidations) = users.update_users_health_factor_by_token_and_return_liquidation_candidates(token_address,UserType::LowHealth,client).await {
+                                match liquidations {
+                                    UsersToLiquidate::Users(users_to_liquidate) => println!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate),
+                                    UsersToLiquidate::None => {}
+                                }
+                                
+                            }
                             // 3.  update standard user health factor (that own or borrow token)
-                            // 4. repeat step 2
+                            // 4. repeat step 2 above
+                            if let Ok(liquidations) = users.update_users_health_factor_by_token_and_return_liquidation_candidates(token_address,UserType::Standard,client).await {
+                                match liquidations {
+                                    UsersToLiquidate::Users(users_to_liquidate) => println!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate),
+                                    UsersToLiquidate::None => {}
+                                }
+                                
+                            }
                             // 5. clean up - update token ==> user mapping for all users with updated health factors
+                            // use => update_token_to_user_mapping_for_all_users_with_token_(...)
+                            users.update_token_to_user_mapping_for_all_users_with_token_(token_address)?;
                         } else {
                             println!("unknown price feed");
                         };
                     }
                 }
             }
-        }
-    }
-    Ok(())
-}
-
-pub async fn detect_price_update_test(client: &Arc<Provider<Ws>>) -> Result<()> {
-    let transmit_signature = "transmit(bytes,bytes32[],bytes32[],bytes32)";
-
-    // Compute the Keccak-256 hashes of the event signatures
-    // let transmit_hash = H256::from(keccak256(transmit_signature.as_bytes()));
-    let transmit_hash = keccak256(transmit_signature.as_bytes())[0..4].to_vec();
-    //
-    // Subscribe to new pending transactions
-    let mut stream = client.subscribe_pending_txs().await?;
-
-    // Print out each new transaction hash
-    while let Some(tx) = stream.next().await {
-        println!("New pending transaction: {:?}", tx);
-        if let Ok(Some(tx)) = client.get_transaction(tx).await {
-            // println!("Transaction Details: {:?}", tx);
-
-            // If the transaction involves a contract interaction, `to` will be Some(address)
-            if let Some(to) = tx.to {
-                // println!("Transaction to address: {:?}", to);
-
-                // The `data` field contains the input data for contract interactions
-                if !tx.input.0.is_empty() {
-                    // println!("Transaction data (hex encoded): {:?}", tx.input);
-                    // To decode this, you would need the ABI of the contract being interacted with
-                    // Decode the input data
-                    if tx.input.0.len() >= 4 {
-                        let data = &tx.input.0.as_ref();
-
-                        // Method ID and parameters
-                        let method_id = &data[0..4];
-                        // println!("Transaction to address: {:?}", to);
-                        if data.starts_with(&transmit_hash) {
-                            println!("TRANSMIT FOUND!!!");
-                            println!("Transaction to address: {:?}", to);
-                            println!("Transaction data (hex encoded): {:?}", tx.input);
-                            println!("Method ID: {:?}", method_id);
-                            println!("transmit_hash: {:?}", &transmit_hash);
-
-                            // let function = Function {
-                            //     state_mutability: StateMutability::NonPayable,
-                            //     name: "transmit".to_owned(),
-                            //     inputs: vec![
-                            //         ParamType::Bytes,
-                            //         ParamType::Array(Box::new(ParamType::FixedBytes(32))),
-                            //         ParamType::Array(Box::new(ParamType::FixedBytes(32))),
-                            //         ParamType::FixedBytes(32),
-                            //     ],
-                            //     outputs: vec![],
-                            //     constant: Some(false),
-                            // };
-                        }
-                    }
-                    // let to_address = &data[8..72];
-                    // let value = &data[72..];
-
-                    // // Convert parameters from hex to more readable formats
-                    // let to_address_str = hex_encode(&data[8..40]); // Get the next 32 bytes for the address, encode to hex string
-                    // let to_address = Address::from_str(&format!("0x{}", to_address_str)).unwrap();
-                    // let value_str = hex_encode(&data[36..]); // Adjust the slice range as needed
-                    // let value = U256::from_str_radix(&value_str, 16).unwrap();
-
-                    // println!("To Address: {:?}", to_address);
-                    // println!("Value: {:?}", value);
-                }
-            }
-            // Other transaction details
-            // println!("Value transferred (in Wei): {:?}", tx.value);
-            // println!("Gas Price: {:?}", tx.gas_price);
-        } else {
-            // println!("Transaction not found or pending confirmation");
         }
     }
     Ok(())

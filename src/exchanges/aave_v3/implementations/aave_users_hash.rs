@@ -1,12 +1,8 @@
-// use super::super::get_user_api::{get_aave_v3_users, get_all_aave_v3_users, UserAccountData};
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
 use super::super::user_structs::{
     AaveUsersHash, PricingSource, UserType, UsersToLiquidate, HEALTH_FACTOR_THRESHOLD,
 };
 use super::aave_user_data::UpdateUserData;
-// use crate::abi::aave_v3_pool::AAVE_V3_POOL;
-// use crate::data::address::AAVE_V3_POOL_ADDRESS;
-// use crate::data::erc20::{u256_to_big_decimal, Convert, Erc20Token, TOKEN_DATA};
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
@@ -27,6 +23,10 @@ pub trait UpdateUsers {
         &mut self,
         user_to_add: Address,
         client: &Arc<Provider<Ws>>,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    fn update_token_to_user_mapping_for_all_users_with_token_(
+        &mut self,
+        token_address: Address,
     ) -> Result<(), Box<dyn std::error::Error>>;
     // check user health factor and if its in the right token => user id mapping, move if necessary
     fn update_token_to_user_mapping_for_(
@@ -98,6 +98,33 @@ impl UpdateUsers for AaveUsersHash {
             }
             Err(error) => println!("user did not fit criteria ==> {}", error),
         };
+        Ok(())
+    }
+
+    fn update_token_to_user_mapping_for_all_users_with_token_(
+        &mut self,
+        token_address: Address,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let low_health_users = self
+            .low_health_user_ids_by_token
+            .entry(token_address)
+            .or_default()
+            .clone();
+
+        for user in low_health_users {
+            self.update_token_to_user_mapping_for_(user)?;
+        }
+
+        let standard_users = self
+            .standard_user_ids_by_token
+            .entry(token_address)
+            .or_default()
+            .clone();
+
+        for user in standard_users {
+            self.update_token_to_user_mapping_for_(user)?;
+        }
+
         Ok(())
     }
 

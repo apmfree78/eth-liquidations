@@ -1,15 +1,5 @@
-use bigdecimal::BigDecimal;
-// use eth_liquadation::exchanges::aave_v3::{
-//     decode_events::create_aave_event_from_log,
-//     events::{AaveEvent, AaveEventType, AaveUserEvent},
-//     implementations::aave_users_hash::UpdateUsers,
-//     update_user::{get_user_action_from_event, TokenToRemove, Update},
-//     user_structs::{AaveUsersHash, PricingSource},
-// };
 use eth_liquadation::{
-    data::token_price_hash::{
-        self, generate_token_price_hash, print_saved_token_prices, TOKEN_PRICE_HASH,
-    },
+    data::token_price_hash::{generate_token_price_hash, print_saved_token_prices},
     events::aave_events::update_users_with_event_from_log,
     exchanges::aave_v3::{
         events::{
@@ -19,7 +9,7 @@ use eth_liquadation::{
         implementations::aave_user_data::GenerateUsers,
         user_structs::{AaveUserData, SampleSize},
     },
-    mempool::detect_price_update::detect_price_update,
+    mempool::detect_price_update::detect_price_update_and_find_users_to_liquidate,
 };
 use ethers::{
     abi::Address,
@@ -108,7 +98,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Ok(Event::PendingTransactions(tx)) => {
                     // println!("New pending transaction: {:?}", tx);
-                    if let Err(error) = detect_price_update(tx, &client).await {
+                    if let Err(error) =
+                        detect_price_update_and_find_users_to_liquidate(&user_data, tx, &client)
+                            .await
+                    {
                         println!("problem with price update detection => {}", error);
                     }
                 }
