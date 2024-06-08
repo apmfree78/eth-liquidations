@@ -324,7 +324,6 @@ impl UpdateUsers for AaveUsersHash {
         Ok(())
     }
 
-    // TODO --> REFACTOR THIS , will only update token price of token that was updated by Transmit
     async fn update_users_health_factor_by_token_and_return_liquidation_candidates(
         &mut self,
         token_address: Address,
@@ -350,7 +349,6 @@ impl UpdateUsers for AaveUsersHash {
                     user.update_meta_data(PricingSource::SavedTokenPrice, client)
                         .await?;
 
-                    // TODO - find if user has health factor < 1 and add to arry if true
                     if user.health_factor < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
                     {
                         liquidation_candidates.push(user.id);
@@ -372,7 +370,6 @@ impl UpdateUsers for AaveUsersHash {
                     user.update_meta_data(PricingSource::SavedTokenPrice, client)
                         .await?;
 
-                    // TODO - find if user has health factor < 1 and add to arry if true
                     if user.health_factor < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
                     {
                         liquidation_candidates.push(user.id);

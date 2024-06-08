@@ -157,8 +157,6 @@ impl GenerateUsers for AaveUserData {
             valid_users_from_contract
         );
 
-        // TODO - refactor to create basic AaaveUserHash and then create
-        // trait fn to user_data_hash.initialize_token_to_user_mapping(...)
         let mut user_data_hash = HashMap::new();
 
         for user in &aave_user_data {
