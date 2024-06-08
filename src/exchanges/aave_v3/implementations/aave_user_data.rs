@@ -6,6 +6,7 @@ use super::super::user_structs::{
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
 use crate::data::address::AAVE_V3_POOL_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, Convert, TOKEN_DATA};
+use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::abi::Address;
@@ -156,48 +157,23 @@ impl GenerateUsers for AaveUserData {
             valid_users_from_contract
         );
 
+        // TODO - refactor to create basic AaaveUserHash and then create
+        // trait fn to user_data_hash.initialize_token_to_user_mapping(...)
         let mut user_data_hash = HashMap::new();
-        // token address => user ids that own (or borrow) that token
-        let mut token_owned_by_user_hash = HashMap::<Address, Vec<Address>>::new();
-        // token address => user ids that own (or borrow) that token AND have low health factor
-        let mut token_owned_by_user_hash_with_low_health_score =
-            HashMap::<Address, Vec<Address>>::new();
 
         for user in &aave_user_data {
             user_data_hash.insert(user.id, user.clone());
-
-            let has_low_health_factor = user.health_factor
-                == BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
-
-            for token in &user.tokens {
-                let token_address: Address = token.token.address.parse()?;
-
-                let mut user_ids = token_owned_by_user_hash
-                    .entry(token_address)
-                    .or_insert_with(Vec::new)
-                    .clone();
-
-                let mut low_health_user_ids = token_owned_by_user_hash_with_low_health_score
-                    .entry(token_address)
-                    .or_insert_with(Vec::new)
-                    .clone();
-
-                if has_low_health_factor {
-                    low_health_user_ids.push(user.id);
-                    token_owned_by_user_hash_with_low_health_score
-                        .insert(token_address, low_health_user_ids);
-                } else {
-                    user_ids.push(user.id);
-                    token_owned_by_user_hash.insert(token_address, user_ids);
-                }
-            }
         }
 
-        Ok(AaveUsersHash {
+        let mut user_hash = AaveUsersHash {
             user_data: user_data_hash,
-            standard_user_ids_by_token: token_owned_by_user_hash,
-            low_health_user_ids_by_token: token_owned_by_user_hash_with_low_health_score,
-        })
+            standard_user_ids_by_token: HashMap::<Address, Vec<Address>>::new(),
+            low_health_user_ids_by_token: HashMap::<Address, Vec<Address>>::new(),
+        };
+
+        user_hash.intialize_token_user_mapping()?;
+
+        Ok(user_hash)
     }
 }
 
@@ -214,7 +190,7 @@ impl GetUserData for AaveUserData {
         let mut liquidation_threshold_collateral_sum = BigDecimal::from(0);
 
         for r in &self.tokens {
-            let token = TOKEN_DATA.get(&*r.token.symbol).unwrap();
+            let token = TOKEN_DATA.get(r.token.symbol).unwrap();
             let token_decimal_factor =
                 BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
 
@@ -346,12 +322,12 @@ impl HealthFactor for AaveUserData {
             .get_health_factor_from_(PricingSource::AaveOracle, client)
             .await?;
 
-        println!("official health factor => {:?}", health_factor);
-        println!(
-            "calculated health factor => {:?}",
-            aave_user_calculated_health_factor
-        );
-
+        // println!("official health factor => {:?}", health_factor);
+        // println!(
+        //     "calculated health factor => {:?}",
+        //     aave_user_calculated_health_factor
+        // );
+        //
         // CHECK that health factor calculated from user data is
         // within + or - 5% of official health factor we get from
         // getUserAccount contract call

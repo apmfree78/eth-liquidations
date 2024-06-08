@@ -198,7 +198,7 @@ pub async fn update_aave_user(
         println!("updated user health factor...{:?}", user.health_factor);
 
         // update token => user mappings , includes adding new tokens
-        users.update_token_to_user_mapping_for_(user_id)?;
+        users.update_token_user_mapping_for_(user_id)?;
 
         // check if there is token to remove, if so removie it
         if let Some(token_address) = token_to_remove {

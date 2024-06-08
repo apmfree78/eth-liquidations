@@ -3,11 +3,13 @@ mod generate_logs;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
 use eth_liquadation::data::erc20::Erc20Token;
+use eth_liquadation::data::token_price_hash::generate_token_price_hash;
 use eth_liquadation::events::aave_events::update_users_with_events_from_logs;
 use eth_liquadation::exchanges::aave_v3::events::{
     BorrowEvent, RepayEvent, ReserveUsedAsCollateralDisabledEvent,
     ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent,
 };
+use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use eth_liquadation::exchanges::aave_v3::user_structs::{AaveToken, AaveUserData, AaveUsersHash};
 use ethers::abi::Address;
 use ethers::core::types::U256;
@@ -30,6 +32,7 @@ const AAVE_V3_POOL: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     let amount_to_repay: u64 = 6000000000;
@@ -75,6 +78,7 @@ async fn test_user_update_with_full_repay_then_withdraw_event(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     // test that  when  user repays debt and withdraws a token balance token is removed
@@ -140,6 +144,7 @@ async fn test_user_update_with_full_withdraw_then_repay_event(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 
@@ -205,6 +210,7 @@ async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn 
 {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     let amount_to_repay: u64 = 6000000000;
@@ -243,6 +249,7 @@ async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn 
 async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     let amount_to_borrow: u64 = 4000000000;
@@ -283,6 +290,7 @@ async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>
 async fn test_user_update_with_borrow_new_token() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     let amount_to_borrow: u64 = 4000000000;
@@ -327,6 +335,7 @@ async fn test_user_update_with_borrow_new_token() -> Result<(), Box<dyn std::err
 async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     let amount_to_supply: u128 = 500000000000000000;
@@ -365,6 +374,7 @@ async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>
 async fn test_user_update_with_supply_to_new_token() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     let amount_to_supply: u128 = 500000000000000000;
@@ -407,6 +417,7 @@ async fn test_user_update_with_supply_to_new_token() -> Result<(), Box<dyn std::
 async fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     let amount_to_withdraw: u128 = 15000000000000000000;
@@ -443,6 +454,7 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
 {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     // DISABLE
@@ -467,7 +479,7 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
 
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
-            assert!(tokens.usage_as_collateral_enabled);
+            assert!(!tokens.usage_as_collateral_enabled);
         }
     }
 
@@ -493,6 +505,76 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
         if tokens.token.address == reserve_token {
             assert!(tokens.usage_as_collateral_enabled);
         }
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_user_is_placed_in_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
+    let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
+    let mut users_hash = generate_mock_user_hash()?;
+
+    println!(
+        "low health users {:?}",
+        users_hash.low_health_user_ids_by_token
+    );
+    println!("standard users {:?}", users_hash.standard_user_ids_by_token);
+
+    // test that both values are in low health mapping since
+    // initial health factor is 0.9
+    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+        assert_eq!(user_id_array.len(), 1);
+    }
+
+    for user_id_array in users_hash.standard_user_ids_by_token.values() {
+        assert_eq!(user_id_array.len(), 0);
+    }
+
+    // now let bump the healh factor up and update token user mapping and check
+    // user was moved to standard mapping
+    let user = users_hash
+        .user_data
+        .get_mut(&user_id)
+        .expect("invalid user id");
+    user.health_factor = BigDecimal::from_f32(2.0).unwrap();
+
+    // update token user mapping
+    users_hash.update_token_user_mapping_for_(user_id)?;
+
+    // test that both values are in standard mapping since
+    // initial health factor is 2.0
+    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+        assert_eq!(user_id_array.len(), 0);
+    }
+
+    for user_id_array in users_hash.standard_user_ids_by_token.values() {
+        assert_eq!(user_id_array.len(), 1);
+    }
+
+    // now let lower the healh factor and update token user mapping and check
+    // user was moved to low health mapping
+    let user = users_hash
+        .user_data
+        .get_mut(&user_id)
+        .expect("invalid user id");
+    user.health_factor = BigDecimal::from_f32(1.05).unwrap();
+
+    // update token user mapping
+    users_hash.update_token_user_mapping_for_(user_id)?;
+
+    // test that both values are in low health mapping since
+    // initial health factor is 1.05
+    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+        assert_eq!(user_id_array.len(), 1);
+    }
+
+    for user_id_array in users_hash.standard_user_ids_by_token.values() {
+        assert_eq!(user_id_array.len(), 0);
     }
 
     Ok(())
@@ -540,15 +622,23 @@ fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>
                 reserve_liquidation_bonus: BigDecimal::from(10450),
             },
         ],
-        health_factor: BigDecimal::from_f32(1.545587).unwrap(),
+        health_factor: BigDecimal::from_f32(0.900478).unwrap(),
     };
+
+    // health factor => (30000000000 * 0.78/10^6 + 15000000000000000000 * 0.83/10^18)/(26000000000/10^6)
 
     let mut user_hash = HashMap::new();
     user_hash.insert(user_address, user_data);
 
-    Ok(AaveUsersHash {
+    let mut aave_users_hash = AaveUsersHash {
         user_data: user_hash,
         standard_user_ids_by_token: HashMap::new(),
         low_health_user_ids_by_token: HashMap::new(),
-    })
+    };
+
+    aave_users_hash.intialize_token_user_mapping()?;
+
+    println!("users hash => {:#?}", aave_users_hash);
+
+    Ok(aave_users_hash)
 }

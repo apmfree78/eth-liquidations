@@ -63,8 +63,6 @@ pub async fn get_aave_v3_user_from_data_provider(
         .update_meta_data(PricingSource::AaveOracle, client)
         .await?;
 
-    println!("new user => {:#?}", user_data);
-
     if user_data.total_debt == BigDecimal::from(0) {
         return Err("user has no debt".into());
     }

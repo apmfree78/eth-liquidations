@@ -1,3 +1,5 @@
+use crate::exchanges::aave_v3::user_structs::CLOSE_FACTOR_HF_THRESHOLD;
+
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
 use super::super::user_structs::{
     AaveUsersHash, PricingSource, UserType, UsersToLiquidate, HEALTH_FACTOR_THRESHOLD,
@@ -28,8 +30,9 @@ pub trait UpdateUsers {
         &mut self,
         token_address: Address,
     ) -> Result<(), Box<dyn std::error::Error>>;
+    fn intialize_token_user_mapping(&mut self) -> Result<(), Box<dyn std::error::Error>>;
     // check user health factor and if its in the right token => user id mapping, move if necessary
-    fn update_token_to_user_mapping_for_(
+    fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
     ) -> Result<(), Box<dyn std::error::Error>>;
@@ -91,13 +94,46 @@ impl UpdateUsers for AaveUsersHash {
                     }
                 }
                 self.user_data.insert(user.id, user);
-                // println!(
-                //     "new user successfully added {:?}",
-                //     self.user_data.get(&user_id).unwrap()
-                // )
+                println!("new user successfully added",)
             }
             Err(error) => println!("user did not fit criteria ==> {}", error),
         };
+        Ok(())
+    }
+
+    fn intialize_token_user_mapping(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        for user in self.user_data.values() {
+            // NOTE =====> THIS ASSUMES user health factor is VALID
+            let has_low_health_factor = user.health_factor
+                <= BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
+
+            for token in &user.tokens {
+                let token_address: Address = token.token.address.parse()?;
+
+                let mut standard_user_ids = self
+                    .standard_user_ids_by_token
+                    .entry(token_address)
+                    .or_default()
+                    .clone();
+
+                let mut low_health_user_ids = self
+                    .low_health_user_ids_by_token
+                    .entry(token_address)
+                    .or_default()
+                    .clone();
+
+                if has_low_health_factor {
+                    low_health_user_ids.push(user.id);
+                    self.low_health_user_ids_by_token
+                        .insert(token_address, low_health_user_ids);
+                } else {
+                    standard_user_ids.push(user.id);
+                    self.standard_user_ids_by_token
+                        .insert(token_address, standard_user_ids);
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -112,7 +148,7 @@ impl UpdateUsers for AaveUsersHash {
             .clone();
 
         for user in low_health_users {
-            self.update_token_to_user_mapping_for_(user)?;
+            self.update_token_user_mapping_for_(user)?;
         }
 
         let standard_users = self
@@ -122,13 +158,13 @@ impl UpdateUsers for AaveUsersHash {
             .clone();
 
         for user in standard_users {
-            self.update_token_to_user_mapping_for_(user)?;
+            self.update_token_user_mapping_for_(user)?;
         }
 
         Ok(())
     }
 
-    fn update_token_to_user_mapping_for_(
+    fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -138,14 +174,18 @@ impl UpdateUsers for AaveUsersHash {
         // then user belongs in  low health factor hash map
         let user = self.user_data.get(&user_id).expect("Invalid user id");
         let health_factor = &user.health_factor;
+        println!("user id => {}", user.id);
+        println!("health factor=> {}", user.health_factor);
 
         let low_health_factor =
             health_factor <= &BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
 
         if low_health_factor {
+            println!("moving user to low health factor mapping");
             self.move_user_from_standard_to_low_health_token_user_mapping(user_id)
                 .unwrap_or_else(|err| println!("could not move user to new mapping => {}", err));
         } else {
+            println!("moving user to standard mapping");
             self.move_user_from_low_health_to_standard_token_user_mapping(user_id)
                 .unwrap_or_else(|err| println!("could not move user to new mapping => {}", err));
         }
@@ -311,7 +351,8 @@ impl UpdateUsers for AaveUsersHash {
                         .await?;
 
                     // TODO - find if user has health factor < 1 and add to arry if true
-                    if user.health_factor < BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).unwrap() {
+                    if user.health_factor < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
+                    {
                         liquidation_candidates.push(user.id);
                     }
                 }
@@ -332,7 +373,8 @@ impl UpdateUsers for AaveUsersHash {
                         .await?;
 
                     // TODO - find if user has health factor < 1 and add to arry if true
-                    if user.health_factor < BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).unwrap() {
+                    if user.health_factor < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
+                    {
                         liquidation_candidates.push(user.id);
                     }
                 }

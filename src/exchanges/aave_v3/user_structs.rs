@@ -4,6 +4,21 @@ use ethers::abi::Address;
 use std::collections::HashMap;
 
 pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
+pub const DEFAULT_LIQUIDATION_CLOSE_FACTOR: f32 = 0.5;
+
+/**
+ * @dev Maximum percentage of borrower's debt to be repaid in a liquidation
+ * @dev Percentage applied when the users health factor is below `CLOSE_FACTOR_HF_THRESHOLD`
+ * Expressed in bps, a value of 1e4 results in 100.00%
+ */
+pub const MAX_LIQUIDATION_CLOSE_FACTOR: f32 = 1.0;
+
+/**
+ * @dev This constant represents below which health factor value it is possible to liquidate
+ * an amount of debt corresponding to `MAX_LIQUIDATION_CLOSE_FACTOR`.
+ * A value of 0.95e18 results in 0.95
+ */
+pub const CLOSE_FACTOR_HF_THRESHOLD: f32 = 0.95;
 
 #[derive(Clone, Copy, Debug)]
 pub enum PricingSource {

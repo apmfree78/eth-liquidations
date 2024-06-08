@@ -280,6 +280,16 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
             chainlink_aggregator: "0xdBe1941BFbe4410D6865b9b7078e0b49af144D2d", // BTC/USD
         },
         Erc20Token {
+            name: "Aave Token",
+            symbol: "AAVE",
+            decimals: 18,
+            address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
+            liquidation_bonus: 10750,
+            liquidation_threshold: 7300,
+            chain_link_price_feed: "0x547a514d5e3769680Ce22B2361c10Ea13619e8a9",
+            chainlink_aggregator: "0x8116b273cd75d79c382afacc706659ded5e0a59d",
+        },
+        Erc20Token {
             name: "Rocket Pool ETH",
             symbol: "rETH",
             decimals: 18,
@@ -476,6 +486,28 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
             chain_link_price_feed: "0xf8fF43E991A81e6eC886a3D281A2C6cC19aE70Fc",
             chainlink_aggregator: "0xbc60258f775683ea28048030806ad3a80c4a33ae",
         },
+        Erc20Token {
+            name: "Gho Token",
+            symbol: "GHO",
+            decimals: 18,
+            address: "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+            liquidation_bonus: 0,
+            liquidation_threshold: 0,
+            // gho custom oracle -- do not track stablecoin
+            chain_link_price_feed: "0xd110cac5d8682a3b045d5524a9903e031d70fccd",
+            chainlink_aggregator: "",
+        },
+        Erc20Token {
+            name: "Savings Dai",
+            symbol: "sDAI",
+            decimals: 18,
+            address: "0x83F20F44975D03b1b09e64809B757c47f942BEeA",
+            liquidation_bonus: 10450,
+            liquidation_threshold: 7800,
+            // do not track
+            chain_link_price_feed: "0x29081f7ab5a644716efcdc10d5c926c5fee9f72b",
+            chainlink_aggregator: "",
+        },
     ];
 
     let mut token_hash = HashMap::new();
@@ -493,7 +525,6 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
     // copy hashmap with chain link price feed as index
     for token in &tokens {
         if !token.chainlink_aggregator.is_empty() {
-            println!("adding in chainlink aggregator");
             token_hash.insert(
                 token.chainlink_aggregator.to_string().to_lowercase(),
                 *token,
