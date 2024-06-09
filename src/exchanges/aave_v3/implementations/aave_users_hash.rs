@@ -218,17 +218,19 @@ impl UpdateUsers for AaveUsersHash {
                         .insert(token_address, standard_users);
                 };
 
-                // move OR add user id to low health factor mapping
+                // move OR add user id to low health factor mapping if not already present
                 let mut low_health_users = self
                     .low_health_user_ids_by_token
                     .entry(token_address)
                     .or_default()
                     .clone();
 
-                low_health_users.push(user_id);
+                if !low_health_users.contains(&user_id) {
+                    low_health_users.push(user_id);
 
-                self.low_health_user_ids_by_token
-                    .insert(token_address, low_health_users);
+                    self.low_health_user_ids_by_token
+                        .insert(token_address, low_health_users);
+                }
             }
         }
         Ok(())
@@ -269,10 +271,12 @@ impl UpdateUsers for AaveUsersHash {
                     .or_default()
                     .clone();
 
-                standard_users.push(user_id);
+                if !standard_users.contains(&user_id) {
+                    standard_users.push(user_id);
 
-                self.standard_user_ids_by_token
-                    .insert(token_address, standard_users);
+                    self.standard_user_ids_by_token
+                        .insert(token_address, standard_users);
+                }
             }
         }
         Ok(())
@@ -298,8 +302,6 @@ impl UpdateUsers for AaveUsersHash {
 
                 return Ok(());
             };
-        } else {
-            println!("token is not present, no need to remove it");
         }
 
         // CHECK LOW HEALTH MAPPING

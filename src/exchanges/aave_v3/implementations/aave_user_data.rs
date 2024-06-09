@@ -1,8 +1,6 @@
 use super::super::get_user_api::{get_aave_v3_users, get_all_aave_v3_users, UserAccountData};
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
-use super::super::user_structs::{
-    AaveUserData, AaveUsersHash, PricingSource, SampleSize, HEALTH_FACTOR_THRESHOLD,
-};
+use super::super::user_structs::{AaveUserData, AaveUsersHash, PricingSource, SampleSize};
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
 use crate::data::address::AAVE_V3_POOL_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, Convert, TOKEN_DATA};

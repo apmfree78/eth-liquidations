@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
 pub const DEFAULT_LIQUIDATION_CLOSE_FACTOR: f32 = 0.5;
-
 /**
  * @dev Maximum percentage of borrower's debt to be repaid in a liquidation
  * @dev Percentage applied when the users health factor is below `CLOSE_FACTOR_HF_THRESHOLD`
