@@ -1,28 +1,27 @@
 #[path = "./mocks/generate_logs.rs"]
 mod generate_logs;
 
+#[path = "./mocks/generate_mock_users.rs"]
+mod generate_mock_users;
+
 use bigdecimal::{BigDecimal, FromPrimitive};
-use eth_liquadation::data::erc20::Erc20Token;
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
 use eth_liquadation::events::aave_events::update_users_with_events_from_logs;
 use eth_liquadation::exchanges::aave_v3::events::{
     BorrowEvent, RepayEvent, ReserveUsedAsCollateralDisabledEvent,
     ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent,
 };
-use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
-use eth_liquadation::exchanges::aave_v3::user_structs::{AaveToken, AaveUserData, AaveUsersHash};
-use ethers::abi::Address;
 use ethers::core::types::U256;
 use generate_logs::{
     create_log_for_collateral_disable_event, create_log_for_collateral_enable_event,
 };
+use generate_mock_users::generate_mock_user_hash;
 
 use crate::generate_logs::{
     create_log_for_borrow_event, create_log_for_repay_event, create_log_for_supply_event,
     create_log_for_withdraw_event,
 };
 use ethers::providers::{Provider, Ws};
-use std::collections::HashMap;
 use std::sync::Arc;
 
 const WS_URL: &str = "ws://localhost:8546";
@@ -508,67 +507,4 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
     }
 
     Ok(())
-}
-
-fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
-    let user_address: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
-    let user_data = AaveUserData {
-        id: user_address,
-        total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        colladeral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
-        tokens: vec![
-            AaveToken {
-                token: Erc20Token {
-                    name: "Wrapped Ether",
-                    symbol: "WETH",
-                    decimals: 18,
-                    address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-                    liquidation_bonus: 10500,
-                    liquidation_threshold: 8300,
-                    chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-                    chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-                },
-                current_total_debt: BigDecimal::from(0),
-                usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(15000000000000000000).unwrap(),
-                reserve_liquidation_threshold: BigDecimal::from(8300),
-                reserve_liquidation_bonus: BigDecimal::from(10500),
-            },
-            AaveToken {
-                token: Erc20Token {
-                    name: "Tether USD",
-                    symbol: "USDT",
-                    decimals: 6,
-                    address: "0xdac17f958d2ee523a2206206994597c13d831ec7",
-                    liquidation_bonus: 10450,
-                    liquidation_threshold: 7800,
-                    chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
-                    chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
-                },
-                current_total_debt: BigDecimal::from_u64(26000000000).unwrap(),
-                usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u64(30000000000).unwrap(),
-                reserve_liquidation_threshold: BigDecimal::from(7800),
-                reserve_liquidation_bonus: BigDecimal::from(10450),
-            },
-        ],
-        health_factor: BigDecimal::from_f32(0.900478).unwrap(),
-    };
-
-    // health factor => (30000000000 * 0.78/10^6 + 15000000000000000000 * 0.83/10^18)/(26000000000/10^6)
-
-    let mut user_hash = HashMap::new();
-    user_hash.insert(user_address, user_data);
-
-    let mut aave_users_hash = AaveUsersHash {
-        user_data: user_hash,
-        standard_user_ids_by_token: HashMap::new(),
-        low_health_user_ids_by_token: HashMap::new(),
-    };
-
-    aave_users_hash.intialize_token_user_mapping()?;
-
-    println!("users hash => {:#?}", aave_users_hash);
-
-    Ok(aave_users_hash)
 }

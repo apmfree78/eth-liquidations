@@ -33,7 +33,7 @@ pub fn u16_to_bytes_array(value: u16) -> [u8; 32] {
 
 pub fn address_to_bytes_array(address: Address) -> [u8; 32] {
     let mut bytes = [0u8; 32];
-    bytes[12..32].copy_from_slice(&address.as_bytes());
+    bytes[12..32].copy_from_slice(address.as_bytes());
     bytes
 }
 
