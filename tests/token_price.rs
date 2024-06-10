@@ -1,5 +1,5 @@
 use bigdecimal::BigDecimal;
-use eth_liquadation::data::erc20::{Convert, TOKEN_DATA, UNIQUE_TOKEN_DATA};
+use eth_liquadation::data::erc20::{Convert, UNIQUE_TOKEN_DATA};
 use ethers::prelude::*;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -11,7 +11,7 @@ async fn test_token_price_uniswap_versus_oracle() -> Result<(), Box<dyn std::err
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
-    println!(" number of test to run {} ", 3 * TOKEN_DATA.len());
+    println!(" number of test to run {} ", 3 * UNIQUE_TOKEN_DATA.len());
     for token in UNIQUE_TOKEN_DATA.values() {
         if token.name == "Maker" {
             continue;
