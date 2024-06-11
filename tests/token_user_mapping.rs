@@ -4,9 +4,12 @@ mod generate_mock_users;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
 use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
+use eth_liquadation::exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
-use generate_mock_users::{generate_mock_2_user_hash, generate_mock_user_hash};
+use generate_mock_users::{
+    generate_mock_2_user_hash, generate_mock_2_user_hash_v2, generate_mock_user_hash,
+};
 use std::sync::Arc;
 
 const WS_URL: &str = "ws://localhost:8546";
@@ -374,6 +377,82 @@ async fn test_user_is_removed_from_mapping() -> Result<(), Box<dyn std::error::E
     for user_id_array in users_hash.standard_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 0);
     }
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
+
+    let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
+    let token_address = "0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?;
+
+    let mut users_hash = generate_mock_2_user_hash_v2()?;
+
+    println!(
+        "low health users {:?}",
+        users_hash.low_health_user_ids_by_token
+    );
+    println!("standard users {:?}", users_hash.standard_user_ids_by_token);
+
+    let users_to_liquidate_enum = users_hash
+        .update_users_health_factor_by_token_and_return_liquidation_candidates(
+            token_address,
+            UserType::LowHealth,
+            &client,
+        )
+        .await?;
+
+    let users = match users_to_liquidate_enum {
+        UsersToLiquidate::Users(users) => Some(users),
+        UsersToLiquidate::None => None,
+    };
+
+    let users = users.unwrap();
+    assert_eq!(users.len(), 1);
+
+    let user = users.first().unwrap();
+
+    assert_eq!(*user, user_address);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_correct_users_to_liquidate_are_found_for_standard_users(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
+
+    let token_address = "0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?;
+
+    let mut users_hash = generate_mock_2_user_hash_v2()?;
+
+    println!(
+        "low health users {:?}",
+        users_hash.low_health_user_ids_by_token
+    );
+    println!("standard users {:?}", users_hash.standard_user_ids_by_token);
+
+    let users_to_liquidate_enum = users_hash
+        .update_users_health_factor_by_token_and_return_liquidation_candidates(
+            token_address,
+            UserType::Standard,
+            &client,
+        )
+        .await?;
+
+    let users = match users_to_liquidate_enum {
+        UsersToLiquidate::Users(users) => Some(users),
+        UsersToLiquidate::None => None,
+    };
+
+    assert_eq!(users, None);
 
     Ok(())
 }

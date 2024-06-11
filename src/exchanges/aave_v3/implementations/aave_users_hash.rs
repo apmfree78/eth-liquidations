@@ -174,18 +174,14 @@ impl UpdateUsers for AaveUsersHash {
         // then user belongs in  low health factor hash map
         let user = self.user_data.get(&user_id).expect("Invalid user id");
         let health_factor = &user.health_factor;
-        println!("user id => {}", user.id);
-        println!("health factor=> {}", user.health_factor);
 
         let low_health_factor =
             health_factor <= &BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
 
         if low_health_factor {
-            println!("moving user to low health factor mapping");
             self.move_user_from_standard_to_low_health_token_user_mapping(user_id)
                 .unwrap_or_else(|err| println!("could not move user to new mapping => {}", err));
         } else {
-            println!("moving user to standard mapping");
             self.move_user_from_low_health_to_standard_token_user_mapping(user_id)
                 .unwrap_or_else(|err| println!("could not move user to new mapping => {}", err));
         }
