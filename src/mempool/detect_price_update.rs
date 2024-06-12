@@ -1,12 +1,7 @@
-use crate::{data::{
-    erc20::{Convert, TOKEN_DATA},
-    token_price_hash::set_saved_token_price,
-}, exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate}};
-use crate::exchanges::aave_v3::{
-    implementations::aave_users_hash::UpdateUsers, user_structs::AaveUsersHash,
-};
+use crate::exchanges::aave_v3::user_structs::AaveUsersHash;
+use crate::mempool::update_token_price::update_token_price_for_;
 use crate::utils::type_conversion::address_to_string;
-use abi::Address;
+use crate::{data::erc20::TOKEN_DATA, mempool::liquidations::find_users_and_liquidate};
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
 use std::sync::Arc;
@@ -53,7 +48,6 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
                     if data.starts_with(&transmit_hash) {
                         let to_address = address_to_string(to).to_lowercase();
                         if let Some(token) = TOKEN_DATA.get(&*to_address) {
-
                             println!("TRANSMIT FOUND!!!");
                             println!("Transaction from address: {:?}", to);
                             let contract = AGGREGATOR::new(to, client.clone());
@@ -66,32 +60,9 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
 
                             // TODO - handle case where ETH price is update -> will update all ETH and ETH related tokens
                             // update price of token
-                            let token_price = token.get_token_price_in_("USDC", client).await?;
-                            let token_address: Address = token.address.parse()?;
-                            set_saved_token_price(token.address, token_price).await?;
+                            update_token_price_for_(token, client).await?;
 
-                            let mut users = user_data.lock().await;
-                            // 1. update low health user health factor (that own or borrow token)
-                            // 2. check if liquidation candidates found
-                            if let Ok(liquidations) = users.update_users_health_factor_by_token_and_return_liquidation_candidates(token_address,UserType::LowHealth,client).await {
-                                match liquidations {
-                                    UsersToLiquidate::Users(users_to_liquidate) => println!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate),
-                                    UsersToLiquidate::None => {}
-                                }
-                                
-                            }
-                            // 3.  update standard user health factor (that own or borrow token)
-                            // 4. repeat step 2 above
-                            if let Ok(liquidations) = users.update_users_health_factor_by_token_and_return_liquidation_candidates(token_address,UserType::Standard,client).await {
-                                match liquidations {
-                                    UsersToLiquidate::Users(users_to_liquidate) => println!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate),
-                                    UsersToLiquidate::None => {}
-                                }
-                                
-                            }
-                            // 5. clean up - update token ==> user mapping for all users with updated health factors
-                            // use => update_token_to_user_mapping_for_all_users_with_token_(...)
-                            users.update_token_to_user_mapping_for_all_users_with_token_(token_address)?;
+                            find_users_and_liquidate(user_data, token, client).await?;
                         }
                     }
                 }

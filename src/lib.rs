@@ -15,6 +15,8 @@ pub mod exchanges {
 
 pub mod mempool {
     pub mod detect_price_update;
+    pub mod liquidations;
+    pub mod update_token_price;
 }
 
 pub mod utils {
