@@ -2,6 +2,7 @@
 mod generate_mock_users;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
+use eth_liquadation::data::erc20::TOKEN_DATA;
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
 use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use eth_liquadation::exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate};
@@ -389,7 +390,9 @@ async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
     generate_token_price_hash(&client).await?;
 
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
-    let token_address = "0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?;
+    let token_address = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+
+    let token = TOKEN_DATA.get(token_address).unwrap();
 
     let mut users_hash = generate_mock_2_user_hash_v2()?;
 
@@ -401,7 +404,7 @@ async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
 
     let users_to_liquidate_enum = users_hash
         .update_users_health_factor_by_token_and_return_liquidation_candidates(
-            token_address,
+            token,
             UserType::LowHealth,
             &client,
         )
@@ -429,8 +432,9 @@ async fn test_correct_users_to_liquidate_are_found_for_standard_users(
     let client = Arc::new(provider);
     generate_token_price_hash(&client).await?;
 
-    let token_address = "0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?;
+    let token_address = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 
+    let token = TOKEN_DATA.get(token_address).unwrap();
     let mut users_hash = generate_mock_2_user_hash_v2()?;
 
     println!(
@@ -441,7 +445,7 @@ async fn test_correct_users_to_liquidate_are_found_for_standard_users(
 
     let users_to_liquidate_enum = users_hash
         .update_users_health_factor_by_token_and_return_liquidation_candidates(
-            token_address,
+            token,
             UserType::Standard,
             &client,
         )

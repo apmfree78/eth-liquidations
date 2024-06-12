@@ -21,7 +21,7 @@ pub async fn find_users_and_liquidate(
     // 2. check if liquidation candidates found
     if let Ok(liquidations) = users
         .update_users_health_factor_by_token_and_return_liquidation_candidates(
-            token_address,
+            token,
             UserType::LowHealth,
             client,
         )
@@ -38,7 +38,7 @@ pub async fn find_users_and_liquidate(
     // 4. repeat step 2 above
     if let Ok(liquidations) = users
         .update_users_health_factor_by_token_and_return_liquidation_candidates(
-            token_address,
+            token,
             UserType::Standard,
             client,
         )

@@ -274,7 +274,7 @@ impl HealthFactor for AaveUserData {
         let health_factor = if current_total_debt > BigDecimal::zero() {
             liquidation_threshold_collateral_sum / current_total_debt
         } else {
-            println!("no health factor as use as no debt");
+            println!("no health factor because user has no debt");
             BigDecimal::from(0)
         };
         Ok(health_factor)

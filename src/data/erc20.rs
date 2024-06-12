@@ -543,6 +543,23 @@ pub static UNIQUE_TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
     unique_tokens
 });
 
+pub static TOKENS_WITH_PRICE_CONNECTED_TO_ETH: Lazy<Vec<&Erc20Token>> = Lazy::new(|| {
+    let token_symbols_connected_to_eth = vec![
+        "WETH", "wstETH", "osETH", "WBTC", "rETH", "cbETH", "LDO", "weETH",
+    ];
+
+    let mut tokens_with_price_connected_to_eth = Vec::<&Erc20Token>::new();
+
+    for token_symbol in token_symbols_connected_to_eth {
+        let token = TOKEN_DATA
+            .get(token_symbol)
+            .unwrap_or_else(|| panic!("invalid token symbol"));
+
+        tokens_with_price_connected_to_eth.push(token);
+    }
+    tokens_with_price_connected_to_eth
+});
+
 pub async fn generate_token(
     chain_id: u64,
     decimals: u8,

@@ -1,3 +1,4 @@
+use crate::data::erc20::{Erc20Token, TOKENS_WITH_PRICE_CONNECTED_TO_ETH};
 use crate::exchanges::aave_v3::user_structs::CLOSE_FACTOR_HF_THRESHOLD;
 
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
@@ -9,15 +10,13 @@ use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
-// use std::collections::HashMap;
-// use std::str::FromStr;
 use std::sync::Arc;
 
 #[async_trait]
 pub trait UpdateUsers {
     async fn update_users_health_factor_by_token_and_return_liquidation_candidates(
         &mut self,
-        token_address: Address,
+        token: &Erc20Token,
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
     ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>>;
@@ -324,53 +323,66 @@ impl UpdateUsers for AaveUsersHash {
 
     async fn update_users_health_factor_by_token_and_return_liquidation_candidates(
         &mut self,
-        token_address: Address,
+        main_token: &Erc20Token,
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
     ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>> {
         // track already updated users and liquidation candidates
         let mut liquidation_candidates = Vec::<Address>::new();
 
-        match user_type {
-            UserType::LowHealth => {
-                let low_health_users = self
-                    .low_health_user_ids_by_token
-                    .entry(token_address)
-                    .or_default();
+        let token_array = if main_token.symbol == "WETH" {
+            // must update full list of tokens if WETH
+            TOKENS_WITH_PRICE_CONNECTED_TO_ETH.to_vec()
+        } else {
+            vec![main_token]
+        };
 
-                for user_id in low_health_users {
-                    let user = self
-                        .user_data
-                        .get_mut(user_id)
-                        .unwrap_or_else(|| panic!("could not find user with user id"));
+        for token in token_array {
+            let token_address: Address = token.address.parse()?;
 
-                    user.update_meta_data(PricingSource::SavedTokenPrice, client)
-                        .await?;
+            match user_type {
+                UserType::LowHealth => {
+                    let low_health_users = self
+                        .low_health_user_ids_by_token
+                        .entry(token_address)
+                        .or_default();
 
-                    if user.health_factor < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
-                    {
-                        liquidation_candidates.push(user.id);
+                    for user_id in low_health_users {
+                        let user = self
+                            .user_data
+                            .get_mut(user_id)
+                            .unwrap_or_else(|| panic!("could not find user with user id"));
+
+                        user.update_meta_data(PricingSource::SavedTokenPrice, client)
+                            .await?;
+
+                        if user.health_factor
+                            < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
+                        {
+                            liquidation_candidates.push(user.id);
+                        }
                     }
                 }
-            }
-            UserType::Standard => {
-                let standard_users = self
-                    .standard_user_ids_by_token
-                    .entry(token_address)
-                    .or_default();
+                UserType::Standard => {
+                    let standard_users = self
+                        .standard_user_ids_by_token
+                        .entry(token_address)
+                        .or_default();
 
-                for user_id in standard_users {
-                    let user = self
-                        .user_data
-                        .get_mut(user_id)
-                        .unwrap_or_else(|| panic!("could not find user with user id"));
+                    for user_id in standard_users {
+                        let user = self
+                            .user_data
+                            .get_mut(user_id)
+                            .unwrap_or_else(|| panic!("could not find user with user id"));
 
-                    user.update_meta_data(PricingSource::SavedTokenPrice, client)
-                        .await?;
+                        user.update_meta_data(PricingSource::SavedTokenPrice, client)
+                            .await?;
 
-                    if user.health_factor < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
-                    {
-                        liquidation_candidates.push(user.id);
+                        if user.health_factor
+                            < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
+                        {
+                            liquidation_candidates.push(user.id);
+                        }
                     }
                 }
             }

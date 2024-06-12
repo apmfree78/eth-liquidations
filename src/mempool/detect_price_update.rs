@@ -2,15 +2,14 @@ use crate::exchanges::aave_v3::user_structs::AaveUsersHash;
 use crate::mempool::update_token_price::update_token_price_for_;
 use crate::utils::type_conversion::address_to_string;
 use crate::{data::erc20::TOKEN_DATA, mempool::liquidations::find_users_and_liquidate};
-use ethers::{prelude::*, utils::keccak256};
-use eyre::Result;
-use std::sync::Arc;
-
 use ethers::{
     core::types::TxHash,
     providers::{Provider, Ws},
 };
+use ethers::{prelude::*, utils::keccak256};
+use eyre::Result;
 use futures::lock::Mutex;
+use std::sync::Arc;
 
 pub async fn detect_price_update_and_find_users_to_liquidate(
     user_data: &Arc<Mutex<AaveUsersHash>>,
@@ -51,12 +50,11 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
                             println!("TRANSMIT FOUND!!!");
                             println!("Transaction from address: {:?}", to);
                             let contract = AGGREGATOR::new(to, client.clone());
-                            // println!("data => {:?}", data);
+
+                            // below if statement is for testing purposes only
                             if let Ok(description) = contract.description().call().await {
                                 println!("aggregator for {}", description);
                             }
-
-                            println!("price updated for {} => {}", token.name, token.symbol);
 
                             // TODO - handle case where ETH price is update -> will update all ETH and ETH related tokens
                             // update price of token
