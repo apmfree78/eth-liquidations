@@ -69,14 +69,13 @@ impl Convert for Erc20Token {
         base_token_symbol: &str,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
-        if self.symbol == base_token_symbol
-            && self.symbol == "crvUSD"
+        if self.symbol == base_token_symbol || self.symbol == "USDC" || self.symbol == "USDe" {
+            return Ok(BigDecimal::from(1));
+        } else if (self.symbol == "sDAI" || self.symbol == "MKR" || self.symbol == "crvUSD")
             && base_token_symbol == "USDC"
         {
-            return Ok(BigDecimal::from(1));
-        } else if self.symbol == "sDAI" && base_token_symbol == "USDC" {
-            let sdai_price = self.get_token_oracle_price(client).await?;
-            return Ok(sdai_price);
+            let price = self.get_token_oracle_price(client).await?;
+            return Ok(price);
         } else if (self.symbol == "cbETH"
             || self.symbol == "weETH"
             || self.symbol == "wstETH"
@@ -86,6 +85,7 @@ impl Convert for Erc20Token {
             || self.symbol == "rETH"
             || self.symbol == "ENS"
             || self.symbol == "SNX"
+            || self.symbol == "STG"
             || self.symbol == "CRV"
             || self.symbol == "FXS"
             || self.symbol == "LDO"
@@ -234,7 +234,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
             liquidation_threshold: 7500,
             // do not track
             chain_link_price_feed: "0xa569d910839Ae8865Da8F8e70FfFb0cBA869F961",
-            chainlink_aggregator: "",
+            chainlink_aggregator: "0xb735cc58d71deac4cfc46de68d3b04988f7d7b2d",
         },
         Erc20Token {
             name: "Dai Stablecoin",

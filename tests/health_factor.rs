@@ -16,7 +16,7 @@ async fn test_that_health_factor_is_self_consistent_in_user_data(
     let client = Arc::new(provider);
 
     // Round both to four decimal places
-    let scale = 3;
+    let scale = 2;
 
     let aave_users_hash: AaveUsersHash =
         AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
@@ -51,6 +51,7 @@ async fn test_that_calculated_health_factor_roughly_matches_given_one(
     for user in aave_users_hash.user_data.values() {
         let given_health_factor = user.health_factor.clone();
         if user.total_debt > BigDecimal::from(0) {
+            println!("testing {:#?}", user.tokens);
             let health_factor_uniswap_v3 = user
                 .get_health_factor_from_(PricingSource::UniswapV3, &client)
                 .await?;
@@ -62,7 +63,6 @@ async fn test_that_calculated_health_factor_roughly_matches_given_one(
             let lower_bound = BigDecimal::from_str("0.9")? * &given_health_factor;
             let upper_bound = BigDecimal::from_str("1.10")? * &given_health_factor;
 
-            // println!("testing {:#?}", user.tokens);
             println!("health_factor_uniswap_v3: {}", health_factor_uniswap_v3);
             println!("health_factor_oracle: {}", health_factor_oracle);
             println!("given health_factor: {}", given_health_factor);

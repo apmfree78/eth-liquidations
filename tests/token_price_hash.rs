@@ -27,6 +27,8 @@ async fn test_setting_price_with_token_price_hash() -> Result<(), Box<dyn std::e
 
     assert_eq!(new_price, updated_price);
 
+    set_saved_token_price(weth_token.address, weth_price.clone()).await?;
+
     Ok(())
 }
 
