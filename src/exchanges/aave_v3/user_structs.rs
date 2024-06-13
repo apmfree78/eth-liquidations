@@ -45,7 +45,7 @@ pub struct AaveToken {
 pub struct AaveUserData {
     pub id: Address,
     pub total_debt: BigDecimal,
-    pub colladeral_times_liquidation_factor: BigDecimal,
+    pub collateral_times_liquidation_factor: BigDecimal,
     pub tokens: Vec<AaveToken>,
     pub health_factor: BigDecimal,
 }

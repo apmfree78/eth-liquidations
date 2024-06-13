@@ -5,6 +5,7 @@ use crate::exchanges::aave_v3::{
 };
 use ethers::types::Address;
 use eyre::Result;
+use log::info;
 use std::sync::Arc;
 
 use ethers::providers::{Provider, Ws};
@@ -29,7 +30,7 @@ pub async fn find_users_and_liquidate(
     {
         match liquidations {
             UsersToLiquidate::Users(users_to_liquidate) => {
-                println!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate)
+                info!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate)
             }
             UsersToLiquidate::None => {}
         }
@@ -46,7 +47,7 @@ pub async fn find_users_and_liquidate(
     {
         match liquidations {
             UsersToLiquidate::Users(users_to_liquidate) => {
-                println!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate)
+                info!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate)
             }
             UsersToLiquidate::None => {}
         }

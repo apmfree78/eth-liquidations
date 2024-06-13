@@ -136,8 +136,6 @@ pub fn decode_withdraw_event(log: &Log) -> Result<WithdrawEvent, Box<dyn std::er
         amount,
     };
 
-    // println!("withdraw event => {:#?}", withdraw_event);
-
     Ok(withdraw_event)
 }
 

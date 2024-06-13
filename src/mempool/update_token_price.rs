@@ -1,6 +1,7 @@
 use crate::data::erc20::{Convert, Erc20Token, TOKENS_WITH_PRICE_CONNECTED_TO_ETH};
 use crate::data::token_price_hash::set_saved_token_price;
 use eyre::Result;
+use log::info;
 use std::sync::Arc;
 
 use ethers::providers::{Provider, Ws};
@@ -15,13 +16,13 @@ pub async fn update_token_price_for_(
             // use UNISWAP to get real time price for token
             let token_price = token.get_token_price_in_("USDC", client).await?;
             set_saved_token_price(token.address, token_price).await?;
-            println!("price updated for {} => {}", token.name, token.symbol);
+            info!("price updated for {} => {}", token.name, token.symbol);
         }
     } else {
         // use UNISWAP to get real time price for token
         let token_price = token_to_update.get_token_price_in_("USDC", client).await?;
         set_saved_token_price(token_to_update.address, token_price).await?;
-        println!(
+        info!(
             "price updated for {} => {}",
             token_to_update.name, token_to_update.symbol
         );

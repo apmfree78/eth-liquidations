@@ -2,6 +2,7 @@ use super::erc20::{Convert, UNIQUE_TOKEN_DATA};
 use bigdecimal::BigDecimal;
 use ethers::providers::{Provider, Ws};
 use futures::lock::Mutex;
+use log::debug;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -58,6 +59,6 @@ pub async fn print_saved_token_prices() -> Result<(), Box<dyn std::error::Error>
     let token_price_hash = Arc::clone(&TOKEN_PRICE_HASH);
     let token_prices = token_price_hash.lock().await;
 
-    println!("saved token price => {:#?}", token_prices);
+    debug!("saved token price => {:#?}", token_prices);
     Ok(())
 }

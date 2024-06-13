@@ -10,7 +10,7 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Er
     let user_data = AaveUserData {
         id: user_address,
         total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        colladeral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
         tokens: vec![
             AaveToken {
                 token: Erc20Token {
@@ -73,7 +73,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
     let user_data = AaveUserData {
         id: user_address,
         total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        colladeral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
         tokens: vec![
             AaveToken {
                 token: Erc20Token {
@@ -119,7 +119,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
     let user_data_2 = AaveUserData {
         id: user_address_2,
         total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        colladeral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
         tokens: vec![
             AaveToken {
                 token: Erc20Token {
@@ -182,7 +182,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::erro
     let user_data = AaveUserData {
         id: user_address,
         total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        colladeral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
         tokens: vec![
             AaveToken {
                 token: Erc20Token {
@@ -226,7 +226,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::erro
     let user_data_2 = AaveUserData {
         id: user_address_2,
         total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        colladeral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
         tokens: vec![
             AaveToken {
                 token: Erc20Token {

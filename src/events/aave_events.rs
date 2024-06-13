@@ -8,6 +8,7 @@ use crate::exchanges::aave_v3::{
 };
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
+use log::{debug, error, info, trace};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -27,13 +28,12 @@ pub async fn update_users_with_event_from_log(
 
     if !log.topics.is_empty() {
         //determine which aave event was found
-        // println!("looping through logs");
         if let Some(aave_event_enum) = aave_event_map.get(&log.topics[0]) {
-            println!("{:?} event", aave_event_enum);
+            debug!("{:?} event", aave_event_enum);
 
             // extract event data from log
             let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);
-            // println!("event data => {:?}", aave_event_type_with_data);
+            trace!("event data => {:?}", aave_event_type_with_data);
 
             // extract struct data from event enum
             let event = extract_aave_event_data(&aave_event_type_with_data).unwrap_or_else(|err| {
@@ -79,13 +79,10 @@ pub async fn scan_and_update_aave_events(
             ]
             .to_vec(),
         )
-        // .topic1(token_topics.to_vec())
-        // .topic2(token_topics.to_vec())
-        // .from_block(0);
         .from_block(from_block)
         .to_block(BlockNumber::Latest);
     let event_logs = client.get_logs(&filter).await?;
-    println!("{} aave events found!", event_logs.iter().len());
+    info!("{} aave events found!", event_logs.iter().len());
 
     update_users_with_events_from_logs(&event_logs, users, client).await?;
     Ok(())
@@ -101,13 +98,12 @@ pub async fn update_users_with_events_from_logs(
     for log in logs.iter() {
         if !log.topics.is_empty() {
             //determine which aave event was found
-            // println!("looping through logs");
             if let Some(aave_event_enum) = aave_event_map.get(&log.topics[0]) {
-                // println!("{:?} event: {:#?}", aave_event_enum, log);
+                debug!("{:?} event: {:#?}", aave_event_enum, log);
 
                 // extract event data from log
                 let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, log);
-                // println!("event data => {:?}", aave_event_type_with_data);
+                trace!("event data => {:?}", aave_event_type_with_data);
 
                 // extract struct data from event enum
                 let event = extract_aave_event_data(&aave_event_type_with_data)
@@ -168,15 +164,19 @@ pub async fn update_aave_user(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user_address = event.get_user();
     let user_action = get_user_action_from_event(event);
-    // println!("user action {:#?}", user_action);
+    trace!("user action {:#?}", user_action);
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
         let user_id = user.id;
 
-        println!("updating user {}", user_id);
-        println!("user debt ...{:?}", user.total_debt);
-        println!("user health factor...{:?}", user.health_factor);
+        debug!("updating user {}", user_id.to_string());
+        debug!("user debt ...{:?}", user.total_debt);
+        debug!(
+            "user a scaled collateral...{:?}",
+            user.collateral_times_liquidation_factor
+        );
+        debug!("user health factor...{:?}", user.health_factor);
 
         let token_to_remove = match user.update(&user_action) {
             Ok(remove_token) => match remove_token {
@@ -190,12 +190,16 @@ pub async fn update_aave_user(
             Err(err) => return Err(err),
         };
 
-        println!("user updated!");
+        debug!("user updated!");
 
         user.update_meta_data(PricingSource::SavedTokenPrice, client)
             .await?;
-        println!("updated user debt ...{:?}", user.total_debt);
-        println!("updated user health factor...{:?}", user.health_factor);
+        debug!("updated user debt ...{:?}", user.total_debt);
+        debug!(
+            "updated user scaled collateral...{:?}",
+            user.collateral_times_liquidation_factor
+        );
+        debug!("updated user health factor...{:?}", user.health_factor);
 
         // update token => user mappings , includes adding new tokens
         users.update_token_user_mapping_for_(user_id)?;
@@ -205,7 +209,7 @@ pub async fn update_aave_user(
             users
                 .remove_user_from_token_user_mapping(user_id, token_address)
                 .unwrap_or_else(|err| {
-                    println!("could not remove user from token mapping => {}", err)
+                    error!("could not remove user from token mapping => {}", err)
                 });
         };
         return Ok(());

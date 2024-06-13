@@ -25,7 +25,7 @@ async fn test_that_health_factor_is_self_consistent_in_user_data(
         let given_health_factor = &user.health_factor.with_scale(scale);
         if user.total_debt > BigDecimal::from(0) {
             let calculated_health_factor =
-                &user.colladeral_times_liquidation_factor / &user.total_debt;
+                &user.collateral_times_liquidation_factor / &user.total_debt;
             let calculated_health_factor = &calculated_health_factor.with_scale(scale);
 
             assert_eq!(given_health_factor, calculated_health_factor)

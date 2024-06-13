@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
+use log::{debug, error, warn};
 use std::sync::Arc;
 
 #[async_trait]
@@ -93,9 +94,9 @@ impl UpdateUsers for AaveUsersHash {
                     }
                 }
                 self.user_data.insert(user.id, user);
-                println!("new user successfully added",)
+                debug!("new user successfully added",)
             }
-            Err(error) => println!("user did not fit criteria ==> {}", error),
+            Err(error) => warn!("user did not fit criteria ==> {}", error),
         };
         Ok(())
     }
@@ -179,10 +180,10 @@ impl UpdateUsers for AaveUsersHash {
 
         if low_health_factor {
             self.move_user_from_standard_to_low_health_token_user_mapping(user_id)
-                .unwrap_or_else(|err| println!("could not move user to new mapping => {}", err));
+                .unwrap_or_else(|err| error!("could not move user to new mapping => {}", err));
         } else {
             self.move_user_from_low_health_to_standard_token_user_mapping(user_id)
-                .unwrap_or_else(|err| println!("could not move user to new mapping => {}", err));
+                .unwrap_or_else(|err| error!("could not move user to new mapping => {}", err));
         }
 
         Ok(())
@@ -329,6 +330,8 @@ impl UpdateUsers for AaveUsersHash {
     ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>> {
         // track already updated users and liquidation candidates
         let mut liquidation_candidates = Vec::<Address>::new();
+
+        // TODO - create has map for already updated users
 
         let token_array = if main_token.symbol == "WETH" {
             // must update full list of tokens if WETH

@@ -54,7 +54,7 @@ pub async fn get_aave_v3_user_from_data_provider(
     let mut user_data = AaveUserData {
         id: user_address,
         total_debt: BigDecimal::from(0), //placeholder value , will calculate below
-        colladeral_times_liquidation_factor: BigDecimal::from(0), //placeholder value , will calculate below
+        collateral_times_liquidation_factor: BigDecimal::from(0), //placeholder value , will calculate below
         tokens,
         health_factor: BigDecimal::from(0), //placeholder value , will calculate below
     };

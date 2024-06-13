@@ -20,6 +20,7 @@ pub mod mempool {
 }
 
 pub mod utils {
+    pub mod logging;
     pub mod type_conversion;
 }
 

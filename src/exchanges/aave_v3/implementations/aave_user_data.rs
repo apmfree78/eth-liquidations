@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
+use log::{error, info, warn};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -64,7 +65,6 @@ impl GenerateUsers for AaveUserData {
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
     ) -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
-        println!("connecting to aave_v3_pool");
         let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
 
         // store all data that we need for user
@@ -76,15 +76,14 @@ impl GenerateUsers for AaveUserData {
             SampleSize::SmallBatch => get_aave_v3_users().await?,
         };
 
-        println!("got aave_v3 users");
+        info!("got aave_v3 users");
         let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
-        println!("found { } users from aave v3 graphql", aave_users.len());
+        info!("found { } users from aave v3 graphql", aave_users.len());
         let mut valid_users_from_graphql: u16 = 0;
         let mut valid_users_from_contract: u16 = 0;
         for user in &aave_users {
             let user_id: Address = user.id.parse()?;
-            // println!("getting user account data from aave_v3_pool");
             let (
                 total_collateral_base,
                 total_debt_base,
@@ -97,18 +96,17 @@ impl GenerateUsers for AaveUserData {
             let total_debt = u256_to_big_decimal(&total_debt_base);
             let total_collateral = u256_to_big_decimal(&total_collateral_base);
             let liquidation_threshold = u256_to_big_decimal(&current_liquidation_threshold);
-            let colladeral_times_liquidation_factor =
+            let collateral_times_liquidation_factor =
                 &liquidation_threshold * &total_collateral / &bps_factor;
             let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
 
-            // println!("getting list of user tokens");
             // this is list of tokens that user is either using as colladeral or borrowing
             let user_tokens = user.get_list_of_user_tokens().await?;
 
             let aave_user = AaveUserData {
                 id: user_id,
                 total_debt: total_debt.clone(),
-                colladeral_times_liquidation_factor,
+                collateral_times_liquidation_factor,
                 health_factor: health_factor.clone(),
                 tokens: user_tokens,
             };
@@ -139,18 +137,18 @@ impl GenerateUsers for AaveUserData {
                         aave_user_data.push(aave_user);
                     }
                     Err(error) => {
-                        println!("user did not fit criteria => {}", error);
+                        error!("user did not fit criteria => {}", error);
                     }
                 };
             }
         }
 
-        println!("{} valid users saved", aave_user_data.len());
-        println!(
+        info!("{} valid users saved", aave_user_data.len());
+        info!(
             "{} valid users saved from graphQL",
             valid_users_from_graphql
         );
-        println!(
+        info!(
             "{} valid users saved from data provider contract",
             valid_users_from_contract
         );
@@ -243,11 +241,11 @@ impl UpdateUserData for AaveUserData {
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (colladeral_times_liquidation_factor, total_debt) = self
+        let (collateral_times_liquidation_factor, total_debt) = self
             .get_collateral_times_liquidation_factor_and_total_debt(source_for_pricing, client)
             .await?;
 
-        self.colladeral_times_liquidation_factor = colladeral_times_liquidation_factor;
+        self.collateral_times_liquidation_factor = collateral_times_liquidation_factor;
         self.total_debt = total_debt;
 
         // now with updated  debt and collateral values ,  we can find health factor
@@ -274,7 +272,7 @@ impl HealthFactor for AaveUserData {
         let health_factor = if current_total_debt > BigDecimal::zero() {
             liquidation_threshold_collateral_sum / current_total_debt
         } else {
-            println!("no health factor because user has no debt");
+            warn!("no health factor because user has no debt");
             BigDecimal::from(0)
         };
         Ok(health_factor)
@@ -312,18 +310,11 @@ impl HealthFactor for AaveUserData {
         ) = aave_v3_pool.get_user_account_data(self.id).call().await?;
 
         let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
-        // println!("health factor {}", health_factor);
 
         let aave_user_calculated_health_factor = self
             .get_health_factor_from_(PricingSource::AaveOracle, client)
             .await?;
 
-        // println!("official health factor => {:?}", health_factor);
-        // println!(
-        //     "calculated health factor => {:?}",
-        //     aave_user_calculated_health_factor
-        // );
-        //
         // CHECK that health factor calculated from user data is
         // within + or - 5% of official health factor we get from
         // getUserAccount contract call
