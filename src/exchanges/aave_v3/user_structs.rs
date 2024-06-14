@@ -67,6 +67,7 @@ pub enum UsersToLiquidate {
     None,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum UserType {
     Standard,
     LowHealth,

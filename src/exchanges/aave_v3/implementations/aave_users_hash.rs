@@ -11,6 +11,7 @@ use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
 use log::{debug, error, warn};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 #[async_trait]
@@ -21,6 +22,15 @@ pub trait UpdateUsers {
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
     ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>>;
+    fn generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(
+        &mut self,
+        user_type: UserType,
+    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>>;
+    fn get_users_owning_token_by_user_type(
+        &mut self,
+        token: &Erc20Token,
+        user_type: UserType,
+    ) -> Result<Vec<Address>, Box<dyn std::error::Error>>;
     async fn add_new_user(
         &mut self,
         user_to_add: Address,
@@ -331,63 +341,26 @@ impl UpdateUsers for AaveUsersHash {
         // track already updated users and liquidation candidates
         let mut liquidation_candidates = Vec::<Address>::new();
 
-        // TODO - create has map for already updated users
-
-        let token_array = if main_token.symbol == "WETH" {
+        let users_array = if main_token.symbol == "WETH" {
             // must update full list of tokens if WETH
-            TOKENS_WITH_PRICE_CONNECTED_TO_ETH.to_vec()
+            let users_with_tokens_connected_to_eth =
+                self.generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(user_type)?;
+            users_with_tokens_connected_to_eth.into_iter().collect()
         } else {
-            vec![main_token]
+            self.get_users_owning_token_by_user_type(main_token, user_type)?
         };
 
-        for token in token_array {
-            let token_address: Address = token.address.parse()?;
+        for user_id in users_array {
+            let user = self
+                .user_data
+                .get_mut(&user_id)
+                .unwrap_or_else(|| panic!("could not find user with user id"));
 
-            match user_type {
-                UserType::LowHealth => {
-                    let low_health_users = self
-                        .low_health_user_ids_by_token
-                        .entry(token_address)
-                        .or_default();
+            user.update_meta_data(PricingSource::SavedTokenPrice, client)
+                .await?;
 
-                    for user_id in low_health_users {
-                        let user = self
-                            .user_data
-                            .get_mut(user_id)
-                            .unwrap_or_else(|| panic!("could not find user with user id"));
-
-                        user.update_meta_data(PricingSource::SavedTokenPrice, client)
-                            .await?;
-
-                        if user.health_factor
-                            < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
-                        {
-                            liquidation_candidates.push(user.id);
-                        }
-                    }
-                }
-                UserType::Standard => {
-                    let standard_users = self
-                        .standard_user_ids_by_token
-                        .entry(token_address)
-                        .or_default();
-
-                    for user_id in standard_users {
-                        let user = self
-                            .user_data
-                            .get_mut(user_id)
-                            .unwrap_or_else(|| panic!("could not find user with user id"));
-
-                        user.update_meta_data(PricingSource::SavedTokenPrice, client)
-                            .await?;
-
-                        if user.health_factor
-                            < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap()
-                        {
-                            liquidation_candidates.push(user.id);
-                        }
-                    }
-                }
+            if user.health_factor < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap() {
+                liquidation_candidates.push(user.id);
             }
         }
 
@@ -395,6 +368,63 @@ impl UpdateUsers for AaveUsersHash {
             Ok(UsersToLiquidate::None)
         } else {
             Ok(UsersToLiquidate::Users(liquidation_candidates))
+        }
+    }
+
+    fn generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(
+        &mut self,
+        user_type: UserType,
+    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
+        let mut users_with_tokens_connected_to_eth = HashSet::<Address>::new();
+        for token in TOKENS_WITH_PRICE_CONNECTED_TO_ETH.iter() {
+            let token_address: Address = token.address.parse()?;
+
+            match user_type {
+                UserType::LowHealth => {
+                    let low_health_users = self
+                        .low_health_user_ids_by_token
+                        .get(&token_address)
+                        .unwrap_or_else(|| panic!("invalid low_health_user_ids_by_token"));
+
+                    users_with_tokens_connected_to_eth.extend(low_health_users);
+                }
+                UserType::Standard => {
+                    let standard_users = self
+                        .standard_user_ids_by_token
+                        .get(&token_address)
+                        .unwrap_or_else(|| panic!("invalid standard_user_ids_by_token"));
+
+                    users_with_tokens_connected_to_eth.extend(standard_users);
+                }
+            }
+        }
+        Ok(users_with_tokens_connected_to_eth)
+    }
+
+    fn get_users_owning_token_by_user_type(
+        &mut self,
+        token: &Erc20Token,
+        user_type: UserType,
+    ) -> Result<Vec<Address>, Box<dyn std::error::Error>> {
+        let token_address: Address = token.address.parse()?;
+
+        match user_type {
+            UserType::LowHealth => {
+                let low_health_users = self
+                    .low_health_user_ids_by_token
+                    .get(&token_address)
+                    .unwrap_or_else(|| panic!("invalid low_health_user_ids_by_token"));
+
+                Ok(low_health_users.to_owned())
+            }
+            UserType::Standard => {
+                let standard_users = self
+                    .standard_user_ids_by_token
+                    .get(&token_address)
+                    .unwrap_or_else(|| panic!("invalid standard_user_ids_by_token"));
+
+                Ok(standard_users.to_owned())
+            }
         }
     }
 }
