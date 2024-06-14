@@ -8,7 +8,7 @@ use crate::exchanges::aave_v3::{
 };
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
-use log::{debug, error, info, trace};
+use log::{debug, error, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -33,7 +33,7 @@ pub async fn update_users_with_event_from_log(
 
             // extract event data from log
             let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);
-            trace!("event data => {:?}", aave_event_type_with_data);
+            debug!("event data => {:?}", aave_event_type_with_data);
 
             // extract struct data from event enum
             let event = extract_aave_event_data(&aave_event_type_with_data).unwrap_or_else(|err| {
@@ -103,7 +103,7 @@ pub async fn update_users_with_events_from_logs(
 
                 // extract event data from log
                 let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, log);
-                trace!("event data => {:?}", aave_event_type_with_data);
+                debug!("event data => {:?}", aave_event_type_with_data);
 
                 // extract struct data from event enum
                 let event = extract_aave_event_data(&aave_event_type_with_data)
@@ -164,7 +164,7 @@ pub async fn update_aave_user(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user_address = event.get_user();
     let user_action = get_user_action_from_event(event);
-    trace!("user action {:#?}", user_action);
+    debug!("user action {:#?}", user_action);
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
