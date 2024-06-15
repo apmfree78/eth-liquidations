@@ -130,7 +130,8 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
 
     let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let user_id_2: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
-    let token_address: Address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".parse()?;
+    let token_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    let token = TOKEN_DATA.get(token_address).unwrap();
 
     generate_token_price_hash(&client).await?;
 
@@ -152,7 +153,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
         assert_eq!(user_id_array.len(), 0);
     }
 
-    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token_address)?;
+    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token)?;
 
     println!(
         "low health users {:?}",
@@ -177,7 +178,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
         .expect("invalid user id");
     user.health_factor = BigDecimal::from_f32(2.0).unwrap();
 
-    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token_address)?;
+    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token)?;
 
     println!(
         "low health users {:?}",
@@ -202,7 +203,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
         .expect("invalid user id");
     user_2.health_factor = BigDecimal::from_f32(4.0).unwrap();
 
-    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token_address)?;
+    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token)?;
 
     println!(
         "low health users {:?}",
@@ -227,7 +228,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
         .expect("invalid user id");
     user.health_factor = BigDecimal::from_f32(1.0).unwrap();
 
-    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token_address)?;
+    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token)?;
 
     println!(
         "low health users {:?}",
@@ -252,7 +253,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
         .expect("invalid user id");
     user_2.health_factor = BigDecimal::from_f32(1.05).unwrap();
 
-    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token_address)?;
+    users_hash.update_token_to_user_mapping_for_all_users_with_token_(token)?;
 
     println!(
         "low health users {:?}",
