@@ -3,7 +3,6 @@ use crate::exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate};
 use crate::exchanges::aave_v3::{
     implementations::aave_users_hash::UpdateUsers, user_structs::AaveUsersHash,
 };
-use ethers::types::Address;
 use eyre::Result;
 use log::info;
 use std::sync::Arc;
@@ -17,7 +16,6 @@ pub async fn find_users_and_liquidate(
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut users = user_data.lock().await;
-    let token_address: Address = token.address.parse()?;
     // 1. update low health user health factor (that own or borrow token)
     // 2. check if liquidation candidates found
     if let Ok(liquidations) = users
