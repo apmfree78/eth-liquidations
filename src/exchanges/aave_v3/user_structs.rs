@@ -1,7 +1,7 @@
 use crate::data::erc20::Erc20Token;
 use bigdecimal::BigDecimal;
 use ethers::abi::Address;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
 pub const DEFAULT_LIQUIDATION_CLOSE_FACTOR: f32 = 0.5;
@@ -58,8 +58,8 @@ events found in logs and changes in token prices
 #[derive(Clone, Debug)]
 pub struct AaveUsersHash {
     pub user_data: HashMap<Address, AaveUserData>,
-    pub standard_user_ids_by_token: HashMap<Address, Vec<Address>>,
-    pub low_health_user_ids_by_token: HashMap<Address, Vec<Address>>,
+    pub standard_user_ids_by_token: HashMap<Address, HashSet<Address>>,
+    pub low_health_user_ids_by_token: HashMap<Address, HashSet<Address>>,
 }
 
 pub enum UsersToLiquidate {

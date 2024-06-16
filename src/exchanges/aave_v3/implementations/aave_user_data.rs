@@ -10,7 +10,7 @@ use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
 use log::{error, info, warn};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -161,8 +161,8 @@ impl GenerateUsers for AaveUserData {
 
         let mut user_hash = AaveUsersHash {
             user_data: user_data_hash,
-            standard_user_ids_by_token: HashMap::<Address, Vec<Address>>::new(),
-            low_health_user_ids_by_token: HashMap::<Address, Vec<Address>>::new(),
+            standard_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
+            low_health_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
         };
 
         user_hash.intialize_token_user_mapping()?;

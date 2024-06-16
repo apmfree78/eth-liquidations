@@ -30,7 +30,7 @@ pub trait UpdateUsers {
         &mut self,
         token: &Erc20Token,
         user_type: UserType,
-    ) -> Result<Vec<Address>, Box<dyn std::error::Error>>;
+    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>>; // get clone of user ids , NOT a mutable reference
     async fn add_new_user(
         &mut self,
         user_to_add: Address,
@@ -82,7 +82,7 @@ impl UpdateUsers for AaveUsersHash {
                             .or_default()
                             .clone();
 
-                        users.push(user_to_add);
+                        users.insert(user_to_add);
 
                         self.standard_user_ids_by_token.insert(token_address, users);
                     }
@@ -97,7 +97,7 @@ impl UpdateUsers for AaveUsersHash {
                             .or_default()
                             .clone();
 
-                        users.push(user_to_add);
+                        users.insert(user_to_add);
 
                         self.low_health_user_ids_by_token
                             .insert(token_address, users);
@@ -133,11 +133,11 @@ impl UpdateUsers for AaveUsersHash {
                     .clone();
 
                 if has_low_health_factor {
-                    low_health_user_ids.push(user.id);
+                    low_health_user_ids.insert(user.id);
                     self.low_health_user_ids_by_token
                         .insert(token_address, low_health_user_ids);
                 } else {
-                    standard_user_ids.push(user.id);
+                    standard_user_ids.insert(user.id);
                     self.standard_user_ids_by_token
                         .insert(token_address, standard_user_ids);
                 }
@@ -209,13 +209,11 @@ impl UpdateUsers for AaveUsersHash {
                     .or_default()
                     .clone();
 
-                if let Some(index) = standard_users.iter().position(|&id| id == user_id) {
-                    standard_users.remove(index);
-
+                if standard_users.remove(&user_id) {
                     // update mapping with user id removed
                     self.standard_user_ids_by_token
                         .insert(token_address, standard_users);
-                };
+                }
 
                 // move OR add user id to low health factor mapping if not already present
                 let mut low_health_users = self
@@ -224,9 +222,7 @@ impl UpdateUsers for AaveUsersHash {
                     .or_default()
                     .clone();
 
-                if !low_health_users.contains(&user_id) {
-                    low_health_users.push(user_id);
-
+                if low_health_users.insert(user_id) {
                     self.low_health_user_ids_by_token
                         .insert(token_address, low_health_users);
                 }
@@ -255,13 +251,11 @@ impl UpdateUsers for AaveUsersHash {
                     .or_default()
                     .clone();
 
-                if let Some(index) = low_health_users.iter().position(|&id| id == user_id) {
-                    low_health_users.remove(index);
-
+                if low_health_users.remove(&user_id) {
                     // update mapping with user id removed
                     self.low_health_user_ids_by_token
                         .insert(token_address, low_health_users);
-                };
+                }
 
                 // move OR add user id to standard mapping
                 let mut standard_users = self
@@ -270,9 +264,7 @@ impl UpdateUsers for AaveUsersHash {
                     .or_default()
                     .clone();
 
-                if !standard_users.contains(&user_id) {
-                    standard_users.push(user_id);
-
+                if standard_users.insert(user_id) {
                     self.standard_user_ids_by_token
                         .insert(token_address, standard_users);
                 }
@@ -294,13 +286,11 @@ impl UpdateUsers for AaveUsersHash {
                 .or_default()
                 .clone();
 
-            if let Some(index) = users.iter().position(|&id| id == user_id) {
-                users.remove(index);
-
+            if users.remove(&user_id) {
                 self.standard_user_ids_by_token.insert(token_address, users);
 
                 return Ok(());
-            };
+            }
         }
 
         // CHECK LOW HEALTH MAPPING
@@ -314,12 +304,10 @@ impl UpdateUsers for AaveUsersHash {
                 .or_default()
                 .clone();
 
-            if let Some(index) = users.iter().position(|&id| id == user_id) {
-                users.remove(index);
-
+            if users.remove(&user_id) {
                 self.low_health_user_ids_by_token
                     .insert(token_address, users);
-            };
+            }
         }
 
         Ok(())
@@ -392,7 +380,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         token: &Erc20Token,
         user_type: UserType,
-    ) -> Result<Vec<Address>, Box<dyn std::error::Error>> {
+    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
         let token_address: Address = token.address.parse()?;
 
         match user_type {
