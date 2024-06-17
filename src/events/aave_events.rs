@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::exchanges::aave_v3::events::{
-    BORROW_SIGNATURE, LIQUIDATION_SIGNATURE, REPAY_SIGNATURE,
+    LiquidationEvent, BORROW_SIGNATURE, LIQUIDATION_SIGNATURE, REPAY_SIGNATURE,
     RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE, RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE,
     SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
 };
@@ -37,16 +37,22 @@ pub async fn update_users_with_event_from_log(
             debug!("event data => {:?}", aave_event_type_with_data);
 
             // if event is LIQUATION create handle user Liqudation function
-            // extract struct data from event enum
-            let event = extract_aave_event_data(&aave_event_type_with_data).unwrap_or_else(|err| {
-                panic!(
-                    "count not extract data from event {:#?} with error {}",
-                    aave_event_type_with_data, err
-                );
-            });
 
-            // update aave user
-            update_aave_user(users, event, client).await?;
+            if *aave_event_enum != AaveUserEvent::Liquidation {
+                // extract struct data from event enum
+                let event =
+                    extract_aave_event_data(&aave_event_type_with_data).unwrap_or_else(|err| {
+                        panic!(
+                            "count not extract data from event {:#?} with error {}",
+                            aave_event_type_with_data, err
+                        );
+                    });
+
+                // update aave user
+                update_aave_user(users, event, client).await?;
+            } else {
+                // TODO - handle liquidation
+            }
         }
     }
     Ok(())
@@ -217,6 +223,61 @@ pub async fn update_aave_user(
                     error!("could not remove user from token mapping => {}", err)
                 });
         };
+        return Ok(());
+    } else {
+        // add new user @ user_address since not in our database
+        users.add_new_user(user_address, client).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn update_aave_liquidated_user(
+    users: &mut AaveUsersHash,
+    event: LiquidationEvent,
+    client: &Arc<Provider<Ws>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let user_address = event.get_user();
+
+    if users.user_data.contains_key(&user_address) {
+        let user = users.user_data.get_mut(&user_address).unwrap();
+        let user_id = user.id;
+
+        debug!("updating user {} post liquidation", user_id.to_string());
+        debug!("user debt ...{:?}", user.total_debt);
+        debug!(
+            "user a scaled collateral...{:?}",
+            user.collateral_times_liquidation_factor
+        );
+        debug!("user health factor...{:?}", user.health_factor);
+
+        // let token_to_remove = match user.update(&user_action) {
+        //     Ok(remove_token) => match remove_token {
+        //         TokenToRemove::TokenToRemove(token_address) => {
+        //             // there is a token to remove
+        //             let token_address: Address = token_address.parse()?;
+        //             Some(token_address)
+        //         }
+        //         TokenToRemove::None => None, // no token to remove
+        //     },
+        //     Err(err) => return Err(err),
+        // };
+        //
+
+        debug!("user updated!");
+
+        user.update_meta_data(PricingSource::SavedTokenPrice, client)
+            .await?;
+        debug!("updated user debt ...{:?}", user.total_debt);
+        debug!(
+            "updated user scaled collateral...{:?}",
+            user.collateral_times_liquidation_factor
+        );
+        debug!("updated user health factor...{:?}", user.health_factor);
+
+        // update token => user mappings , includes adding new tokens
+        users.update_token_user_mapping_for_(user_id)?;
+
         return Ok(());
     } else {
         // add new user @ user_address since not in our database

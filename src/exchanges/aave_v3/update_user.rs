@@ -1,4 +1,4 @@
-use super::events::{AaveEvent, AaveUserAction, AaveUserEvent};
+use super::events::{AaveEvent, AaveUserAction, AaveUserEvent, LiquidationEvent};
 use super::user_structs::{AaveToken, AaveUserData};
 use crate::data::erc20::{u256_to_big_decimal, TOKEN_DATA};
 use crate::utils::type_conversion::address_to_string;
@@ -34,9 +34,29 @@ pub trait Update {
         &mut self,
         aave_action: &AaveUserAction,
     ) -> Result<TokenToRemove, Box<dyn std::error::Error>>;
+
+    fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 impl Update for AaveUserData {
+    fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>> {
+        let collateral_token_address = address_to_string(event.get_collateral_token_address());
+        let debt_token_address = address_to_string(event.get_debt_token_address());
+
+        for token in self.tokens.iter_mut() {
+            if token.token.address.to_lowercase() == collateral_token_address {
+                // update collateral
+
+                token.current_atoken_balance -= event.get_collateral_liquidated();
+            } else if token.token.address.to_lowercase() == debt_token_address {
+                // update debt
+                token.current_total_debt -= event.get_amount_debt_reduced();
+            }
+        }
+
+        Ok(())
+    }
+
     fn update(
         &mut self,
         aave_action: &AaveUserAction,

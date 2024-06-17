@@ -14,7 +14,7 @@ pub const SUPPLY_SIGNATURE: &str = "Supply(address,address,address,uint256,uint1
 pub const LIQUIDATION_SIGNATURE: &str =
     "LiquidationCall(address,address,address,uint256,uint256,address,bool)";
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AaveUserEvent {
     WithDraw,
     Borrow,

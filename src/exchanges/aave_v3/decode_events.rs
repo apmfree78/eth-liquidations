@@ -39,6 +39,10 @@ pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveE
                     .unwrap();
             AaveEventType::ReserveUsedAsCollateralEnabled(reserve_enable_event)
         }
+        AaveUserEvent::Liquidation => {
+            let liquidaiton_event = decode_liquidation_event(log).unwrap();
+            AaveEventType::LiquidationEvent(liquidaiton_event)
+        }
         _ => AaveEventType::Unknown,
     }
 }
