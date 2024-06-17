@@ -11,6 +11,8 @@ pub const RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE: &str =
 pub const BORROW_SIGNATURE: &str = "Borrow(address,address,address,uint256,uint8,uint256,uint16)";
 pub const REPAY_SIGNATURE: &str = "Repay(address,address,address,uint256,bool)";
 pub const SUPPLY_SIGNATURE: &str = "Supply(address,address,address,uint256,uint16)";
+pub const LIQUIDATION_SIGNATURE: &str =
+    "LiquidationCall(address,address,address,uint256,uint256,address,bool)";
 
 #[derive(Clone, Copy, Debug)]
 pub enum AaveUserEvent {
@@ -20,6 +22,7 @@ pub enum AaveUserEvent {
     Supply,
     ReserveUsedAsCollateralEnabled,
     ReserveUsedAsCollateralDisabled,
+    Liquidation,
     Unknown,
 }
 
@@ -114,6 +117,39 @@ pub struct SupplyEvent {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub struct LiquidationEvent {
+    pub collateral_asset: Address, // index
+    pub debt_asset: Address,       // index
+    pub user: Address,             // index
+    pub debt_to_cover: U256,
+    pub liquidation_collateral_amount: U256,
+    pub liquidator: Address,
+    pub received_a_token: bool,
+}
+
+impl LiquidationEvent {
+    pub fn get_user(&self) -> Address {
+        self.user
+    }
+
+    pub fn get_collateral_liquidated(&self) -> U256 {
+        self.liquidation_collateral_amount
+    }
+
+    pub fn get_amount_debt_reduced(&self) -> U256 {
+        self.debt_to_cover
+    }
+
+    pub fn get_debt_token_address(&self) -> Address {
+        self.debt_asset
+    }
+
+    pub fn get_collateral_token_address(&self) -> Address {
+        self.debt_asset
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub enum AaveEventType {
     WithdrawEvent(WithdrawEvent),
     BorrowEvent(BorrowEvent),
@@ -121,6 +157,7 @@ pub enum AaveEventType {
     SupplyEvent(SupplyEvent),
     ReserveUsedAsCollateralEnabled(ReserveUsedAsCollateralEnabledEvent),
     ReserveUsedAsCollateralDisabled(ReserveUsedAsCollateralDisabledEvent),
+    LiquidationEvent(LiquidationEvent),
     Unknown,
 }
 

@@ -1,8 +1,8 @@
 use crate::exchanges::aave_v3::events::ReserveUsedAsCollateralEnabledEvent;
 
 use super::events::{
-    AaveEventType, AaveUserEvent, BorrowEvent, RepayEvent, ReserveCollateralEvent,
-    ReserveUsedAsCollateralDisabledEvent, SupplyEvent, WithdrawEvent,
+    AaveEventType, AaveUserEvent, BorrowEvent, LiquidationEvent, RepayEvent,
+    ReserveCollateralEvent, ReserveUsedAsCollateralDisabledEvent, SupplyEvent, WithdrawEvent,
 };
 use ethers::abi::Address;
 use ethers::core::abi::RawLog;
@@ -83,6 +83,39 @@ pub fn decode_borrow_event(log: &Log) -> Result<BorrowEvent, Box<dyn std::error:
     Ok(borrow_event)
 }
 
+pub fn decode_liquidation_event(log: &Log) -> Result<LiquidationEvent, Box<dyn std::error::Error>> {
+    if log.topics.len() < 3 {
+        return Err("Must have 3 topics for Repay Event".into());
+    }
+
+    let collateral_asset: Address = log.topics[1].into();
+    let debt_asset: Address = log.topics[2].into();
+    let user: Address = log.topics[3].into();
+
+    if log.data.len() < 128 {
+        // Check sufficient data length for amount (32 bytes) + bool (1 byte)
+        return Err("Data slice too short".into());
+    }
+
+    let data_slice = log.data.as_ref();
+    let debt_to_cover = U256::from_big_endian(&data_slice[0..32]);
+    let liquidation_collateral_amount = U256::from_big_endian(&data_slice[32..64]);
+    let liquidator = Address::from_slice(&data_slice[76..96]);
+    let received_a_token: bool = data_slice[127] != 0;
+
+    let liquidation_event = LiquidationEvent {
+        collateral_asset,
+        debt_asset,
+        user,
+        debt_to_cover,
+        liquidation_collateral_amount,
+        liquidator,
+        received_a_token,
+    };
+
+    Ok(liquidation_event)
+}
+
 pub fn decode_repay_event(log: &Log) -> Result<RepayEvent, Box<dyn std::error::Error>> {
     if log.topics.len() < 3 {
         return Err("Must have 3 topics for Repay Event".into());
@@ -160,7 +193,7 @@ pub fn decode_supply_event(log: &Log) -> Result<SupplyEvent, Box<dyn std::error:
 
     // Assuming the data contains the rest in order: user, amount, interestRateMode, borrowRate
     let user = Address::from_slice(&data_slice[12..32]);
-    let amount = U256::from_big_endian(&data_slice[44..64]);
+    let amount = U256::from_big_endian(&data_slice[32..64]);
 
     Ok(SupplyEvent {
         reserve,

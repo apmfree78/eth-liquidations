@@ -71,7 +71,11 @@ impl Convert for Erc20Token {
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
         if self.symbol == base_token_symbol || self.symbol == "USDC" || self.symbol == "USDe" {
             return Ok(BigDecimal::from(1));
-        } else if (self.symbol == "sDAI" || self.symbol == "MKR" || self.symbol == "crvUSD")
+        } else if (self.symbol == "sDAI"
+            || self.symbol == "MKR"
+            || self.symbol == "crvUSD"
+            || self.symbol == "KNC"
+            || self.symbol == "osETH")
             && base_token_symbol == "USDC"
         {
             let price = self.get_token_oracle_price(client).await?;
@@ -79,7 +83,6 @@ impl Convert for Erc20Token {
         } else if (self.symbol == "cbETH"
             || self.symbol == "weETH"
             || self.symbol == "wstETH"
-            || self.symbol == "osETH"
             || self.symbol == "AAVE"
             || self.symbol == "1INCH"
             || self.symbol == "rETH"

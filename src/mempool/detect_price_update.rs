@@ -48,7 +48,6 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
                             debug!("aggregator for {}", description);
                         }
 
-                        // TODO - handle case where ETH price is update -> will update all ETH and ETH related tokens
                         // update price of token
                         update_token_price_for_(token, client).await?;
 

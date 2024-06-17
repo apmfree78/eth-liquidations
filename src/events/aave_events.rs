@@ -13,8 +13,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::exchanges::aave_v3::events::{
-    BORROW_SIGNATURE, REPAY_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
-    RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
+    BORROW_SIGNATURE, LIQUIDATION_SIGNATURE, REPAY_SIGNATURE,
+    RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE, RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE,
+    SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
 };
 
 const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
@@ -35,6 +36,7 @@ pub async fn update_users_with_event_from_log(
             let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);
             debug!("event data => {:?}", aave_event_type_with_data);
 
+            // if event is LIQUATION create handle user Liqudation function
             // extract struct data from event enum
             let event = extract_aave_event_data(&aave_event_type_with_data).unwrap_or_else(|err| {
                 panic!(
@@ -105,6 +107,7 @@ pub async fn update_users_with_events_from_logs(
                 let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, log);
                 debug!("event data => {:?}", aave_event_type_with_data);
 
+                // TODO - handle liquidation
                 // extract struct data from event enum
                 let event = extract_aave_event_data(&aave_event_type_with_data)
                     .unwrap_or_else(|err| panic!("could not extract aave event data => {}", err));
@@ -127,8 +130,10 @@ fn setup_event_map() -> HashMap<H256, AaveUserEvent> {
         keccak256(RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE.as_bytes()).into();
     let reserve_disabled_hash: H256 =
         keccak256(RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE.as_bytes()).into();
+    let liquidation_hash: H256 = keccak256(LIQUIDATION_SIGNATURE.as_bytes()).into();
 
     event_map.insert(withdraw_hash, AaveUserEvent::WithDraw);
+    event_map.insert(liquidation_hash, AaveUserEvent::Liquidation);
     event_map.insert(borrow_hash, AaveUserEvent::Borrow);
     event_map.insert(repay_hash, AaveUserEvent::Repay);
     event_map.insert(supply_hash, AaveUserEvent::Supply);

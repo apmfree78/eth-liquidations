@@ -13,14 +13,12 @@ async fn test_token_price_uniswap_versus_oracle() -> Result<(), Box<dyn std::err
 
     println!(" number of test to run {} ", 3 * UNIQUE_TOKEN_DATA.len());
     for token in UNIQUE_TOKEN_DATA.values() {
-        if token.name == "Maker" {
-            continue;
-        }
-
         // uniswap price
+        println!("get token uniswap price for {}", token.symbol);
         let token_price_uniswap = token.get_token_price_in_("USDC", &client).await?;
 
         // price from chainlink oracle price
+        println!("get token oracle price for {}", token.symbol);
         let token_price_oracle = token.get_token_oracle_price(&client).await?;
 
         let lower_bound = BigDecimal::from_str("0.96")? * &token_price_oracle;

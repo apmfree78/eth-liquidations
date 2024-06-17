@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
-    let user_hash = AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
+    let aave_users = AaveUserData::get_users(&client, SampleSize::All).await?;
 
     // Initialize TOKEN_PRICE_HASH global hashmap of token prices
     if let Err(e) = generate_token_price_hash(&client).await {
@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     print_saved_token_prices().await?;
 
-    let user_data = Arc::new(Mutex::new(user_hash));
+    let aave_users = Arc::new(Mutex::new(aave_users));
 
     let filter = Filter::new()
         .address(AAVE_V3_POOL_ADDRESS.parse::<Address>()?)
@@ -63,12 +63,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
 
     // Create multiple subscription streams.
-    let log_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
-        client
-            .subscribe_logs(&filter)
-            .await?
-            .map(|log| Ok(Event::AaveV3Log(log)))
-            .boxed();
+    let aave_log_stream: stream::BoxStream<
+        '_,
+        Result<Event, Box<dyn std::error::Error + Send + Sync>>,
+    > = client
+        .subscribe_logs(&filter)
+        .await?
+        .map(|log| Ok(Event::AaveV3Log(log)))
+        .boxed();
 
     info!("Subscribed to aave v3 logs");
 
@@ -82,17 +84,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Subscribed to pending transactions");
 
     // Merge the streams into a single stream.
-    let combined_stream = stream::select_all(vec![log_stream, tx_stream]);
+    let combined_stream = stream::select_all(vec![aave_log_stream, tx_stream]);
 
     info!("Combined streams");
 
     combined_stream
         .for_each(|event| async {
             let client = Arc::clone(&client);
-            let user_data = Arc::clone(&user_data);
+            let aave_users_data = Arc::clone(&aave_users);
             match event {
                 Ok(Event::AaveV3Log(log)) => {
-                    let mut users = user_data.lock().await;
+                    let mut users = aave_users_data.lock().await;
                     if let Err(error) =
                         update_users_with_event_from_log(log, &mut users, &client).await
                     {
@@ -100,9 +102,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 Ok(Event::PendingTransactions(tx)) => {
-                    if let Err(error) =
-                        detect_price_update_and_find_users_to_liquidate(&user_data, tx, &client)
-                            .await
+                    if let Err(error) = detect_price_update_and_find_users_to_liquidate(
+                        &aave_users_data,
+                        tx,
+                        &client,
+                    )
+                    .await
                     {
                         error!("problem with price update detection => {}", error);
                     }
