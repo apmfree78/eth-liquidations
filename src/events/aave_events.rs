@@ -36,8 +36,7 @@ pub async fn update_users_with_event_from_log(
             let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);
             debug!("event data => {:?}", aave_event_type_with_data);
 
-            // if event is LIQUATION create handle user Liqudation function
-
+            // if event is LIQUATION handle separately (see else)
             if *aave_event_enum != AaveUserEvent::Liquidation {
                 // extract struct data from event enum
                 let event =
@@ -50,8 +49,8 @@ pub async fn update_users_with_event_from_log(
 
                 // update aave user
                 update_aave_user(users, event, client).await?;
-            } else {
-                // TODO - handle liquidation
+            } else if let AaveEventType::LiquidationEvent(event) = aave_event_type_with_data {
+                update_aave_liquidated_user(users, event, client).await?;
             }
         }
     }
@@ -251,20 +250,9 @@ pub async fn update_aave_liquidated_user(
         );
         debug!("user health factor...{:?}", user.health_factor);
 
-        // let token_to_remove = match user.update(&user_action) {
-        //     Ok(remove_token) => match remove_token {
-        //         TokenToRemove::TokenToRemove(token_address) => {
-        //             // there is a token to remove
-        //             let token_address: Address = token_address.parse()?;
-        //             Some(token_address)
-        //         }
-        //         TokenToRemove::None => None, // no token to remove
-        //     },
-        //     Err(err) => return Err(err),
-        // };
-        //
+        user.liquidate(event)?;
 
-        debug!("user updated!");
+        debug!("user liquidated!");
 
         user.update_meta_data(PricingSource::SavedTokenPrice, client)
             .await?;
