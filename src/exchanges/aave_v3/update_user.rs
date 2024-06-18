@@ -40,17 +40,16 @@ pub trait Update {
 
 impl Update for AaveUserData {
     fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>> {
-        let collateral_token_address = address_to_string(event.get_collateral_token_address());
-        let debt_token_address = address_to_string(event.get_debt_token_address());
-
         for token in self.tokens.iter_mut() {
-            if token.token.address.to_lowercase() == collateral_token_address {
+            if token.token.address.to_lowercase() == event.get_collateral_token_address() {
                 // update collateral
 
-                token.current_atoken_balance -= event.get_collateral_liquidated();
-            } else if token.token.address.to_lowercase() == debt_token_address {
+                token.current_atoken_balance =
+                    &token.current_atoken_balance - &event.get_collateral_liquidated();
+            } else if token.token.address.to_lowercase() == event.get_collateral_token_address() {
                 // update debt
-                token.current_total_debt -= event.get_amount_debt_reduced();
+                token.current_total_debt =
+                    &token.current_total_debt - &event.get_amount_debt_reduced();
             }
         }
 

@@ -1,4 +1,5 @@
-use crate::data::erc20::Erc20Token;
+use crate::data::erc20::{u256_to_big_decimal, Erc20Token};
+use crate::utils::type_conversion::address_to_string;
 use bigdecimal::BigDecimal;
 use ethers::abi::Address;
 use ethers::core::types::U256;
@@ -132,20 +133,20 @@ impl LiquidationEvent {
         self.user
     }
 
-    pub fn get_collateral_liquidated(&self) -> U256 {
-        self.liquidation_collateral_amount
+    pub fn get_collateral_liquidated(&self) -> BigDecimal {
+        u256_to_big_decimal(&self.liquidation_collateral_amount)
     }
 
-    pub fn get_amount_debt_reduced(&self) -> U256 {
-        self.debt_to_cover
+    pub fn get_amount_debt_reduced(&self) -> BigDecimal {
+        u256_to_big_decimal(&self.debt_to_cover)
     }
 
-    pub fn get_debt_token_address(&self) -> Address {
-        self.debt_asset
+    pub fn get_debt_token_address(&self) -> String {
+        address_to_string(self.debt_asset).to_lowercase()
     }
 
-    pub fn get_collateral_token_address(&self) -> Address {
-        self.debt_asset
+    pub fn get_collateral_token_address(&self) -> String {
+        address_to_string(self.debt_asset).to_lowercase()
     }
 }
 
