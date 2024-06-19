@@ -24,6 +24,7 @@ use crate::exchanges::aave_v3::events::{
 };
 
 const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
+const SCALE: i64 = 3;
 
 pub async fn update_users_with_event_from_log(
     log: Log,
@@ -129,19 +130,21 @@ pub async fn update_aave_user(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user_address = event.get_user();
     let user_action = get_user_action_from_event(event);
-    debug!("user action {:#?}", user_action);
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
         let user_id = user.id;
 
         debug!("updating user {}", user_id.to_string());
-        debug!("user debt ...{:?}", user.total_debt);
+        debug!("user debt ...{:?}", user.total_debt.with_scale(SCALE));
         debug!(
             "user a scaled collateral...{:?}",
-            user.collateral_times_liquidation_factor
+            user.collateral_times_liquidation_factor.with_scale(SCALE)
         );
-        debug!("user health factor...{:?}", user.health_factor);
+        debug!(
+            "user health factor...{:?}",
+            user.health_factor.with_scale(SCALE)
+        );
 
         let token_to_remove = match user.update(&user_action) {
             Ok(remove_token) => match remove_token {
@@ -159,12 +162,18 @@ pub async fn update_aave_user(
 
         user.update_meta_data(PricingSource::SavedTokenPrice, client)
             .await?;
-        debug!("updated user debt ...{:?}", user.total_debt);
+        debug!(
+            "updated user debt ...{:?}",
+            user.total_debt.with_scale(SCALE)
+        );
         debug!(
             "updated user scaled collateral...{:?}",
-            user.collateral_times_liquidation_factor
+            user.collateral_times_liquidation_factor.with_scale(SCALE)
         );
-        debug!("updated user health factor...{:?}", user.health_factor);
+        debug!(
+            "updated user health factor...{:?}",
+            user.health_factor.with_scale(SCALE)
+        );
 
         // update token => user mappings , includes adding new tokens
         users.update_token_user_mapping_for_(user_id)?;

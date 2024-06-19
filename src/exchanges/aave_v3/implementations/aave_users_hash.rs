@@ -358,21 +358,40 @@ impl UpdateUsers for AaveUsersHash {
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
         let mut users_with_tokens_connected_to_eth = HashSet::<Address>::new();
         for token in TOKENS_WITH_PRICE_CONNECTED_TO_ETH.iter() {
+            debug!("checking which users have {}", token.symbol);
             match user_type {
                 UserType::LowHealth => {
                     let low_health_users =
                         self.get_users_owning_token_by_user_type(token, UserType::LowHealth)?;
+                    debug!(
+                        "{} user with low health score have {}",
+                        low_health_users.len(),
+                        token.symbol
+                    );
 
-                    users_with_tokens_connected_to_eth.extend(low_health_users);
+                    if !low_health_users.is_empty() {
+                        users_with_tokens_connected_to_eth.extend(low_health_users);
+                    }
                 }
                 UserType::Standard => {
                     let standard_users =
                         self.get_users_owning_token_by_user_type(token, UserType::Standard)?;
 
-                    users_with_tokens_connected_to_eth.extend(standard_users);
+                    debug!(
+                        "{} standard users have {}",
+                        standard_users.len(),
+                        token.symbol
+                    );
+                    if !standard_users.is_empty() {
+                        users_with_tokens_connected_to_eth.extend(standard_users);
+                    }
                 }
             }
         }
+        debug!(
+            "hashset of tokens connected to ETH contain {} unique users",
+            users_with_tokens_connected_to_eth.len()
+        );
         Ok(users_with_tokens_connected_to_eth)
     }
 

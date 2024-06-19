@@ -4,6 +4,7 @@ use super::super::user_structs::{AaveUserData, AaveUsersHash, PricingSource, Sam
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
 use crate::data::address::AAVE_V3_POOL_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, Convert, TOKEN_DATA};
+use crate::data::token_price_hash::generate_token_price_hash;
 use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
@@ -67,6 +68,11 @@ impl GenerateUsers for AaveUserData {
     ) -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
         let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
 
+        // Initialize TOKEN_PRICE_HASH global hashmap of token prices
+        if let Err(e) = generate_token_price_hash(client).await {
+            error!("Failed to initialize token prices: {}", e);
+        }
+
         // store all data that we need for user
         let mut aave_user_data: Vec<AaveUserData> = Vec::new();
 
@@ -103,13 +109,18 @@ impl GenerateUsers for AaveUserData {
             // this is list of tokens that user is either using as colladeral or borrowing
             let user_tokens = user.get_list_of_user_tokens().await?;
 
-            let aave_user = AaveUserData {
+            let mut aave_user = AaveUserData {
                 id: user_id,
                 total_debt: total_debt.clone(),
                 collateral_times_liquidation_factor,
                 health_factor: health_factor.clone(),
                 tokens: user_tokens,
             };
+
+            // this step is needed to make sure collateral and debt values are scaled properly
+            aave_user
+                .update_meta_data(PricingSource::SavedTokenPrice, client)
+                .await?;
 
             // validate user data - at least 10% of graphql data for aave users is not accurate
             let aave_user_health_factor = aave_user.health_factor.clone();

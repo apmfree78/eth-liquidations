@@ -4,6 +4,7 @@ use crate::data::erc20::{u256_to_big_decimal, TOKEN_DATA};
 use crate::utils::type_conversion::address_to_string;
 use bigdecimal::BigDecimal;
 use core::panic;
+use log::debug;
 
 pub enum TokenToRemove {
     TokenToRemove(String),
@@ -41,16 +42,16 @@ pub trait Update {
 impl Update for AaveUserData {
     fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>> {
         for token in self.tokens.iter_mut() {
-            println!("checking token {}", token.token.symbol);
+            debug!("checking token {}", token.token.symbol);
             if token.token.address.to_lowercase() == event.get_collateral_token_address() {
                 // update collateral
-                println!("collateral token {}", token.token.symbol);
+                debug!("collateral token {}", token.token.symbol);
 
                 token.current_atoken_balance =
                     &token.current_atoken_balance - &event.get_collateral_liquidated();
             } else if token.token.address.to_lowercase() == event.get_debt_token_address() {
                 // update debt
-                println!("debt token {}", token.token.symbol);
+                debug!("debt token {}", token.token.symbol);
                 token.current_total_debt =
                     &token.current_total_debt - &event.get_amount_debt_reduced();
             }

@@ -4,6 +4,7 @@ use eth_liquadation::data::token_price_hash::{
     generate_token_price_hash, get_saved_token_price, print_saved_token_prices,
     set_saved_token_price,
 };
+use eth_liquadation::mempool::update_token_price::update_token_price_for_;
 use ethers::prelude::*;
 use std::sync::Arc;
 
@@ -44,9 +45,9 @@ async fn test_token_price_token_hash_versus_oracle() -> Result<(), Box<dyn std::
     print_saved_token_prices().await?;
     println!(" number of test to run {} ", UNIQUE_TOKEN_DATA.len());
     for token in UNIQUE_TOKEN_DATA.values() {
-        if token.name == "Maker" {
-            continue;
-        }
+        // if token.name == "Maker" {
+        //     continue;
+        // }
 
         // uniswap price
         let token_price_saved = token.get_saved_price_from_token_price_hash().await?;
@@ -55,6 +56,35 @@ async fn test_token_price_token_hash_versus_oracle() -> Result<(), Box<dyn std::
         let token_price_oracle = token.get_token_oracle_price(&client).await?;
 
         assert_eq!(token_price_saved, token_price_oracle);
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_token_hash_price_update() -> Result<(), Box<dyn std::error::Error>> {
+    // Set up the Ethereum client connection and wallet
+    const WS_URL: &str = "ws://localhost:8546";
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+
+    generate_token_price_hash(&client).await?;
+
+    print_saved_token_prices().await?;
+
+    println!(" number of test to run {} ", UNIQUE_TOKEN_DATA.len());
+    for token in UNIQUE_TOKEN_DATA.values() {
+        // below will get token price from uniswap place in saved token hash
+        update_token_price_for_(token, &client).await?;
+
+        // uniswap price
+        let token_price_saved = token.get_saved_price_from_token_price_hash().await?;
+
+        // price from chainlink oracle price
+        let token_price_uniswap = token.get_token_price_in_("USDC", &client).await?;
+
+        println!("token price check for {}", token.symbol);
+
+        assert_eq!(token_price_saved, token_price_uniswap);
     }
     Ok(())
 }
