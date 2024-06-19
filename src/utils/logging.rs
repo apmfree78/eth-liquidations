@@ -10,7 +10,7 @@ pub fn setup_logger() -> Result<(), fern::InitError> {
                 log::Level::Info => "green",
                 log::Level::Warn => "yellow",
                 log::Level::Error => "red",
-                log::Level::Debug => "white",
+                log::Level::Debug => "magenta",
                 log::Level::Trace => "bright black",
             };
             out.finish(format_args!(

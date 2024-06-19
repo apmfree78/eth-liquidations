@@ -18,6 +18,7 @@ pub const MAX_LIQUIDATION_CLOSE_FACTOR: f32 = 1.0;
  * A value of 0.95e18 results in 0.95
  */
 pub const CLOSE_FACTOR_HF_THRESHOLD: f32 = 0.95;
+pub const LIQUIDATION_THRESHOLD: f32 = 1.00;
 
 #[derive(Clone, Copy, Debug)]
 pub enum PricingSource {

@@ -1,5 +1,5 @@
 use crate::data::erc20::{Erc20Token, TOKENS_WITH_PRICE_CONNECTED_TO_ETH};
-use crate::exchanges::aave_v3::user_structs::CLOSE_FACTOR_HF_THRESHOLD;
+use crate::exchanges::aave_v3::user_structs::LIQUIDATION_THRESHOLD;
 
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
 use super::super::user_structs::{
@@ -340,7 +340,7 @@ impl UpdateUsers for AaveUsersHash {
             user.update_meta_data(PricingSource::SavedTokenPrice, client)
                 .await?;
 
-            if user.health_factor < BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap() {
+            if user.health_factor < BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap() {
                 liquidation_candidates.push(user.id);
             }
         }
