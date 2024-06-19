@@ -49,11 +49,6 @@ pub trait HealthFactor {
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 
-    async fn get_and_update_health_factor_with_(
-        &mut self,
-        source_for_pricing: PricingSource,
-        client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
     async fn is_user_valid_when_checking_against_official_health_factor(
         &mut self,
         client: &Arc<Provider<Ws>>,
@@ -286,21 +281,6 @@ impl HealthFactor for AaveUserData {
             warn!("no health factor because user has no debt");
             BigDecimal::from(0)
         };
-        Ok(health_factor)
-    }
-
-    async fn get_and_update_health_factor_with_(
-        &mut self,
-        source_for_pricing: PricingSource,
-        client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
-        // obtain latest health factor
-        let health_factor = self
-            .get_health_factor_from_(source_for_pricing, client)
-            .await?;
-
-        self.health_factor = health_factor.clone();
-
         Ok(health_factor)
     }
 

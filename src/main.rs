@@ -14,13 +14,13 @@ use ethers::{
     providers::{Provider, Ws},
 };
 use futures::{lock::Mutex, stream, StreamExt};
-use log::{error, info};
+use log::{error, info, warn};
 use std::sync::Arc;
 
 const WS_URL: &str = "ws://localhost:8546";
 
 enum Event {
-    // Block(ethers::types::Block<H256>),
+    Block(ethers::types::Block<TxHash>),
     AaveV3Log(Log),
     PendingTransactions(TxHash),
 }
@@ -64,10 +64,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|tx| Ok(Event::PendingTransactions(tx)))
             .boxed();
 
+    let block_stream: stream::BoxStream<
+        '_,
+        Result<Event, Box<dyn std::error::Error + Send + Sync>>,
+    > = client
+        .subscribe_blocks()
+        .await?
+        .map(|block| Ok(Event::Block(block)))
+        .boxed();
+
     info!("Subscribed to pending transactions");
 
     // Merge the streams into a single stream.
-    let combined_stream = stream::select_all(vec![aave_log_stream, tx_stream]);
+    let combined_stream = stream::select_all(vec![aave_log_stream, tx_stream, block_stream]);
 
     info!("Combined streams");
 
@@ -94,6 +103,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     {
                         error!("problem with price update detection => {}", error);
                     }
+                }
+                Ok(Event::Block(block)) => {
+                    warn!("NEW BLOCK ===> {:?}", block);
                 }
                 Err(e) => error!("Error: {:?}", e),
             }
