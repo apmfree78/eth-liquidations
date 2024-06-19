@@ -1,11 +1,7 @@
 use eth_liquadation::{
     data::token_price_hash::{generate_token_price_hash, print_saved_token_prices},
-    events::aave_events::update_users_with_event_from_log,
+    events::aave_events::{set_aave_event_signature_filter, update_users_with_event_from_log},
     exchanges::aave_v3::{
-        events::{
-            BORROW_SIGNATURE, REPAY_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
-            RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
-        },
         implementations::aave_user_data::GenerateUsers,
         user_structs::{AaveUserData, SampleSize},
     },
@@ -13,8 +9,7 @@ use eth_liquadation::{
     utils::logging::setup_logger,
 };
 use ethers::{
-    abi::Address,
-    core::types::{Filter, Log, TxHash},
+    core::types::{Log, TxHash},
     providers::Middleware,
     providers::{Provider, Ws},
 };
@@ -23,12 +18,13 @@ use log::{error, info};
 use std::sync::Arc;
 
 const WS_URL: &str = "ws://localhost:8546";
-const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
+
 enum Event {
     // Block(ethers::types::Block<H256>),
     AaveV3Log(Log),
     PendingTransactions(TxHash),
 }
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // initiate logger
@@ -48,26 +44,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let aave_users = Arc::new(Mutex::new(aave_users));
 
-    let filter = Filter::new()
-        .address(AAVE_V3_POOL_ADDRESS.parse::<Address>()?)
-        .events(
-            [
-                WITHDRAW_SIGNATURE,
-                BORROW_SIGNATURE,
-                REPAY_SIGNATURE,
-                SUPPLY_SIGNATURE,
-                RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE,
-                RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
-            ]
-            .to_vec(),
-        );
-
+    let aave_event_filter = set_aave_event_signature_filter()?;
     // Create multiple subscription streams.
     let aave_log_stream: stream::BoxStream<
         '_,
         Result<Event, Box<dyn std::error::Error + Send + Sync>>,
     > = client
-        .subscribe_logs(&filter)
+        .subscribe_logs(&aave_event_filter)
         .await?
         .map(|log| Ok(Event::AaveV3Log(log)))
         .boxed();

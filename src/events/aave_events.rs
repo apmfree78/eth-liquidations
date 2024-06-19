@@ -6,9 +6,14 @@ use crate::exchanges::aave_v3::{
     update_user::{get_user_action_from_event, TokenToRemove, Update},
     user_structs::{AaveUsersHash, PricingSource},
 };
+use ethers::{
+    abi::Address,
+    core::types::{Filter, Log},
+    providers::Ws,
+};
 use ethers::{prelude::*, utils::keccak256};
 use eyre::Result;
-use log::{debug, error, info};
+use log::{debug, error};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -57,22 +62,7 @@ pub async fn update_users_with_event_from_log(
     Ok(())
 }
 
-pub async fn scan_and_update_aave_events(
-    users: &mut AaveUsersHash,
-    client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // Compute the Keccak-256 hashes of the event signatures
-    let current_block = client.get_block_number().await?;
-    let lookback_blocks = U64::from(1000);
-    let from_block_number: U64 = if current_block > lookback_blocks {
-        current_block - lookback_blocks
-    } else {
-        U64::from(0)
-    };
-
-    // Explicitly convert U64 to BlockNumber for the filter
-    let from_block: BlockNumber = BlockNumber::from(from_block_number);
-
+pub fn set_aave_event_signature_filter() -> Result<Filter, Box<dyn std::error::Error>> {
     let filter = Filter::new()
         .address(AAVE_V3_POOL_ADDRESS.parse::<Address>()?)
         .events(
@@ -83,46 +73,11 @@ pub async fn scan_and_update_aave_events(
                 SUPPLY_SIGNATURE,
                 RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE,
                 RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
+                LIQUIDATION_SIGNATURE,
             ]
             .to_vec(),
-        )
-        .from_block(from_block)
-        .to_block(BlockNumber::Latest);
-    let event_logs = client.get_logs(&filter).await?;
-    info!("{} aave events found!", event_logs.iter().len());
-
-    update_users_with_events_from_logs(&event_logs, users, client).await?;
-    Ok(())
-}
-
-pub async fn update_users_with_events_from_logs(
-    logs: &[Log],
-    users: &mut AaveUsersHash,
-    client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let aave_event_map = setup_event_map();
-
-    for log in logs.iter() {
-        if !log.topics.is_empty() {
-            //determine which aave event was found
-            if let Some(aave_event_enum) = aave_event_map.get(&log.topics[0]) {
-                debug!("{:?} event: {:#?}", aave_event_enum, log);
-
-                // extract event data from log
-                let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, log);
-                debug!("event data => {:?}", aave_event_type_with_data);
-
-                // TODO - handle liquidation
-                // extract struct data from event enum
-                let event = extract_aave_event_data(&aave_event_type_with_data)
-                    .unwrap_or_else(|err| panic!("could not extract aave event data => {}", err));
-
-                // update aave user
-                update_aave_user(users, event, client).await?;
-            }
-        }
-    }
-    Ok(())
+        );
+    Ok(filter)
 }
 
 fn setup_event_map() -> HashMap<H256, AaveUserEvent> {

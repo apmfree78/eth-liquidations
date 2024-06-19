@@ -146,7 +146,7 @@ impl LiquidationEvent {
     }
 
     pub fn get_collateral_token_address(&self) -> String {
-        address_to_string(self.debt_asset).to_lowercase()
+        address_to_string(self.collateral_asset).to_lowercase()
     }
 }
 

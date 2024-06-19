@@ -1,8 +1,9 @@
 use eth_liquadation::{
     exchanges::aave_v3::events::{
-        BorrowEvent, RepayEvent, ReserveCollateralEvent, ReserveUsedAsCollateralDisabledEvent,
-        ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent, BORROW_SIGNATURE,
-        REPAY_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
+        BorrowEvent, LiquidationEvent, RepayEvent, ReserveCollateralEvent,
+        ReserveUsedAsCollateralDisabledEvent, ReserveUsedAsCollateralEnabledEvent, SupplyEvent,
+        WithdrawEvent, BORROW_SIGNATURE, LIQUIDATION_SIGNATURE, REPAY_SIGNATURE,
+        RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
         RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
     },
     utils::type_conversion::str_to_h256_hash,
@@ -43,6 +44,18 @@ pub fn create_log_for_collateral_disable_event(
 pub fn create_log_for_withdraw_event(&event: &WithdrawEvent, address: &str) -> Log {
     let topics = generate_withdraw_event_topics_field(&event);
     let data = generate_withdraw_event_log_data_field(&event);
+    // create mock log
+    Log {
+        address: address.parse().unwrap(),
+        topics,
+        data,
+        ..Default::default()
+    }
+}
+
+pub fn create_log_for_liquidation_event(&event: &LiquidationEvent, address: &str) -> Log {
+    let topics = generate_liquidation_event_topics_field(&event);
+    let data = generate_liquidation_event_log_data_field(&event);
     // create mock log
     Log {
         address: address.parse().unwrap(),
@@ -96,6 +109,16 @@ pub fn generate_borrow_event_topics_field(&event: &BorrowEvent) -> Vec<H256> {
         event.reserve.into(),
         event.on_behalf_of.into(),
         H256::from(u16_to_bytes_array(event.referral_code)),
+    ];
+    topics
+}
+
+pub fn generate_liquidation_event_topics_field(&event: &LiquidationEvent) -> Vec<H256> {
+    let topics = vec![
+        str_to_h256_hash(LIQUIDATION_SIGNATURE),
+        event.collateral_asset.into(),
+        event.debt_asset.into(),
+        event.user.into(),
     ];
     topics
 }
@@ -163,6 +186,20 @@ pub fn generate_borrow_event_log_data_field(&event: &BorrowEvent) -> Bytes {
     data.extend_from_slice(&amount_bit_array);
     data.extend_from_slice(&interest_rate_bit_array);
     data.extend_from_slice(&borrow_rate_bit_array);
+    data.into()
+}
+
+pub fn generate_liquidation_event_log_data_field(&event: &LiquidationEvent) -> Bytes {
+    let debt_bit_array = u256_to_bytes_array(event.debt_to_cover);
+    let liquidation_bit_array = u256_to_bytes_array(event.liquidation_collateral_amount);
+    let liquidator_bit_array = address_to_bytes_array(event.liquidator);
+    let received_a_token_bit_array = boolean_to_bytes_array(event.received_a_token);
+
+    let mut data = Vec::new();
+    data.extend_from_slice(&debt_bit_array);
+    data.extend_from_slice(&liquidation_bit_array);
+    data.extend_from_slice(&liquidator_bit_array);
+    data.extend_from_slice(&received_a_token_bit_array);
     data.into()
 }
 

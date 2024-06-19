@@ -6,9 +6,9 @@ mod generate_mock_users;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
-use eth_liquadation::events::aave_events::update_users_with_events_from_logs;
+use eth_liquadation::events::aave_events::update_users_with_event_from_log;
 use eth_liquadation::exchanges::aave_v3::events::{
-    BorrowEvent, RepayEvent, ReserveUsedAsCollateralDisabledEvent,
+    BorrowEvent, LiquidationEvent, RepayEvent, ReserveUsedAsCollateralDisabledEvent,
     ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent,
 };
 use ethers::core::types::U256;
@@ -18,8 +18,8 @@ use generate_logs::{
 use generate_mock_users::generate_mock_user_hash;
 
 use crate::generate_logs::{
-    create_log_for_borrow_event, create_log_for_repay_event, create_log_for_supply_event,
-    create_log_for_withdraw_event,
+    create_log_for_borrow_event, create_log_for_liquidation_event, create_log_for_repay_event,
+    create_log_for_supply_event, create_log_for_withdraw_event,
 };
 use ethers::providers::{Provider, Ws};
 use std::sync::Arc;
@@ -46,14 +46,14 @@ async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::E
         use_a_tokens: false,
     };
 
-    let logs = vec![create_log_for_repay_event(&repay_event, AAVE_V3_POOL)];
+    let log = create_log_for_repay_event(&repay_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
     // let mut users = user_hash.user_data.values();
     // println!("users => {:#?}", users);
 
     // now lets repay user debt and see if amount is updated
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     // println!("update users => {:#?}", users);
 
@@ -93,14 +93,14 @@ async fn test_user_update_with_full_repay_then_withdraw_event(
         use_a_tokens: false,
     };
 
-    let logs = vec![create_log_for_repay_event(&repay_event, AAVE_V3_POOL)];
+    let log = create_log_for_repay_event(&repay_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
     // let mut users = user_hash.user_data.values();
     // println!("users => {:#?}", users);
 
     // now lets repay user debt and see if amount is updated
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     let a_token_balance = BigDecimal::from_u64(30000000000).unwrap(); // should be unchanged
     let remaining_debt = BigDecimal::from(0); // lower remaining debt
@@ -123,10 +123,10 @@ async fn test_user_update_with_full_repay_then_withdraw_event(
         amount: amount_to_withdraw.into(),
     };
 
-    let logs = vec![create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL)];
+    let log = create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL);
 
     // now lets withdraw remaining a token balance
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     // get user
     let user = user_hash.user_data.get(&user_address).unwrap();
@@ -155,14 +155,14 @@ async fn test_user_update_with_full_withdraw_then_repay_event(
         amount: amount_to_withdraw.into(),
     };
 
-    let logs = vec![create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL)];
+    let log = create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
     // let mut users = user_hash.user_data.values();
     // println!("users => {:#?}", users);
 
     // now lets repay user debt and see if amount is updated
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     let remaining_debt = BigDecimal::from_u64(26000000000).unwrap(); // should be unchanged
     let a_token_balance = BigDecimal::from(0); // lower remaining debt
@@ -189,10 +189,10 @@ async fn test_user_update_with_full_withdraw_then_repay_event(
         use_a_tokens: false,
     };
 
-    let logs = vec![create_log_for_repay_event(&repay_event, AAVE_V3_POOL)];
+    let log = create_log_for_repay_event(&repay_event, AAVE_V3_POOL);
 
     // now lets withdraw remaining a token balance
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     // get user
     let user = user_hash.user_data.get(&user_address).unwrap();
@@ -222,12 +222,12 @@ async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn 
         use_a_tokens: true,
     };
 
-    let logs = vec![create_log_for_repay_event(&repay_event, AAVE_V3_POOL)];
+    let log = create_log_for_repay_event(&repay_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
 
     // now lets repay user debt and see if amount is updated
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     let a_token_balance = BigDecimal::from_u64(24000000000).unwrap(); // should be unchanged
     let remaining_debt = BigDecimal::from_u64(20000000000).unwrap(); // lower remaining debt
@@ -265,12 +265,12 @@ async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>
         referral_code: 0,
     };
 
-    let logs = vec![create_log_for_borrow_event(&borrow_event, AAVE_V3_POOL)];
+    let log = create_log_for_borrow_event(&borrow_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
 
     // now lets borrow tokens and take on more debt
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     let updated_debt = BigDecimal::from_u64(30000000000).unwrap(); // lower remaining debt
 
@@ -280,6 +280,55 @@ async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.current_total_debt, updated_debt);
+        }
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_user_liquidation() -> Result<(), Box<dyn std::error::Error>> {
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    generate_token_price_hash(&client).await?;
+    let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+
+    let liquidation_collateral_amount: u128 = 5000000000000000000;
+    let debt_to_cover: u64 = 25000000000;
+    let reserve_token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    let debt_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+
+    let liquidation_event = LiquidationEvent {
+        collateral_asset: reserve_token.parse().unwrap(),
+        debt_asset: debt_token.parse().unwrap(),
+        user: user_address,
+        debt_to_cover: debt_to_cover.into(),
+        liquidation_collateral_amount: liquidation_collateral_amount.into(),
+        liquidator: "0x893411580e590d62ddbca8a703d61cc4a8c7b2b9"
+            .parse()
+            .unwrap(),
+        received_a_token: false,
+    };
+
+    let log = create_log_for_liquidation_event(&liquidation_event, AAVE_V3_POOL);
+
+    let mut user_hash = generate_mock_user_hash()?;
+
+    // now lets borrow tokens and take on more debt
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
+
+    let updated_debt = BigDecimal::from_u64(1000000000).unwrap(); // lower remaining debt
+    let updated_collateral = BigDecimal::from_u128(10000000000000000000).unwrap(); // lower remaining debt
+
+    // get user
+    let user = user_hash.user_data.get(&user_address).unwrap();
+
+    println!("updated user => {:#?}", user);
+
+    for token in &user.tokens {
+        if token.token.address == debt_token {
+            assert_eq!(token.current_total_debt, updated_debt);
+        } else if token.token.address == reserve_token {
+            assert_eq!(token.current_atoken_balance, updated_collateral);
         }
     }
     Ok(())
@@ -306,12 +355,12 @@ async fn test_user_update_with_borrow_new_token() -> Result<(), Box<dyn std::err
         referral_code: 0,
     };
 
-    let logs = vec![create_log_for_borrow_event(&borrow_event, AAVE_V3_POOL)];
+    let log = create_log_for_borrow_event(&borrow_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
 
     // now lets borrow tokens and take on more debt
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     let amount_to_borrow = BigDecimal::from_u64(amount_to_borrow).unwrap(); // lower remaining debt
 
@@ -349,12 +398,12 @@ async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>
         referral_code: 0,
     };
 
-    let logs = vec![create_log_for_supply_event(&supply_event, AAVE_V3_POOL)];
+    let log = create_log_for_supply_event(&supply_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
 
     // now lets supply tokens to exchange
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     let new_supply = BigDecimal::from_u128(15500000000000000000).unwrap();
 
@@ -388,12 +437,12 @@ async fn test_user_update_with_supply_to_new_token() -> Result<(), Box<dyn std::
         referral_code: 0,
     };
 
-    let logs = vec![create_log_for_supply_event(&supply_event, AAVE_V3_POOL)];
+    let log = create_log_for_supply_event(&supply_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
 
     // now lets supply tokens to exchange
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     let amount_to_supply = BigDecimal::from_u128(amount_to_supply).unwrap();
 
@@ -428,12 +477,12 @@ async fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Erro
         amount: amount_to_withdraw.into(),
     };
 
-    let logs = vec![create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL)];
+    let log = create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
 
     // now lets withdraw user tokens
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     let new_supply = BigDecimal::from(0);
 
@@ -463,15 +512,12 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
         user: user_address,
     };
 
-    let logs = vec![create_log_for_collateral_disable_event(
-        collateral_disable_event,
-        AAVE_V3_POOL,
-    )];
+    let log = create_log_for_collateral_disable_event(collateral_disable_event, AAVE_V3_POOL);
 
     let mut user_hash = generate_mock_user_hash()?;
 
     // disable token usage as collateral
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     // get user
     let user = user_hash.user_data.get(&user_address).unwrap();
@@ -490,13 +536,10 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
             .unwrap(),
     };
 
-    let logs = vec![create_log_for_collateral_enable_event(
-        collateral_enable_event,
-        AAVE_V3_POOL,
-    )];
+    let log = create_log_for_collateral_enable_event(collateral_enable_event, AAVE_V3_POOL);
 
     // enable token usage as collateral
-    update_users_with_events_from_logs(&logs, &mut user_hash, &client).await?;
+    update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
     let user = user_hash.user_data.get(&user_address).unwrap();
 
