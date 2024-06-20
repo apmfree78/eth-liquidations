@@ -7,6 +7,7 @@ use eth_liquadation::{
     },
     mempool::detect_price_update::detect_price_update_and_find_users_to_liquidate,
     utils::logging::setup_logger,
+    validate::user_health_score::validate_liquidation_candidates,
 };
 use ethers::{
     core::types::{Log, TxHash},
@@ -105,7 +106,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 Ok(Event::Block(block)) => {
-                    warn!("NEW BLOCK ===> {:?}", block);
+                    warn!("NEW BLOCK ===> {}", block.timestamp);
+                    // TODO - add methods to check tracked users to see what their health scores are
+                    if let Err(error) = validate_liquidation_candidates(&client).await {
+                        error!("error looking up liquidation candidates => {}", error);
+                    }
                 }
                 Err(e) => error!("Error: {:?}", e),
             }

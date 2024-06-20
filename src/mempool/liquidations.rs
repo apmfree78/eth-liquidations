@@ -1,4 +1,5 @@
 use crate::data::erc20::Erc20Token;
+use crate::data::users_to_track::add_tracked_users;
 use crate::exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate};
 use crate::exchanges::aave_v3::{
     implementations::aave_users_hash::UpdateUsers, user_structs::AaveUsersHash,
@@ -28,7 +29,8 @@ pub async fn find_users_and_liquidate(
     {
         match liquidations {
             UsersToLiquidate::Users(users_to_liquidate) => {
-                info!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate)
+                info!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate);
+                add_tracked_users(users_to_liquidate).await?;
             }
             UsersToLiquidate::None => {}
         }
@@ -45,7 +47,8 @@ pub async fn find_users_and_liquidate(
     {
         match liquidations {
             UsersToLiquidate::Users(users_to_liquidate) => {
-                info!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate)
+                info!("FOUND USERS TO LIQUIDATE {:#?}", users_to_liquidate);
+                add_tracked_users(users_to_liquidate).await?;
             }
             UsersToLiquidate::None => {}
         }

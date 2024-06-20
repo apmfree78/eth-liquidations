@@ -340,7 +340,9 @@ impl UpdateUsers for AaveUsersHash {
             user.update_meta_data(PricingSource::SavedTokenPrice, client)
                 .await?;
 
-            if user.health_factor < BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap() {
+            if user.health_factor < BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap()
+                && user.health_factor > BigDecimal::from(0)
+            {
                 liquidation_candidates.push(user.id);
             }
         }

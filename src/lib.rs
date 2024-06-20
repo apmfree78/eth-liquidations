@@ -28,6 +28,7 @@ pub mod data {
     pub mod address;
     pub mod erc20;
     pub mod token_price_hash;
+    pub mod users_to_track;
 }
 
 pub mod abi {
@@ -39,4 +40,8 @@ pub mod abi {
 
 pub mod events {
     pub mod aave_events;
+}
+
+pub mod validate {
+    pub mod user_health_score;
 }
