@@ -43,5 +43,5 @@ pub mod events {
 }
 
 pub mod validate {
-    pub mod user_health_score;
+    pub mod aave_users;
 }

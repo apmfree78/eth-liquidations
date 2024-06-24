@@ -196,6 +196,17 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
             chainlink_aggregator: "0xe62b71cf983019bff55bc83b48601ce8419650cc",
         },
         Erc20Token {
+            name: "ETHx",
+            symbol: "ETHx",
+            decimals: 18,
+            address: "0xa35b1b31ce002fbf2058d22f30f95d405200a15b",
+            liquidation_bonus: 10750,
+            liquidation_threshold: 7700,
+            // track with movement of ETH
+            chain_link_price_feed: "0xC5f8c4aB091Be1A899214c0C3636ca33DcA0C547",
+            chainlink_aggregator: "",
+        },
+        Erc20Token {
             name: "Wrapped liquid staked Ether 2.0",
             symbol: "wstETH",
             decimals: 18,
@@ -548,7 +559,7 @@ pub static UNIQUE_TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
 
 pub static TOKENS_WITH_PRICE_CONNECTED_TO_ETH: Lazy<Vec<&Erc20Token>> = Lazy::new(|| {
     let token_symbols_connected_to_eth = vec![
-        "WETH", "wstETH", "osETH", "WBTC", "rETH", "cbETH", "LDO", "weETH",
+        "WETH", "wstETH", "osETH", "WBTC", "rETH", "cbETH", "LDO", "weETH", "ETHx",
     ];
 
     let mut tokens_with_price_connected_to_eth = Vec::<&Erc20Token>::new();

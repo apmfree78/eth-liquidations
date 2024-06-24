@@ -39,7 +39,7 @@ pub async fn get_saved_token_price(
 
     let token_price = token_prices
         .get(&token_address)
-        .unwrap_or_else(|| panic!("token not found in token price hash"));
+        .unwrap_or_else(|| panic!("token {} not found in token price hash", token_address));
 
     Ok(token_price.clone())
 }
