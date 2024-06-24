@@ -7,7 +7,7 @@ use crate::{
         users_to_track::{get_tracked_users, reset_tracked_users},
     },
     exchanges::aave_v3::user_structs::{
-        AaveToken, CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
+        AaveToken, BPS_FACTOR, CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
     },
     utils::type_conversion::address_to_string,
 };
@@ -60,7 +60,7 @@ pub async fn validate_liquidation_candidates(
             validation_count += 1;
 
             let (liquidation_args, profit) =
-                calculate_user_liquidation_profit(user_id, &health_factor, client).await?;
+                calculate_user_liquidation_usd_profit(user_id, &health_factor, client).await?;
 
             let user_id_string = address_to_string(liquidation_args.user);
             let debt = address_to_string(liquidation_args.debt);
@@ -95,15 +95,13 @@ pub async fn validate_liquidation_candidates(
     Ok(())
 }
 
-pub async fn calculate_user_liquidation_profit(
+pub async fn calculate_user_liquidation_usd_profit(
     user_id: &Address,
     health_factor: &BigDecimal,
     client: &Arc<Provider<Ws>>,
 ) -> Result<(LiquidationArgs, BigDecimal), Box<dyn std::error::Error>> {
     // update token hash prices to aave oracle values
     generate_token_price_hash(client).await?;
-    // let eth_token = TOKEN_DATA.get("WETH").unwrap();
-    // let eth_price = get_saved_token_price(eth_token.address.to_owned()).await?;
 
     let mut liquidation_args = LiquidationArgs {
         collateral: Address::zero(),
@@ -139,7 +137,7 @@ pub async fn calculate_user_liquidation_profit(
     for token in UNIQUE_TOKEN_DATA.values() {
         let token_address = token.address.parse()?;
         let decimal_factor = BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
-        let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
+        let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
 
         let (a_token_balance, stable_debt, variable_debt, _, _, _, _, _, use_as_collateral) =
             aave_v3_data_pool
@@ -191,7 +189,7 @@ pub async fn calculate_user_liquidation_profit(
         // calculate profit
         // profit = debtToCover$ * liquidaitonBonus * (1 - liquidationBonus) * aTokenBalance
         let profit_usd =
-            debt_to_cover_in_usd * liquidation_bonus * (one - liquidation_bonus) * a_token_balance;
+            debt_to_cover_in_usd * liquidation_bonus * (liquidation_bonus - one) * a_token_balance;
 
         if profit_usd > maximum_profit {
             maximum_profit = profit_usd;

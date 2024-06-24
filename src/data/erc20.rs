@@ -74,6 +74,7 @@ impl Convert for Erc20Token {
         } else if (self.symbol == "sDAI"
             || self.symbol == "MKR"
             || self.symbol == "crvUSD"
+            || self.symbol == "ETHx"
             || self.symbol == "KNC"
             || self.symbol == "osETH")
             && base_token_symbol == "USDC"
@@ -204,7 +205,7 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
             liquidation_threshold: 7700,
             // track with movement of ETH
             chain_link_price_feed: "0xC5f8c4aB091Be1A899214c0C3636ca33DcA0C547",
-            chainlink_aggregator: "",
+            chainlink_aggregator: "0xaa745106db818bfecc39250260df4d453498279f",
         },
         Erc20Token {
             name: "Wrapped liquid staked Ether 2.0",

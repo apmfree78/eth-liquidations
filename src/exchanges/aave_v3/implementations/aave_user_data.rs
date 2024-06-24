@@ -6,6 +6,7 @@ use crate::data::address::AAVE_V3_POOL_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, Convert, TOKEN_DATA};
 use crate::data::token_price_hash::generate_token_price_hash;
 use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
+use crate::exchanges::aave_v3::user_structs::BPS_FACTOR;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::abi::Address;
@@ -78,7 +79,7 @@ impl GenerateUsers for AaveUserData {
         };
 
         info!("got aave_v3 users");
-        let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
+        let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
         info!("found { } users from aave v3 graphql", aave_users.len());
         let mut valid_users_from_graphql: u16 = 0;
@@ -184,7 +185,7 @@ impl GetUserData for AaveUserData {
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
     ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>> {
-        let bps_factor = BigDecimal::from_u64(10_u64.pow(4)).unwrap();
+        let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
 
         let mut total_debt_usd = BigDecimal::from(0);
         let mut liquidation_threshold_collateral_sum = BigDecimal::from(0);
