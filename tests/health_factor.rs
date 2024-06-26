@@ -1,4 +1,5 @@
 use bigdecimal::BigDecimal;
+use dotenv::dotenv;
 use eth_liquadation::exchanges::aave_v3::{
     implementations::aave_user_data::{GenerateUsers, HealthFactor},
     user_structs::{AaveUserData, AaveUsersHash, PricingSource, SampleSize},
@@ -10,6 +11,7 @@ use std::sync::Arc;
 #[tokio::test]
 async fn test_that_health_factor_is_self_consistent_in_user_data(
 ) -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
@@ -38,6 +40,7 @@ async fn test_that_health_factor_is_self_consistent_in_user_data(
 #[tokio::test]
 async fn test_that_calculated_health_factor_roughly_matches_given_one(
 ) -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
