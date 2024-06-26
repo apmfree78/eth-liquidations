@@ -227,20 +227,22 @@ pub async fn calculate_gas_cost(
     liquidation_args: &LiquidationArgs,
     client: &Arc<Provider<Ws>>,
 ) -> Result<U256, Box<dyn std::error::Error>> {
-    let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
-    let sample_debt_to_cover: U256 = U256::from(4000000u64);
+    // let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
+    // let sample_debt_to_cover: U256 = U256::from(4000000u64);
 
     debug!("estimating gas cost");
-    let estimated_gas = aave_v3_pool
-        .liquidation_call(
-            liquidation_args.collateral,
-            liquidation_args.debt,
-            liquidation_args.user,
-            sample_debt_to_cover,
-            liquidation_args.receive_a_token,
-        )
-        .estimate_gas()
-        .await?;
+    // let estimated_gas = aave_v3_pool
+    //     .liquidation_call(
+    //         liquidation_args.collateral,
+    //         liquidation_args.debt,
+    //         liquidation_args.user,
+    //         sample_debt_to_cover,
+    //         liquidation_args.receive_a_token,
+    //     )
+    //     .estimate_gas()
+    //     .await?;
+
+    let estimated_gas = U256::from(100u32);
 
     debug!("estmating gas price");
     let gas_price = client.get_gas_price().await?;

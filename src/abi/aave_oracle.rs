@@ -1,3 +1,4 @@
+#![allow(clippy::all)]
 pub use aave_oracle::*;
 /// This module was auto-generated with ethers-rs Abigen.
 /// More information at: <https://github.com/gakonst/ethers-rs>
@@ -7,7 +8,7 @@ pub use aave_oracle::*;
     clippy::upper_case_acronyms,
     clippy::type_complexity,
     dead_code,
-    non_camel_case_types,
+    non_camel_case_types
 )]
 pub mod aave_oracle {
     const _: () = {
@@ -24,17 +25,13 @@ pub mod aave_oracle {
                         name: ::std::borrow::ToOwned::to_owned("provider"),
                         kind: ::ethers::core::abi::ethabi::ParamType::Address,
                         internal_type: ::core::option::Option::Some(
-                            ::std::borrow::ToOwned::to_owned(
-                                "contract IPoolAddressesProvider",
-                            ),
+                            ::std::borrow::ToOwned::to_owned("contract IPoolAddressesProvider",),
                         ),
                     },
                     ::ethers::core::abi::ethabi::Param {
                         name: ::std::borrow::ToOwned::to_owned("assets"),
                         kind: ::ethers::core::abi::ethabi::ParamType::Array(
-                            ::std::boxed::Box::new(
-                                ::ethers::core::abi::ethabi::ParamType::Address,
-                            ),
+                            ::std::boxed::Box::new(::ethers::core::abi::ethabi::ParamType::Address,),
                         ),
                         internal_type: ::core::option::Option::Some(
                             ::std::borrow::ToOwned::to_owned("address[]"),
@@ -43,9 +40,7 @@ pub mod aave_oracle {
                     ::ethers::core::abi::ethabi::Param {
                         name: ::std::borrow::ToOwned::to_owned("sources"),
                         kind: ::ethers::core::abi::ethabi::ParamType::Array(
-                            ::std::boxed::Box::new(
-                                ::ethers::core::abi::ethabi::ParamType::Address,
-                            ),
+                            ::std::boxed::Box::new(::ethers::core::abi::ethabi::ParamType::Address,),
                         ),
                         internal_type: ::core::option::Option::Some(
                             ::std::borrow::ToOwned::to_owned("address[]"),
@@ -77,300 +72,242 @@ pub mod aave_oracle {
             functions: ::core::convert::From::from([
                 (
                     ::std::borrow::ToOwned::to_owned("ADDRESSES_PROVIDER"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("ADDRESSES_PROVIDER"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned(
-                                            "contract IPoolAddressesProvider",
-                                        ),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("ADDRESSES_PROVIDER"),
+                        inputs: ::std::vec![],
+                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::string::String::new(),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("contract IPoolAddressesProvider",),
+                            ),
+                        },],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("BASE_CURRENCY"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("BASE_CURRENCY"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("BASE_CURRENCY"),
+                        inputs: ::std::vec![],
+                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::string::String::new(),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("address"),
+                            ),
+                        },],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("BASE_CURRENCY_UNIT"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("BASE_CURRENCY_UNIT"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("BASE_CURRENCY_UNIT"),
+                        inputs: ::std::vec![],
+                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::string::String::new(),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("uint256"),
+                            ),
+                        },],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("getAssetPrice"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("getAssetPrice"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("asset"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                            ],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("getAssetPrice"),
+                        inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::borrow::ToOwned::to_owned("asset"),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("address"),
+                            ),
+                        },],
+                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::string::String::new(),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("uint256"),
+                            ),
+                        },],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("getAssetsPrices"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("getAssetsPrices"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("assets"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Array(
-                                        ::std::boxed::Box::new(
-                                            ::ethers::core::abi::ethabi::ParamType::Address,
-                                        ),
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address[]"),
-                                    ),
-                                },
-                            ],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Array(
-                                        ::std::boxed::Box::new(
-                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
-                                        ),
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256[]"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("getAssetsPrices"),
+                        inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::borrow::ToOwned::to_owned("assets"),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Array(
+                                ::std::boxed::Box::new(
+                                    ::ethers::core::abi::ethabi::ParamType::Address,
+                                ),
+                            ),
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("address[]"),
+                            ),
+                        },],
+                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::string::String::new(),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Array(
+                                ::std::boxed::Box::new(
+                                    ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                ),
+                            ),
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("uint256[]"),
+                            ),
+                        },],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("getFallbackOracle"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("getFallbackOracle"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("getFallbackOracle"),
+                        inputs: ::std::vec![],
+                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::string::String::new(),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("address"),
+                            ),
+                        },],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("getSourceOfAsset"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("getSourceOfAsset"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("asset"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                            ],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("getSourceOfAsset"),
+                        inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::borrow::ToOwned::to_owned("asset"),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("address"),
+                            ),
+                        },],
+                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::string::String::new(),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("address"),
+                            ),
+                        },],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("setAssetSources"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("setAssetSources"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("assets"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Array(
-                                        ::std::boxed::Box::new(
-                                            ::ethers::core::abi::ethabi::ParamType::Address,
-                                        ),
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("setAssetSources"),
+                        inputs: ::std::vec![
+                            ::ethers::core::abi::ethabi::Param {
+                                name: ::std::borrow::ToOwned::to_owned("assets"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Array(
+                                    ::std::boxed::Box::new(
+                                        ::ethers::core::abi::ethabi::ParamType::Address,
                                     ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address[]"),
+                                ),
+                                internal_type: ::core::option::Option::Some(
+                                    ::std::borrow::ToOwned::to_owned("address[]"),
+                                ),
+                            },
+                            ::ethers::core::abi::ethabi::Param {
+                                name: ::std::borrow::ToOwned::to_owned("sources"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Array(
+                                    ::std::boxed::Box::new(
+                                        ::ethers::core::abi::ethabi::ParamType::Address,
                                     ),
-                                },
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("sources"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Array(
-                                        ::std::boxed::Box::new(
-                                            ::ethers::core::abi::ethabi::ParamType::Address,
-                                        ),
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address[]"),
-                                    ),
-                                },
-                            ],
-                            outputs: ::std::vec![],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
-                        },
-                    ],
+                                ),
+                                internal_type: ::core::option::Option::Some(
+                                    ::std::borrow::ToOwned::to_owned("address[]"),
+                                ),
+                            },
+                        ],
+                        outputs: ::std::vec![],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("setFallbackOracle"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("setFallbackOracle"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("fallbackOracle"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                            ],
-                            outputs: ::std::vec![],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("setFallbackOracle"),
+                        inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::borrow::ToOwned::to_owned("fallbackOracle"),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("address"),
+                            ),
+                        },],
+                        outputs: ::std::vec![],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                    },],
                 ),
             ]),
             events: ::core::convert::From::from([
                 (
                     ::std::borrow::ToOwned::to_owned("AssetSourceUpdated"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Event {
-                            name: ::std::borrow::ToOwned::to_owned("AssetSourceUpdated"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("asset"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    indexed: true,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("source"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    indexed: true,
-                                },
-                            ],
-                            anonymous: false,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Event {
+                        name: ::std::borrow::ToOwned::to_owned("AssetSourceUpdated"),
+                        inputs: ::std::vec![
+                            ::ethers::core::abi::ethabi::EventParam {
+                                name: ::std::borrow::ToOwned::to_owned("asset"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                indexed: true,
+                            },
+                            ::ethers::core::abi::ethabi::EventParam {
+                                name: ::std::borrow::ToOwned::to_owned("source"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                indexed: true,
+                            },
+                        ],
+                        anonymous: false,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("BaseCurrencySet"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Event {
-                            name: ::std::borrow::ToOwned::to_owned("BaseCurrencySet"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("baseCurrency"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    indexed: true,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("baseCurrencyUnit"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                            ],
-                            anonymous: false,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Event {
+                        name: ::std::borrow::ToOwned::to_owned("BaseCurrencySet"),
+                        inputs: ::std::vec![
+                            ::ethers::core::abi::ethabi::EventParam {
+                                name: ::std::borrow::ToOwned::to_owned("baseCurrency"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                indexed: true,
+                            },
+                            ::ethers::core::abi::ethabi::EventParam {
+                                name: ::std::borrow::ToOwned::to_owned("baseCurrencyUnit"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
+                                indexed: false,
+                            },
+                        ],
+                        anonymous: false,
+                    },],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("FallbackOracleUpdated"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Event {
-                            name: ::std::borrow::ToOwned::to_owned(
-                                "FallbackOracleUpdated",
-                            ),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("fallbackOracle"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    indexed: true,
-                                },
-                            ],
-                            anonymous: false,
-                        },
-                    ],
+                    ::std::vec![::ethers::core::abi::ethabi::Event {
+                        name: ::std::borrow::ToOwned::to_owned("FallbackOracleUpdated",),
+                        inputs: ::std::vec![::ethers::core::abi::ethabi::EventParam {
+                            name: ::std::borrow::ToOwned::to_owned("fallbackOracle"),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                            indexed: true,
+                        },],
+                        anonymous: false,
+                    },],
                 ),
             ]),
             errors: ::std::collections::BTreeMap::new(),
@@ -379,9 +316,8 @@ pub mod aave_oracle {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static AAVE_ORACLE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
-        __abi,
-    );
+    pub static AAVE_ORACLE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
+        ::ethers::contract::Lazy::new(__abi);
     pub struct AAVE_ORACLE<M>(::ethers::contract::Contract<M>);
     impl<M> ::core::clone::Clone for AAVE_ORACLE<M> {
         fn clone(&self) -> Self {
@@ -413,21 +349,16 @@ pub mod aave_oracle {
             address: T,
             client: ::std::sync::Arc<M>,
         ) -> Self {
-            Self(
-                ::ethers::contract::Contract::new(
-                    address.into(),
-                    AAVE_ORACLE_ABI.clone(),
-                    client,
-                ),
-            )
+            Self(::ethers::contract::Contract::new(
+                address.into(),
+                AAVE_ORACLE_ABI.clone(),
+                client,
+            ))
         }
         ///Calls the contract's `ADDRESSES_PROVIDER` (0x0542975c) function
         pub fn addresses_provider(
             &self,
-        ) -> ::ethers::contract::builders::ContractCall<
-            M,
-            ::ethers::core::types::Address,
-        > {
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
             self.0
                 .method_hash([5, 66, 151, 92], ())
                 .expect("method not found (this should never happen)")
@@ -435,10 +366,7 @@ pub mod aave_oracle {
         ///Calls the contract's `BASE_CURRENCY` (0xe19f4700) function
         pub fn base_currency(
             &self,
-        ) -> ::ethers::contract::builders::ContractCall<
-            M,
-            ::ethers::core::types::Address,
-        > {
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
             self.0
                 .method_hash([225, 159, 71, 0], ())
                 .expect("method not found (this should never happen)")
@@ -475,10 +403,7 @@ pub mod aave_oracle {
         ///Calls the contract's `getFallbackOracle` (0x6210308c) function
         pub fn get_fallback_oracle(
             &self,
-        ) -> ::ethers::contract::builders::ContractCall<
-            M,
-            ::ethers::core::types::Address,
-        > {
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
             self.0
                 .method_hash([98, 16, 48, 140], ())
                 .expect("method not found (this should never happen)")
@@ -487,10 +412,7 @@ pub mod aave_oracle {
         pub fn get_source_of_asset(
             &self,
             asset: ::ethers::core::types::Address,
-        ) -> ::ethers::contract::builders::ContractCall<
-            M,
-            ::ethers::core::types::Address,
-        > {
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
             self.0
                 .method_hash([146, 191, 43, 224], asset)
                 .expect("method not found (this should never happen)")
@@ -517,46 +439,34 @@ pub mod aave_oracle {
         ///Gets the contract's `AssetSourceUpdated` event
         pub fn asset_source_updated_filter(
             &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            AssetSourceUpdatedFilter,
-        > {
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, AssetSourceUpdatedFilter>
+        {
             self.0.event()
         }
         ///Gets the contract's `BaseCurrencySet` event
         pub fn base_currency_set_filter(
             &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            BaseCurrencySetFilter,
-        > {
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, BaseCurrencySetFilter>
+        {
             self.0.event()
         }
         ///Gets the contract's `FallbackOracleUpdated` event
         pub fn fallback_oracle_updated_filter(
             &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            FallbackOracleUpdatedFilter,
-        > {
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, FallbackOracleUpdatedFilter>
+        {
             self.0.event()
         }
         /// Returns an `Event` builder for all the events of this contract.
         pub fn events(
             &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            AAVE_ORACLEEvents,
-        > {
-            self.0.event_with_filter(::core::default::Default::default())
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, AAVE_ORACLEEvents>
+        {
+            self.0
+                .event_with_filter(::core::default::Default::default())
         }
     }
-    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for AAVE_ORACLE<M> {
+    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>> for AAVE_ORACLE<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
@@ -569,9 +479,12 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
-    #[ethevent(name = "AssetSourceUpdated", abi = "AssetSourceUpdated(address,address)")]
+    #[ethevent(
+        name = "AssetSourceUpdated",
+        abi = "AssetSourceUpdated(address,address)"
+    )]
     pub struct AssetSourceUpdatedFilter {
         #[ethevent(indexed)]
         pub asset: ::ethers::core::types::Address,
@@ -586,7 +499,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethevent(name = "BaseCurrencySet", abi = "BaseCurrencySet(address,uint256)")]
     pub struct BaseCurrencySetFilter {
@@ -602,7 +515,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethevent(name = "FallbackOracleUpdated", abi = "FallbackOracleUpdated(address)")]
     pub struct FallbackOracleUpdatedFilter {
@@ -635,15 +548,9 @@ pub mod aave_oracle {
     impl ::core::fmt::Display for AAVE_ORACLEEvents {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
-                Self::AssetSourceUpdatedFilter(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
-                Self::BaseCurrencySetFilter(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
-                Self::FallbackOracleUpdatedFilter(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
+                Self::AssetSourceUpdatedFilter(element) => ::core::fmt::Display::fmt(element, f),
+                Self::BaseCurrencySetFilter(element) => ::core::fmt::Display::fmt(element, f),
+                Self::FallbackOracleUpdatedFilter(element) => ::core::fmt::Display::fmt(element, f),
             }
         }
     }
@@ -671,7 +578,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "ADDRESSES_PROVIDER", abi = "ADDRESSES_PROVIDER()")]
     pub struct AddressesProviderCall;
@@ -684,7 +591,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "BASE_CURRENCY", abi = "BASE_CURRENCY()")]
     pub struct BaseCurrencyCall;
@@ -697,7 +604,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "BASE_CURRENCY_UNIT", abi = "BASE_CURRENCY_UNIT()")]
     pub struct BaseCurrencyUnitCall;
@@ -710,7 +617,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "getAssetPrice", abi = "getAssetPrice(address)")]
     pub struct GetAssetPriceCall {
@@ -725,7 +632,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "getAssetsPrices", abi = "getAssetsPrices(address[])")]
     pub struct GetAssetsPricesCall {
@@ -740,7 +647,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "getFallbackOracle", abi = "getFallbackOracle()")]
     pub struct GetFallbackOracleCall;
@@ -753,7 +660,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "getSourceOfAsset", abi = "getSourceOfAsset(address)")]
     pub struct GetSourceOfAssetCall {
@@ -768,7 +675,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "setAssetSources", abi = "setAssetSources(address[],address[])")]
     pub struct SetAssetSourcesCall {
@@ -784,7 +691,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "setFallbackOracle", abi = "setFallbackOracle(address)")]
     pub struct SetFallbackOracleCall {
@@ -808,49 +715,47 @@ pub mod aave_oracle {
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
             let data = data.as_ref();
-            if let Ok(decoded) = <AddressesProviderCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <AddressesProviderCall as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::AddressesProvider(decoded));
             }
-            if let Ok(decoded) = <BaseCurrencyCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <BaseCurrencyCall as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::BaseCurrency(decoded));
             }
-            if let Ok(decoded) = <BaseCurrencyUnitCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <BaseCurrencyUnitCall as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::BaseCurrencyUnit(decoded));
             }
-            if let Ok(decoded) = <GetAssetPriceCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) = <GetAssetPriceCall as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::GetAssetPrice(decoded));
             }
-            if let Ok(decoded) = <GetAssetsPricesCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <GetAssetsPricesCall as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::GetAssetsPrices(decoded));
             }
-            if let Ok(decoded) = <GetFallbackOracleCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <GetFallbackOracleCall as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::GetFallbackOracle(decoded));
             }
-            if let Ok(decoded) = <GetSourceOfAssetCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <GetSourceOfAssetCall as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::GetSourceOfAsset(decoded));
             }
-            if let Ok(decoded) = <SetAssetSourcesCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <SetAssetSourcesCall as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::SetAssetSources(decoded));
             }
-            if let Ok(decoded) = <SetFallbackOracleCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
+            if let Ok(decoded) =
+                <SetFallbackOracleCall as ::ethers::core::abi::AbiDecode>::decode(data)
+            {
                 return Ok(Self::SetFallbackOracle(decoded));
             }
             Err(::ethers::core::abi::Error::InvalidData.into())
@@ -859,33 +764,15 @@ pub mod aave_oracle {
     impl ::ethers::core::abi::AbiEncode for AAVE_ORACLECalls {
         fn encode(self) -> Vec<u8> {
             match self {
-                Self::AddressesProvider(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::BaseCurrency(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::BaseCurrencyUnit(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::GetAssetPrice(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::GetAssetsPrices(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::GetFallbackOracle(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::GetSourceOfAsset(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::SetAssetSources(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::SetFallbackOracle(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
+                Self::AddressesProvider(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::BaseCurrency(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::BaseCurrencyUnit(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::GetAssetPrice(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::GetAssetsPrices(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::GetFallbackOracle(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::GetSourceOfAsset(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::SetAssetSources(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::SetFallbackOracle(element) => ::ethers::core::abi::AbiEncode::encode(element),
             }
         }
     }
@@ -958,7 +845,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct AddressesProviderReturn(pub ::ethers::core::types::Address);
     ///Container type for all return fields from the `BASE_CURRENCY` function with signature `BASE_CURRENCY()` and selector `0xe19f4700`
@@ -970,7 +857,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct BaseCurrencyReturn(pub ::ethers::core::types::Address);
     ///Container type for all return fields from the `BASE_CURRENCY_UNIT` function with signature `BASE_CURRENCY_UNIT()` and selector `0x8c89b64f`
@@ -982,7 +869,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct BaseCurrencyUnitReturn(pub ::ethers::core::types::U256);
     ///Container type for all return fields from the `getAssetPrice` function with signature `getAssetPrice(address)` and selector `0xb3596f07`
@@ -994,7 +881,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct GetAssetPriceReturn(pub ::ethers::core::types::U256);
     ///Container type for all return fields from the `getAssetsPrices` function with signature `getAssetsPrices(address[])` and selector `0x9d23d9f2`
@@ -1006,7 +893,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct GetAssetsPricesReturn(pub ::std::vec::Vec<::ethers::core::types::U256>);
     ///Container type for all return fields from the `getFallbackOracle` function with signature `getFallbackOracle()` and selector `0x6210308c`
@@ -1018,7 +905,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct GetFallbackOracleReturn(pub ::ethers::core::types::Address);
     ///Container type for all return fields from the `getSourceOfAsset` function with signature `getSourceOfAsset(address)` and selector `0x92bf2be0`
@@ -1030,7 +917,7 @@ pub mod aave_oracle {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct GetSourceOfAssetReturn(pub ::ethers::core::types::Address);
 }

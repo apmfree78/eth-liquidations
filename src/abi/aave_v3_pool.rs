@@ -1,3 +1,4 @@
+#![allow(clippy::all)]
 pub use aave_v3_pool::*;
 /// This module was auto-generated with ethers-rs Abigen.
 /// More information at: <https://github.com/gakonst/ethers-rs>
