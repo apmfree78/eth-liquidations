@@ -7,7 +7,9 @@ use log::{debug, error, info, warn};
 use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::str::FromStr;
+use std::{env, str::FromStr};
+
+use super::user_structs::SampleSize;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AaveUser {
@@ -94,36 +96,13 @@ pub struct Response {
 }
 
 pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error>> {
-    let query = r#"
-    { 
-     users(first: 300, where: {borrowedReservesCount_gt: 0}) {
-        id
-        borrowedReservesCount
-        reserves {
-          currentATokenBalance
-          currentStableDebt
-          currentVariableDebt
-          currentTotalDebt
-          reserve {
-            id
-            name
-            symbol
-            usageAsCollateralEnabled
-            reserveLiquidationThreshold
-            reserveLiquidationBonus
-            price {
-              priceInEth
-            }
-          }
-        }
-      }
-    }"#;
+    let (thegraph_url, query) = get_graphql_url_and_query(SampleSize::SmallBatch);
 
     let client = Client::new();
     let response = client
-        .post("https://api.thegraph.com/subgraphs/name/aave/protocol-v3")
+        .post(&thegraph_url)
         .header(header::CONTENT_TYPE, "application/json")
-        .json(&serde_json::json!({ "query": query }))
+        .json(&serde_json::json!({ "query": &query }))
         .send()
         .await?;
 
@@ -156,41 +135,18 @@ pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Er
 }
 
 pub async fn get_all_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error>> {
-    let query = r#"
-    query GetUsers($lastID: String) {
-     users(first: 1000, where: { borrowedReservesCount_gt: 0, id_gt: $lastID }) {
-        id
-        borrowedReservesCount
-        reserves {
-          currentATokenBalance
-          currentStableDebt
-          currentVariableDebt
-          currentTotalDebt
-          reserve {
-            id
-            name
-            symbol
-            usageAsCollateralEnabled
-            reserveLiquidationThreshold
-            reserveLiquidationBonus
-            price {
-              priceInEth
-            }
-          }
-        }
-      }
-    }"#;
-
     let client = Client::new();
     let mut all_users = Vec::<AaveUser>::new();
     let mut id_cursor = "0".to_string();
 
+    let (thegraph_url, query) = get_graphql_url_and_query(SampleSize::All);
+
     loop {
         let response = client
-            .post("https://api.thegraph.com/subgraphs/name/aave/protocol-v3")
+            .post(&thegraph_url)
             .header(header::CONTENT_TYPE, "application/json")
             .json(&serde_json::json!({
-            "query": query,
+            "query": &query,
             "variables": {
                 "lastID": id_cursor,
             }
@@ -231,4 +187,69 @@ pub async fn get_all_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error
     }
 
     Ok(all_users)
+}
+
+pub fn get_graphql_url_and_query(sample_size: SampleSize) -> (String, String) {
+    let api_key = env::var("THEGRAPH_API_KEY").expect("API_KEY not found in .env file");
+    let root_url = env::var("THEGRAPH_ROOT_URL").expect("THEGRAPH_ROOT_URL not found in .env file");
+    let subgraph_id = env::var("PROTOCOL_V3_SUBGRAPH_ID")
+        .expect("PROTOCOL_V3_SUBGRAPH_ID not found in .env file");
+    let thegraph_url = format!("{}/api/{}/subgraphs/id/{}", root_url, api_key, subgraph_id);
+
+    let query = match sample_size {
+        SampleSize::All => {
+            r#"
+    query GetUsers($lastID: String) {
+     users(first: 1000, where: { borrowedReservesCount_gt: 0, id_gt: $lastID }) {
+        id
+        borrowedReservesCount
+        reserves {
+          currentATokenBalance
+          currentStableDebt
+          currentVariableDebt
+          currentTotalDebt
+          reserve {
+            id
+            name
+            symbol
+            usageAsCollateralEnabled
+            reserveLiquidationThreshold
+            reserveLiquidationBonus
+            price {
+              priceInEth
+            }
+          }
+        }
+      }
+    }"#
+        }
+        SampleSize::SmallBatch => {
+            r#"
+    query GetUsers($lastID: String) {
+     users(first: 300, where: { borrowedReservesCount_gt: 0, id_gt: $lastID }) {
+        id
+        borrowedReservesCount
+        reserves {
+          currentATokenBalance
+          currentStableDebt
+          currentVariableDebt
+          currentTotalDebt
+          reserve {
+            id
+            name
+            symbol
+            usageAsCollateralEnabled
+            reserveLiquidationThreshold
+            reserveLiquidationBonus
+            price {
+              priceInEth
+            }
+          }
+        }
+      }
+    }"#
+        }
+    };
+
+    (thegraph_url.to_string(), query.to_string())
 }

@@ -13,9 +13,10 @@ pub async fn update_token_price_for_(
     if token_to_update.symbol == "WETH" {
         // when ETH price changes must update prices for all these tokens
         for token in TOKENS_WITH_PRICE_CONNECTED_TO_ETH.iter() {
-            // use UNISWAP to get real time price for token
             info!("price updated for {} => {}", token.name, token.symbol);
             let original_token_price = token.get_saved_price_from_token_price_hash().await?;
+
+            // use UNISWAP to get real time price for token
             let token_price = token.get_token_price_in_("USDC", client).await?;
             set_saved_token_price(token.address, token_price).await?;
             let update_token_price = token.get_saved_price_from_token_price_hash().await?;
@@ -30,10 +31,11 @@ pub async fn update_token_price_for_(
             );
         }
     } else {
-        // use UNISWAP to get real time price for token
         let original_token_price = token_to_update
             .get_saved_price_from_token_price_hash()
             .await?;
+
+        // use UNISWAP to get real time price for token
         let token_price = token_to_update.get_token_price_in_("USDC", client).await?;
         set_saved_token_price(token_to_update.address, token_price).await?;
         let update_token_price = token_to_update
