@@ -219,7 +219,7 @@ pub async fn get_all_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error
 
                     // find last element of array to index users
                     let last_element = data.users.last().unwrap();
-                    id_cursor = last_element.id.clone();
+                    id_cursor.clone_from(&last_element.id);
                     all_users.append(&mut data.users);
                 }
             }

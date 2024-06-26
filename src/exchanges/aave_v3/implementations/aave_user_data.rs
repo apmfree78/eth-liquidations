@@ -81,7 +81,12 @@ impl GenerateUsers for AaveUserData {
         info!("got aave_v3 users");
         let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
-        info!("found { } users from aave v3 graphql", aave_users.len());
+        if aave_users.is_empty() {
+            panic!("zero users found from graphql");
+        } else {
+            info!("found { } users from aave v3 graphql", aave_users.len());
+        }
+
         let mut valid_users_from_graphql: u16 = 0;
         let mut valid_users_from_contract: u16 = 0;
         for user in &aave_users {
@@ -256,9 +261,13 @@ impl UpdateUserData for AaveUserData {
         self.total_debt = total_debt;
 
         // now with updated  debt and collateral values ,  we can find health factor
-        let health_factor = self
-            .get_health_factor_from_(source_for_pricing, client)
-            .await?;
+
+        let health_factor = if self.total_debt > BigDecimal::zero() {
+            &self.collateral_times_liquidation_factor / &self.total_debt
+        } else {
+            warn!("no health factor because user has no debt");
+            BigDecimal::from(0)
+        };
 
         self.health_factor = health_factor;
         Ok(())

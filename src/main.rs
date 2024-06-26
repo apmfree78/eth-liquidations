@@ -1,3 +1,4 @@
+use dotenv::dotenv;
 use eth_liquadation::{
     data::token_price_hash::{generate_token_price_hash, print_saved_token_prices},
     events::aave_events::{set_aave_event_signature_filter, update_users_with_event_from_log},
@@ -16,7 +17,7 @@ use ethers::{
 };
 use futures::{lock::Mutex, stream, StreamExt};
 use log::{error, info, warn};
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 const WS_URL: &str = "ws://localhost:8546";
 
@@ -28,8 +29,12 @@ enum Event {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // initiate logger
+    // initiate logger and environment variables
+    dotenv().ok();
     setup_logger().expect("Failed to initialize logger.");
+
+    let api_key = env::var("THEGRAPH_API_KEY").expect("API_KEY not found in .env file");
+    println!("Using API Key: {}", api_key);
 
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);

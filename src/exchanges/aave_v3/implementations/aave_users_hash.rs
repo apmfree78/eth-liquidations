@@ -404,6 +404,7 @@ impl UpdateUsers for AaveUsersHash {
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
         let token_address: Address = token.address.parse()?;
 
+        // TODO - return empty hashset if nothing found
         match user_type {
             UserType::LowHealth => {
                 let low_health_users = self
