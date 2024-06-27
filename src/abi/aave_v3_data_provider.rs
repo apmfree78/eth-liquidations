@@ -11,11 +11,13 @@ pub use aave_v3_data_provider::*;
     non_camel_case_types
 )]
 pub mod aave_v3_data_provider {
-    const _: () = {
-        ::core::include_bytes!(
-            "/Users/apmfree/Desktop/rust/learn_ethers/examples/abi/aave_protocol_data_provider.json",
-        );
-    };
+
+    // const _: () = {
+    //     ::core::include_bytes!(
+    //         "/Users/apmfree/Desktop/rust/learn_ethers/examples/abi/aave_protocol_data_provider.json",
+    //     );
+    // };
+
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {

@@ -11,9 +11,11 @@ pub use erc20::*;
     non_camel_case_types
 )]
 pub mod erc20 {
-    const _: () = {
-        ::core::include_bytes!("/Users/apmfree/Desktop/rust/learn_ethers/examples/abi/erc20.json",);
-    };
+
+    // const _: () = {
+    //     ::core::include_bytes!("/Users/apmfree/Desktop/rust/learn_ethers/examples/abi/erc20.json",);
+    // };
+
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {

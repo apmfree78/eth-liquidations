@@ -11,11 +11,13 @@ pub use aave_oracle::*;
     non_camel_case_types
 )]
 pub mod aave_oracle {
-    const _: () = {
-        ::core::include_bytes!(
-            "/Users/apmfree/Desktop/rust/learn_ethers/examples/abi/aave_oracle.json",
-        );
-    };
+
+    // const _: () = {
+    //     ::core::include_bytes!(
+    //         "/Users/apmfree/Desktop/rust/learn_ethers/examples/abi/aave_oracle.json",
+    //     );
+    // };
+
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
