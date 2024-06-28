@@ -69,7 +69,11 @@ impl Convert for Erc20Token {
         base_token_symbol: &str,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
-        if self.symbol == base_token_symbol || self.symbol == "USDC" || self.symbol == "USDe" {
+        if self.symbol == base_token_symbol
+            || self.symbol == "USDC"
+            || self.symbol == "USDe"
+            || self.symbol == "sUSDe"
+        {
             return Ok(BigDecimal::from(1));
         } else if (self.symbol == "sDAI"
             || self.symbol == "MKR"
@@ -245,6 +249,17 @@ pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
             symbol: "USDe",
             decimals: 18,
             address: "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+            liquidation_bonus: 10850,
+            liquidation_threshold: 7500,
+            // do not track
+            chain_link_price_feed: "0xa569d910839Ae8865Da8F8e70FfFb0cBA869F961",
+            chainlink_aggregator: "0xb735cc58d71deac4cfc46de68d3b04988f7d7b2d",
+        },
+        Erc20Token {
+            name: "Stacked USDe",
+            symbol: "sUSDe",
+            decimals: 18,
+            address: "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497",
             liquidation_bonus: 10850,
             liquidation_threshold: 7500,
             // do not track
