@@ -225,8 +225,8 @@ pub fn get_graphql_url_and_query(sample_size: SampleSize) -> (String, String) {
         }
         SampleSize::SmallBatch => {
             r#"
-    query GetUsers($lastID: String) {
-     users(first: 300, where: { borrowedReservesCount_gt: 0, id_gt: $lastID }) {
+    { 
+     users(first: 300, where: {borrowedReservesCount_gt: 0}) {
         id
         borrowedReservesCount
         reserves {
