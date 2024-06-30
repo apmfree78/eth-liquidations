@@ -7,7 +7,7 @@ use crate::{
         users_to_track::{get_tracked_users, reset_tracked_users},
     },
     exchanges::aave_v3::user_structs::{
-        AaveToken, BPS_FACTOR, CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
+        AaveTokenU256, BPS_FACTOR, CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
     },
     utils::type_conversion::address_to_string,
 };
@@ -19,8 +19,7 @@ use ethers::{
     utils::format_units,
 };
 use log::{debug, info};
-use num_bigint::BigInt;
-use num_traits::Zero;
+use num_traits::ToPrimitive;
 use std::sync::Arc;
 
 #[derive(PartialEq)]
@@ -34,7 +33,7 @@ pub struct LiquidationArgs {
     collateral: Address,
     debt: Address,
     user: Address,
-    debt_to_cover: BigDecimal,
+    debt_to_cover: U256,
     receive_a_token: bool,
 }
 
@@ -66,12 +65,13 @@ pub async fn validate_liquidation_candidates(
         if health_factor < BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap() {
             validation_count += 1;
 
-            let (liquidation_args, profit) =
+            let (liquidation_args, profit_scaled) =
                 calculate_user_liquidation_usd_profit(user_id, &health_factor, client).await?;
 
             let user_id_string = address_to_string(liquidation_args.user);
             let debt = address_to_string(liquidation_args.debt);
             let collateral = address_to_string(liquidation_args.collateral);
+            let profit = &u256_to_big_decimal(&profit_scaled) / &standard_scale;
 
             info!(
                 "user {} liquidation ready /w health score of {}",
@@ -116,7 +116,10 @@ pub async fn calculate_user_liquidation_usd_profit(
     user_id: &Address,
     health_factor: &BigDecimal,
     client: &Arc<Provider<Ws>>,
-) -> Result<(LiquidationArgs, BigDecimal), Box<dyn std::error::Error>> {
+) -> Result<(LiquidationArgs, U256), Box<dyn std::error::Error>> {
+    let bps_factor = U256::from(BPS_FACTOR);
+    let standard_scale = U256::exp10(18);
+
     // update token hash prices to aave oracle values
     generate_token_price_hash(client).await?;
 
@@ -124,12 +127,12 @@ pub async fn calculate_user_liquidation_usd_profit(
         collateral: Address::zero(),
         debt: Address::zero(),
         user: *user_id,
-        debt_to_cover: BigDecimal::from(0),
+        debt_to_cover: U256::from(0),
         receive_a_token: false,
     };
 
     if health_factor >= &BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap() {
-        return Ok((liquidation_args, BigDecimal::from(0)));
+        return Ok((liquidation_args, U256::from(0)));
     }
 
     let liquidation_factor =
@@ -142,19 +145,18 @@ pub async fn calculate_user_liquidation_usd_profit(
     let aave_v3_data_pool =
         AAVE_V3_DATA_PROVIDER::new(*AAVE_V3_DATA_PROVIDER_ADDRESS, client.clone());
 
-    let liquidation_close_factor = match liquidation_factor {
-        LiquidationCloseFactor::Full => BigDecimal::from(1),
-        LiquidationCloseFactor::Half => BigDecimal::from_f32(0.5).unwrap(),
+    let liquidation_close_factor_scaled = match liquidation_factor {
+        LiquidationCloseFactor::Full => standard_scale,
+        LiquidationCloseFactor::Half => U256::from(5) * U256::exp10(17), // 0.5 scaled
     };
 
     let mut tokens = Vec::new();
-    let mut highest_token_debt = BigDecimal::from(0);
-    let mut maximum_profit = BigDecimal::from(0);
+    let mut highest_token_debt = U256::from(0);
+    let mut maximum_profit = U256::from(0);
 
     for token in UNIQUE_TOKEN_DATA.values() {
         let token_address = token.address.parse()?;
-        let decimal_factor = BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
-        let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
+        let decimal_factor = U256::exp10(token.decimals.into());
 
         let (a_token_balance, stable_debt, variable_debt, _, _, _, _, _, use_as_collateral) =
             aave_v3_data_pool
@@ -163,17 +165,15 @@ pub async fn calculate_user_liquidation_usd_profit(
                 .await?;
 
         let total_debt = stable_debt + variable_debt;
-        let total_debt = u256_to_big_decimal(&total_debt) / &decimal_factor;
-        let a_token_balance = u256_to_big_decimal(&a_token_balance) / &decimal_factor;
 
-        if total_debt > BigDecimal::from(0) || a_token_balance > BigDecimal::from(0) {
-            tokens.push(AaveToken {
+        if total_debt > U256::from(0) || a_token_balance > U256::from(0) {
+            tokens.push(AaveTokenU256 {
                 token: *token,
-                current_total_debt: total_debt.clone(),
+                current_total_debt: total_debt,
                 usage_as_collateral_enabled: use_as_collateral,
                 current_atoken_balance: a_token_balance,
-                reserve_liquidation_bonus: &BigDecimal::from(token.liquidation_bonus) / &bps_factor,
-                reserve_liquidation_threshold: BigDecimal::from(token.liquidation_threshold),
+                reserve_liquidation_bonus: U256::from(token.liquidation_bonus),
+                reserve_liquidation_threshold: U256::from(token.liquidation_threshold),
             })
         }
 
@@ -181,10 +181,35 @@ pub async fn calculate_user_liquidation_usd_profit(
             highest_token_debt = total_debt;
 
             let token_price = get_saved_token_price(token.address.to_lowercase()).await?;
+            let token_price = big_decimal_to_u256_scaled(&token_price).unwrap(); // price times 10^18
+            debug!("token price => {}, decimal_factor => {}, liquidation_close_factor_scaled => {}, highest_token_debt => {}",
+            token_price, decimal_factor, liquidation_close_factor_scaled, highest_token_debt);
+
+            // TODO - break up below equation into multiple sections
+
+            // let debt_to_cover =
+            //     highest_token_debt / decimal_factor * liquidation_close_factor_scaled * token_price
+            //         / standard_scale;
+
+            let debt_to_cover = highest_token_debt
+                .checked_mul(liquidation_close_factor_scaled)
+                .ok_or("overflow!")?;
+
+            let debt_to_cover = debt_to_cover
+                .checked_div(decimal_factor)
+                .ok_or("overflow or div by zero!")?;
+
+            let debt_to_cover = debt_to_cover
+                .checked_mul(token_price)
+                .ok_or("looks like overflow")?;
+
+            let debt_to_cover = debt_to_cover
+                .checked_div(standard_scale)
+                .ok_or("could be overflow or div by zero")?;
 
             liquidation_args = LiquidationArgs {
                 debt: token_address,
-                debt_to_cover: &highest_token_debt * &liquidation_close_factor * &token_price,
+                debt_to_cover,
                 ..liquidation_args
             }
         }
@@ -192,25 +217,54 @@ pub async fn calculate_user_liquidation_usd_profit(
 
     // now loop through to get find optimal liquidation combo
     for token in tokens {
-        let liquidation_bonus = &token.reserve_liquidation_bonus;
-        let debt_to_cover_in_usd = &liquidation_args.debt_to_cover;
-        let a_token_balance = &token.current_atoken_balance;
-        let one = &BigDecimal::from(1);
+        let liquidation_bonus = token.reserve_liquidation_bonus;
+        let debt_to_cover_in_usd_scaled = liquidation_args.debt_to_cover;
+        let a_token_balance = token.current_atoken_balance;
+        let decimal_factor = U256::exp10(token.token.decimals.into());
 
-        // debug!(
-        //     "liquidaiton bonus {}, debt to cover {}, a token balance {}",
-        //     liquidation_bonus,
-        //     debt_to_cover_in_usd.with_scale(3),
-        //     a_token_balance.with_scale(3)
-        // );
+        debug!(
+            "liquidaiton bonus {}, debt to cover {}, a token balance {}",
+            liquidation_bonus, debt_to_cover_in_usd_scaled, a_token_balance,
+        );
 
         // calculate profit
         // profit = debtToCover$ * liquidaitonBonus * (liquidationBonus - 1) * aTokenBalance
-        let profit_usd =
-            debt_to_cover_in_usd * liquidation_bonus * (liquidation_bonus - one) * a_token_balance;
+        // let profit_usd_scaled = debt_to_cover_in_usd_scaled * liquidation_bonus / bps_factor
+        //     * (liquidation_bonus - bps_factor)
+        //     / bps_factor
+        //     * a_token_balance
+        //     / decimal_factor;
 
-        if profit_usd > maximum_profit {
-            maximum_profit = profit_usd;
+        let profit_usd_scaled = debt_to_cover_in_usd_scaled
+            .checked_mul(a_token_balance)
+            .ok_or("profit calc overflow")?;
+
+        let profit_usd_scaled = profit_usd_scaled
+            .checked_div(decimal_factor)
+            .ok_or("profit overflow div by zero")?;
+
+        let profit_usd_scaled = profit_usd_scaled
+            .checked_mul(liquidation_bonus)
+            .ok_or("profit overflow liquidation bonus")?;
+
+        let bonus_minus_one = liquidation_bonus
+            .checked_sub(bps_factor)
+            .ok_or("additionl error")?;
+
+        let profit_usd_scaled = profit_usd_scaled
+            .checked_mul(bonus_minus_one)
+            .ok_or("profit overflow liquidation bonus minus one")?;
+
+        let profit_usd_scaled = profit_usd_scaled
+            .checked_div(bps_factor)
+            .ok_or("profit overflow div bps factor 1")?;
+
+        let profit_usd_scaled = profit_usd_scaled
+            .checked_div(bps_factor)
+            .ok_or("profit overflow div bps factor 2")?;
+
+        if profit_usd_scaled > maximum_profit {
+            maximum_profit = profit_usd_scaled;
             let token_address = token.token.address.parse()?;
 
             liquidation_args = LiquidationArgs {
@@ -227,8 +281,8 @@ pub async fn calculate_gas_cost(
     liquidation_args: &LiquidationArgs,
     client: &Arc<Provider<Ws>>,
 ) -> Result<U256, Box<dyn std::error::Error>> {
-    // let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
-    // let sample_debt_to_cover: U256 = U256::from(4000000u64);
+    let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
+    println!("debt to cover scaled {}", liquidation_args.debt_to_cover);
 
     debug!("estimating gas cost");
     // let estimated_gas = aave_v3_pool
@@ -236,13 +290,13 @@ pub async fn calculate_gas_cost(
     //         liquidation_args.collateral,
     //         liquidation_args.debt,
     //         liquidation_args.user,
-    //         sample_debt_to_cover,
+    //         liquidation_args.debt_to_cover,
     //         liquidation_args.receive_a_token,
     //     )
     //     .estimate_gas()
     //     .await?;
 
-    let estimated_gas = U256::from(100u32);
+    let estimated_gas = U256::from(40000);
 
     debug!("estmating gas price");
     let gas_price = client.get_gas_price().await?;
@@ -258,22 +312,10 @@ pub async fn calculate_gas_cost(
     Ok(total_cost)
 }
 
-pub fn big_decimal_to_u256(value: BigDecimal) -> Result<U256, &'static str> {
+pub fn big_decimal_to_u256_scaled(value: &BigDecimal) -> Result<U256, &'static str> {
     // Convert BigDecimal to BigInt
-    let (num, scale) = value.into_bigint_and_exponent();
-    let big_int = if scale >= 0 {
-        num * BigInt::from(10).pow(scale as u32)
-    } else {
-        // Handle scale if it's negative; reduce the number's precision
-        num.checked_div(&BigInt::from(10).pow((-scale) as u32))
-            .ok_or("Division error")?
-    };
-
-    // Ensure the BigInt is non-negative
-    if big_int < Zero::zero() {
-        return Err("Negative values cannot be converted to U256");
-    }
-
-    // Convert BigInt to U256
-    U256::from_dec_str(&big_int.to_string()).map_err(|_| "Overflow or conversion error")
+    let value: f64 = value.to_f64().unwrap();
+    let scaling_factor = 10u128.pow(18);
+    let scaled_value = (value * scaling_factor as f64).round() as u128;
+    Ok(U256::from(scaled_value))
 }

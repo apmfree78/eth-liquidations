@@ -1,6 +1,6 @@
 use crate::data::erc20::Erc20Token;
 use bigdecimal::BigDecimal;
-use ethers::abi::Address;
+use ethers::{abi::Address, types::U256};
 use std::collections::{HashMap, HashSet};
 
 pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
@@ -41,6 +41,16 @@ pub struct AaveToken {
     pub current_atoken_balance: BigDecimal,
     pub reserve_liquidation_threshold: BigDecimal,
     pub reserve_liquidation_bonus: BigDecimal,
+}
+
+#[derive(Clone, Debug)]
+pub struct AaveTokenU256 {
+    pub token: Erc20Token,
+    pub current_total_debt: U256,
+    pub usage_as_collateral_enabled: bool,
+    pub current_atoken_balance: U256,
+    pub reserve_liquidation_threshold: U256,
+    pub reserve_liquidation_bonus: U256,
 }
 
 #[derive(Clone, Debug)]
