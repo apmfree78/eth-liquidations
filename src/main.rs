@@ -12,8 +12,9 @@ use eth_liquadation::{
 };
 use ethers::{
     core::types::{Log, TxHash},
-    providers::Middleware,
-    providers::{Provider, Ws},
+    middleware::SignerMiddleware,
+    providers::{Middleware, Provider, Ws},
+    signers::{LocalWallet, Signer},
 };
 use futures::{lock::Mutex, stream, StreamExt};
 use log::{error, info, warn};
@@ -33,11 +34,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     setup_logger().expect("Failed to initialize logger.");
 
-    let api_key = env::var("THEGRAPH_API_KEY").expect("API_KEY not found in .env file");
-    println!("Using API Key: {}", api_key);
+    let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY not found in .env file");
 
+    // setup provider
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+
+    // create wallet from private key
+    let wallet: LocalWallet = private_key.parse()?;
+
+    // sign the wallet with provider
+    let signed_client = SignerMiddleware::new(client.clone(), wallet.with_chain_id(1u64));
+    let signed_client = Arc::new(signed_client);
 
     let aave_users = AaveUserData::get_users(&client, SampleSize::All).await?;
 
@@ -89,6 +97,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     combined_stream
         .for_each(|event| async {
             let client = Arc::clone(&client);
+            let signed_client = Arc::clone(&signed_client);
+
             let aave_users_data = Arc::clone(&aave_users);
             match event {
                 Ok(Event::AaveV3Log(log)) => {
@@ -112,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Ok(Event::Block(block)) => {
                     warn!("NEW BLOCK ===> {}", block.timestamp);
-                    // TODO - add methods to check tracked users to see what their health scores are
+                    // TODO - pass signed client
                     if let Err(error) = aave_users::validate_liquidation_candidates(&client).await {
                         error!("error looking up liquidation candidates => {}", error);
                     }
