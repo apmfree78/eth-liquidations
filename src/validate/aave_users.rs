@@ -11,14 +11,16 @@ use crate::{
     },
     utils::type_conversion::address_to_string,
 };
+
 use bigdecimal::{BigDecimal, FromPrimitive};
 use colored::*;
+// use ethers::{core::k256::ecdsa::SigningKey, middleware::SignerMiddleware, signers::Wallet};
 use ethers::{
     providers::{Middleware, Provider, Ws},
     types::{Address, U256},
     utils::format_units,
 };
-use log::{debug, info};
+use log::info;
 use num_traits::{ToPrimitive, Zero};
 use std::sync::Arc;
 
@@ -34,7 +36,7 @@ pub struct LiquidationArgs {
     debt: Address,
     user: Address,
     debt_to_cover: U256,
-    receive_a_token: bool,
+    _receive_a_token: bool,
 }
 
 pub async fn validate_liquidation_candidates(
@@ -76,7 +78,7 @@ pub async fn validate_liquidation_candidates(
             info!(
                 "user {} liquidation ready /w health score of {}",
                 user_id_string.green().bold(),
-                format!("{:2}", health_factor.with_scale(2)).red()
+                format!("{:2}", health_factor.with_scale(4)).red()
             );
             info!(
                 "liquidation profit is {}, with debt {} and collateral {}",
@@ -88,7 +90,7 @@ pub async fn validate_liquidation_candidates(
             // only check gas cost of profit if greater than zero
 
             if profit > BigDecimal::zero() {
-                let gas_cost = calculate_gas_cost(&liquidation_args, client).await?;
+                let gas_cost = calculate_gas_cost(client).await?;
 
                 // TODO - calculated NET profit
                 let gas_cost_usd =
@@ -133,7 +135,7 @@ pub async fn calculate_user_liquidation_usd_profit(
         debt: Address::zero(),
         user: *user_id,
         debt_to_cover: U256::from(0),
-        receive_a_token: false,
+        _receive_a_token: false,
     };
 
     if health_factor >= &BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap() {
@@ -187,10 +189,6 @@ pub async fn calculate_user_liquidation_usd_profit(
 
             let token_price = get_saved_token_price(token.address.to_lowercase()).await?;
             let token_price = big_decimal_to_u256_scaled(&token_price).unwrap(); // price times 10^18
-            debug!("token price => {}, decimal_factor => {}, liquidation_close_factor_scaled => {}, highest_token_debt => {}",
-            token_price, decimal_factor, liquidation_close_factor_scaled, highest_token_debt);
-
-            // TODO - break up below equation into multiple sections
 
             // let debt_to_cover =
             //     highest_token_debt / decimal_factor * liquidation_close_factor_scaled * token_price
@@ -226,11 +224,6 @@ pub async fn calculate_user_liquidation_usd_profit(
         let debt_to_cover_in_usd_scaled = liquidation_args.debt_to_cover;
         let a_token_balance = token.current_atoken_balance;
         let decimal_factor = U256::exp10(token.token.decimals.into());
-
-        debug!(
-            "liquidaiton bonus {}, debt to cover {}, a token balance {}",
-            liquidation_bonus, debt_to_cover_in_usd_scaled, a_token_balance,
-        );
 
         // calculate profit
         // profit = debtToCover$ * liquidaitonBonus * (liquidationBonus - 1) * aTokenBalance
@@ -283,39 +276,41 @@ pub async fn calculate_user_liquidation_usd_profit(
 }
 
 pub async fn calculate_gas_cost(
-    liquidation_args: &LiquidationArgs,
     client: &Arc<Provider<Ws>>,
 ) -> Result<U256, Box<dyn std::error::Error>> {
-    let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
-    // println!("debt to cover scaled {}", liquidation_args.debt_to_cover);
-    // debug!("collateral token => {}", liquidation_args.collateral);
-    // debug!("debt token => {}", liquidation_args.debt);
-    // debug!("user => {}", liquidation_args.user);
+    // ESTIMATING GAS FOR BELOW CALC
+    // match aave_v3_pool
+    //     .liquidation_call(
+    //         liquidation_args.collateral,
+    //         liquidation_args.debt,
+    //         liquidation_args.user,
+    //         liquidation_args.debt_to_cover,
+    //         liquidation_args.receive_a_token,
+    //     )
+    //     .estimate_gas()
+    //     .await
+    // {
+    //     Ok(estimated_gas) => estimated_gas_cost = estimated_gas,
+    //     Err(e) => {
+    //         error!("Error estimating gas => {:?}", e);
+    //     }
+    // }
 
-    debug!("estimating gas cost");
-    let estimated_gas = aave_v3_pool
-        .liquidation_call(
-            liquidation_args.collateral,
-            liquidation_args.debt,
-            liquidation_args.user,
-            liquidation_args.debt_to_cover,
-            liquidation_args.receive_a_token,
-        )
-        .estimate_gas()
-        .await?;
+    let estimated_gas_cost = U256::from(1_400_000);
 
-    // let estimated_gas = U256::from(4000000);
-
-    debug!("estmating gas price");
     let gas_price = client.get_gas_price().await?;
 
-    info!("gas cost => {}, gas price => {}", estimated_gas, gas_price);
-    let total_cost = estimated_gas
+    // info!(
+    //     "gas cost => {}, gas price => {}",
+    //     estimated_gas_cost, gas_price
+    // );
+
+    let total_cost = estimated_gas_cost
         .checked_mul(gas_price)
         .ok_or("overflow calculating total cost")?;
 
     let eth_cost = format_units(total_cost, 18)?;
-    info!("cost in eth of liquidation call is {}", eth_cost);
+    // info!("cost in eth of liquidation call is {}", eth_cost);
 
     Ok(total_cost)
 }

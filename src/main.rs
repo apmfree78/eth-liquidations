@@ -12,13 +12,15 @@ use eth_liquadation::{
 };
 use ethers::{
     core::types::{Log, TxHash},
-    middleware::SignerMiddleware,
     providers::{Middleware, Provider, Ws},
-    signers::{LocalWallet, Signer},
 };
+// use ethers::{
+//     middleware::SignerMiddleware,
+//     signers::{LocalWallet, Signer},
+// };
 use futures::{lock::Mutex, stream, StreamExt};
 use log::{error, info, warn};
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 const WS_URL: &str = "ws://localhost:8546";
 
@@ -34,18 +36,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     setup_logger().expect("Failed to initialize logger.");
 
-    let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY not found in .env file");
+    // let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY not found in .env file");
 
     // setup provider
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
     // create wallet from private key
-    let wallet: LocalWallet = private_key.parse()?;
+    // let wallet: LocalWallet = private_key.parse()?;
 
     // sign the wallet with provider
-    let signed_client = SignerMiddleware::new(client.clone(), wallet.with_chain_id(1u64));
-    let signed_client = Arc::new(signed_client);
+    // let signed_client = SignerMiddleware::new(client.clone(), wallet.with_chain_id(1u64));
+    // let signed_client = Arc::new(signed_client);
 
     let aave_users = AaveUserData::get_users(&client, SampleSize::All).await?;
 
@@ -97,7 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     combined_stream
         .for_each(|event| async {
             let client = Arc::clone(&client);
-            let signed_client = Arc::clone(&signed_client);
+            // let signed_client = Arc::clone(&signed_client);
 
             let aave_users_data = Arc::clone(&aave_users);
             match event {
