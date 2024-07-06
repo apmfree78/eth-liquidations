@@ -233,41 +233,43 @@ pub async fn calculate_user_liquidation_usd_profit(
         //     * a_token_balance
         //     / decimal_factor;
 
-        let profit_usd_scaled = debt_to_cover_in_usd_scaled
-            .checked_mul(a_token_balance)
-            .ok_or("profit calc overflow")?;
+        if liquidation_bonus > U256::from(0) {
+            let profit_usd_scaled = debt_to_cover_in_usd_scaled
+                .checked_mul(a_token_balance)
+                .ok_or("profit calc overflow")?;
 
-        let profit_usd_scaled = profit_usd_scaled
-            .checked_div(decimal_factor)
-            .ok_or("profit overflow div by zero")?;
+            let profit_usd_scaled = profit_usd_scaled
+                .checked_div(decimal_factor)
+                .ok_or("profit overflow div by zero")?;
 
-        let profit_usd_scaled = profit_usd_scaled
-            .checked_mul(liquidation_bonus)
-            .ok_or("profit overflow liquidation bonus")?;
+            let profit_usd_scaled = profit_usd_scaled
+                .checked_mul(liquidation_bonus)
+                .ok_or("profit overflow liquidation bonus")?;
 
-        let bonus_minus_one = liquidation_bonus
-            .checked_sub(bps_factor)
-            .ok_or("additionl error")?;
+            let bonus_minus_one = liquidation_bonus
+                .checked_sub(bps_factor)
+                .ok_or("additionl error")?;
 
-        let profit_usd_scaled = profit_usd_scaled
-            .checked_mul(bonus_minus_one)
-            .ok_or("profit overflow liquidation bonus minus one")?;
+            let profit_usd_scaled = profit_usd_scaled
+                .checked_mul(bonus_minus_one)
+                .ok_or("profit overflow liquidation bonus minus one")?;
 
-        let profit_usd_scaled = profit_usd_scaled
-            .checked_div(bps_factor)
-            .ok_or("profit overflow div bps factor 1")?;
+            let profit_usd_scaled = profit_usd_scaled
+                .checked_div(bps_factor)
+                .ok_or("profit overflow div bps factor 1")?;
 
-        let profit_usd_scaled = profit_usd_scaled
-            .checked_div(bps_factor)
-            .ok_or("profit overflow div bps factor 2")?;
+            let profit_usd_scaled = profit_usd_scaled
+                .checked_div(bps_factor)
+                .ok_or("profit overflow div bps factor 2")?;
 
-        if profit_usd_scaled > maximum_profit {
-            maximum_profit = profit_usd_scaled;
-            let token_address = token.token.address.parse()?;
+            if profit_usd_scaled > maximum_profit {
+                maximum_profit = profit_usd_scaled;
+                let token_address = token.token.address.parse()?;
 
-            liquidation_args = LiquidationArgs {
-                collateral: token_address,
-                ..liquidation_args
+                liquidation_args = LiquidationArgs {
+                    collateral: token_address,
+                    ..liquidation_args
+                }
             }
         }
     }
