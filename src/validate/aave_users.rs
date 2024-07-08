@@ -7,7 +7,8 @@ use crate::{
         users_to_track::{get_tracked_users, reset_tracked_users},
     },
     exchanges::aave_v3::user_structs::{
-        AaveTokenU256, BPS_FACTOR, CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
+        AaveTokenU256, LiquidationArgs, LiquidationCloseFactor, BPS_FACTOR,
+        CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
     },
     utils::type_conversion::address_to_string,
 };
@@ -23,21 +24,6 @@ use ethers::{
 use log::info;
 use num_traits::{ToPrimitive, Zero};
 use std::sync::Arc;
-
-#[derive(PartialEq)]
-pub enum LiquidationCloseFactor {
-    Full,
-    Half,
-}
-
-#[derive(Debug)]
-pub struct LiquidationArgs {
-    collateral: Address,
-    debt: Address,
-    user: Address,
-    debt_to_cover: U256,
-    _receive_a_token: bool,
-}
 
 pub async fn validate_liquidation_candidates(
     client: &Arc<Provider<Ws>>,

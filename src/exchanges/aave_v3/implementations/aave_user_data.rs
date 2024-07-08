@@ -4,14 +4,19 @@ use super::super::user_structs::{AaveUserData, AaveUsersHash, PricingSource, Sam
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
 use crate::data::address::AAVE_V3_POOL_ADDRESS;
 use crate::data::erc20::{u256_to_big_decimal, Convert, TOKEN_DATA};
-use crate::data::token_price_hash::generate_token_price_hash;
+use crate::data::token_price_hash::{generate_token_price_hash, get_saved_token_price};
 use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
-use crate::exchanges::aave_v3::user_structs::BPS_FACTOR;
+use crate::exchanges::aave_v3::user_structs::{
+    LiquidationCloseFactor, BPS_FACTOR, CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
+};
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
-use ethers::abi::Address;
-use ethers::providers::{Provider, Ws};
+use ethers::{
+    providers::{Provider, Ws},
+    types::Address,
+};
 use log::{error, info, warn};
+use num_traits::One;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -31,6 +36,11 @@ pub trait GetUserData {
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
     ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>>;
+    async fn get_user_liquidation_usd_profit(
+        &self,
+        health_factor: &BigDecimal,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -243,6 +253,80 @@ impl GetUserData for AaveUserData {
         }
 
         Ok((liquidation_threshold_collateral_sum, total_debt_usd))
+    }
+
+    async fn get_user_liquidation_usd_profit(
+        &self,
+        health_factor: &BigDecimal,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+        let bps_factor = BigDecimal::from(BPS_FACTOR);
+
+        // update token hash prices to aave oracle values
+        generate_token_price_hash(client).await?;
+
+        if health_factor >= &BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap() {
+            return Ok(BigDecimal::from(0));
+        }
+
+        let liquidation_factor =
+            if health_factor < &BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap() {
+                LiquidationCloseFactor::Half
+            } else {
+                LiquidationCloseFactor::Full
+            };
+
+        let liquidation_close_factor = match liquidation_factor {
+            LiquidationCloseFactor::Full => BigDecimal::one(),
+            LiquidationCloseFactor::Half => BigDecimal::from_f64(0.5).unwrap(),
+        };
+
+        let mut highest_token_debt = &BigDecimal::from(0);
+        let mut highest_debt_to_cover = BigDecimal::from(0);
+        let mut maximum_profit = BigDecimal::from(0);
+
+        for token in &self.tokens {
+            let decimal_factor =
+                BigDecimal::from_u64(10_u64.pow(token.token.decimals.into())).unwrap();
+
+            if &token.current_total_debt > highest_token_debt {
+                highest_token_debt = &token.current_total_debt;
+
+                let token_price = get_saved_token_price(token.token.address.to_lowercase()).await?;
+
+                // let debt_to_cover =
+                //     highest_token_debt / decimal_factor * liquidation_close_factor_scaled * token_price
+
+                highest_debt_to_cover =
+                    highest_token_debt * &liquidation_close_factor * &token_price / &decimal_factor;
+            }
+        }
+
+        // now loop through to get find optimal liquidation combo
+        for token in &self.tokens {
+            let liquidation_bonus = &token.reserve_liquidation_bonus;
+            let decimal_factor =
+                BigDecimal::from_u64(10_u64.pow(token.token.decimals.into())).unwrap();
+
+            // calculate profit
+            // profit = debtToCover$ * liquidaitonBonus * (liquidationBonus - 1) * aTokenBalance
+            // to unscale divide by bps_factor twice and by decimal_factor once
+
+            if liquidation_bonus > &BigDecimal::from(0) {
+                let profit_usd = &highest_debt_to_cover * &token.current_atoken_balance
+                    / &decimal_factor
+                    * liquidation_bonus
+                    / &bps_factor
+                    * (liquidation_bonus - &BigDecimal::one())
+                    / &bps_factor;
+
+                if profit_usd > maximum_profit {
+                    maximum_profit = profit_usd;
+                }
+            }
+        }
+
+        Ok(maximum_profit)
     }
 }
 

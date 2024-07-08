@@ -33,6 +33,12 @@ pub enum SampleSize {
     All,        // all users
 }
 
+#[derive(PartialEq)]
+pub enum LiquidationCloseFactor {
+    Full,
+    Half,
+}
+
 #[derive(Clone, Debug)]
 pub struct AaveToken {
     pub token: Erc20Token,
@@ -60,6 +66,15 @@ pub struct AaveUserData {
     pub collateral_times_liquidation_factor: BigDecimal,
     pub tokens: Vec<AaveToken>,
     pub health_factor: BigDecimal,
+}
+
+#[derive(Debug)]
+pub struct LiquidationArgs {
+    pub collateral: Address,
+    pub debt: Address,
+    pub user: Address,
+    pub debt_to_cover: U256,
+    pub _receive_a_token: bool,
 }
 
 /*
