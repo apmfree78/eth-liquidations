@@ -19,7 +19,6 @@ use colored::*;
 use ethers::{
     providers::{Middleware, Provider, Ws},
     types::{Address, U256},
-    utils::format_units,
 };
 use log::info;
 use num_traits::{ToPrimitive, Zero};
@@ -219,7 +218,7 @@ pub async fn calculate_user_liquidation_usd_profit(
         //     * a_token_balance
         //     / decimal_factor;
 
-        if liquidation_bonus > U256::from(0) {
+        if liquidation_bonus > U256::from(0) && token.usage_as_collateral_enabled {
             let profit_usd_scaled = debt_to_cover_in_usd_scaled
                 .checked_mul(a_token_balance)
                 .ok_or("profit calc overflow")?;
@@ -297,7 +296,7 @@ pub async fn calculate_gas_cost(
         .checked_mul(gas_price)
         .ok_or("overflow calculating total cost")?;
 
-    let eth_cost = format_units(total_cost, 18)?;
+    // let eth_cost = format_units(total_cost, 18)?;
     // info!("cost in eth of liquidation call is {}", eth_cost);
 
     Ok(total_cost)

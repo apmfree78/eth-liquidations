@@ -312,7 +312,7 @@ impl GetUserData for AaveUserData {
             // profit = debtToCover$ * liquidaitonBonus * (liquidationBonus - 1) * aTokenBalance
             // to unscale divide by bps_factor twice and by decimal_factor once
 
-            if liquidation_bonus > &BigDecimal::from(0) {
+            if liquidation_bonus > &BigDecimal::from(0) && token.usage_as_collateral_enabled {
                 let profit_usd = &highest_debt_to_cover * &token.current_atoken_balance
                     / &decimal_factor
                     * liquidation_bonus
