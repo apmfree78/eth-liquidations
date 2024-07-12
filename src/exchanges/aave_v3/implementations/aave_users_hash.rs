@@ -1,11 +1,11 @@
 use crate::data::erc20::{Erc20Token, TOKENS_WITH_PRICE_CONNECTED_TO_ETH};
-use crate::exchanges::aave_v3::user_structs::LIQUIDATION_THRESHOLD;
+use crate::exchanges::aave_v3::user_structs::{LIQUIDATION_THRESHOLD, PROFIT_THRESHOLD_MAINNET};
 
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
 use super::super::user_structs::{
     AaveUsersHash, PricingSource, UserType, UsersToLiquidate, HEALTH_FACTOR_THRESHOLD,
 };
-use super::aave_user_data::UpdateUserData;
+use super::aave_user_data::{GetUserData, UpdateUserData};
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
@@ -36,15 +36,17 @@ pub trait UpdateUsers {
         user_to_add: Address,
         client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>>;
-    fn update_token_to_user_mapping_for_all_users_with_token_(
+    async fn update_token_to_user_mapping_for_all_users_with_token_(
         &mut self,
         token: &Erc20Token,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>>;
     fn intialize_token_user_mapping(&mut self) -> Result<(), Box<dyn std::error::Error>>;
     // check user health factor and if its in the right token => user id mapping, move if necessary
-    fn update_token_user_mapping_for_(
+    async fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>>;
     fn remove_user_from_token_user_mapping(
         &mut self,
@@ -147,41 +149,48 @@ impl UpdateUsers for AaveUsersHash {
         Ok(())
     }
 
-    fn update_token_to_user_mapping_for_all_users_with_token_(
+    async fn update_token_to_user_mapping_for_all_users_with_token_(
         &mut self,
         token: &Erc20Token,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let low_health_users =
             self.get_users_owning_token_by_user_type(token, UserType::LowHealth)?;
 
         for user_id in low_health_users {
-            self.update_token_user_mapping_for_(user_id)?;
+            self.update_token_user_mapping_for_(user_id, client).await?;
         }
 
         let standard_users = self.get_users_owning_token_by_user_type(token, UserType::Standard)?;
 
         for user_id in standard_users {
-            self.update_token_user_mapping_for_(user_id)?;
+            self.update_token_user_mapping_for_(user_id, client).await?;
         }
 
         Ok(())
     }
 
-    fn update_token_user_mapping_for_(
+    async fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // get user health factor
 
-        // if health factor is less than HEALTH_FACTOR_THRESHOLD then
+        // if health factor is less than HEALTH_FACTOR_THRESHOLD and profit potential is greater than PROFIT_THRESHOLD then
         // then user belongs in  low health factor hash map
         let user = self.user_data.get(&user_id).expect("Invalid user id");
         let health_factor = &user.health_factor;
+        let user_profit_potential = user
+            .get_user_liquidation_usd_profit(health_factor, client)
+            .await?;
 
         let low_health_factor =
             health_factor <= &BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
+        let profitable = user_profit_potential
+            > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).expect("invalid f32");
 
-        if low_health_factor {
+        if low_health_factor && profitable {
             self.move_user_from_standard_to_low_health_token_user_mapping(user_id)
                 .unwrap_or_else(|err| error!("could not move user to new mapping => {}", err));
         } else {
@@ -343,7 +352,14 @@ impl UpdateUsers for AaveUsersHash {
             if user.health_factor < BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap()
                 && user.health_factor > BigDecimal::from(0)
             {
-                liquidation_candidates.push(user.id);
+                // now check for user profitability
+                let profitability = user
+                    .get_user_liquidation_usd_profit(&user.health_factor, client)
+                    .await?;
+
+                if profitability > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).unwrap() {
+                    liquidation_candidates.push(user.id);
+                }
             }
         }
 

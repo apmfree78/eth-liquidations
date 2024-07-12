@@ -54,7 +54,9 @@ pub async fn find_users_and_liquidate(
         }
     }
     // 5. clean up - update token ==> user mapping for all users with updated health factors
-    users.update_token_to_user_mapping_for_all_users_with_token_(token)?;
+    users
+        .update_token_to_user_mapping_for_all_users_with_token_(token, client)
+        .await?;
 
     Ok(())
 }
