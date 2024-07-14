@@ -317,7 +317,7 @@ impl GetUserData for AaveUserData {
                     / &decimal_factor
                     * liquidation_bonus
                     / &bps_factor
-                    * (liquidation_bonus - &BigDecimal::one())
+                    * (liquidation_bonus - &bps_factor)
                     / &bps_factor;
 
                 if profit_usd > maximum_profit {

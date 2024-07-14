@@ -356,7 +356,7 @@ impl UpdateUsers for AaveUsersHash {
                 let profitability = user
                     .get_user_liquidation_usd_profit(&user.health_factor, client)
                     .await?;
-                debug!("user profit => {}", profitability.with_scale(3));
+                debug!("user {} profit => {}", user.id, profitability.with_scale(3));
 
                 if profitability > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).unwrap() {
                     liquidation_candidates.push(user.id);
