@@ -5,6 +5,10 @@ use eth_liquadation::exchanges::aave_v3::user_structs::{AaveToken, AaveUserData,
 use ethers::abi::Address;
 use std::collections::HashMap;
 
+pub const USDT_USER_DEBT: u64 = 26000000000;
+pub const USDT_USER_BALANCE: u64 = 30000000000;
+pub const WETH_USER_BALANCE: u128 = 10000000000000000000;
+
 pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
     let user_address: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let user_data = AaveUserData {
@@ -25,7 +29,7 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Er
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(15000000000000000000).unwrap(),
+                current_atoken_balance: BigDecimal::from_u128(WETH_USER_BALANCE).unwrap(),
                 reserve_liquidation_threshold: BigDecimal::from(8300),
                 reserve_liquidation_bonus: BigDecimal::from(10500),
             },
@@ -40,9 +44,9 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Er
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
                 },
-                current_total_debt: BigDecimal::from_u64(26000000000).unwrap(),
+                current_total_debt: BigDecimal::from_u64(USDT_USER_DEBT).unwrap(),
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u64(30000000000).unwrap(),
+                current_atoken_balance: BigDecimal::from_u64(USDT_USER_BALANCE).unwrap(),
                 reserve_liquidation_threshold: BigDecimal::from(7800),
                 reserve_liquidation_bonus: BigDecimal::from(10450),
             },
@@ -88,7 +92,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(15000000000000000000).unwrap(),
+                current_atoken_balance: BigDecimal::from_u128(WETH_USER_BALANCE).unwrap(),
                 reserve_liquidation_threshold: BigDecimal::from(8300),
                 reserve_liquidation_bonus: BigDecimal::from(10500),
             },
@@ -134,7 +138,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(15000000000000000000).unwrap(),
+                current_atoken_balance: BigDecimal::from_u128(WETH_USER_BALANCE).unwrap(),
                 reserve_liquidation_threshold: BigDecimal::from(8300),
                 reserve_liquidation_bonus: BigDecimal::from(10500),
             },
@@ -149,9 +153,9 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
                 },
-                current_total_debt: BigDecimal::from_u64(26000000000).unwrap(),
+                current_total_debt: BigDecimal::from_u64(USDT_USER_DEBT).unwrap(),
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u64(30000000000).unwrap(),
+                current_atoken_balance: BigDecimal::from_u64(USDT_USER_BALANCE).unwrap(),
                 reserve_liquidation_threshold: BigDecimal::from(7800),
                 reserve_liquidation_bonus: BigDecimal::from(10450),
             },
@@ -197,7 +201,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::erro
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(100000).unwrap(),
+                current_atoken_balance: BigDecimal::from_u128(100000000).unwrap(),
                 reserve_liquidation_threshold: BigDecimal::from(8300),
                 reserve_liquidation_bonus: BigDecimal::from(10500),
             },
@@ -212,7 +216,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::erro
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
                 },
-                current_total_debt: BigDecimal::from_u64(100000).unwrap(),
+                current_total_debt: BigDecimal::from_u64(100000000).unwrap(),
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: BigDecimal::from(0),
                 reserve_liquidation_threshold: BigDecimal::from(7800),

@@ -7,7 +7,7 @@ use crate::data::erc20::{u256_to_big_decimal, Convert, TOKEN_DATA};
 use crate::data::token_price_hash::{generate_token_price_hash, get_saved_token_price};
 use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use crate::exchanges::aave_v3::user_structs::{
-    LiquidationCloseFactor, BPS_FACTOR, CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
+    LiquidationCloseFactor, BPS_FACTOR, CLOSE_FACTOR_HF_THRESHOLD, HEALTH_FACTOR_THRESHOLD,
 };
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
@@ -265,7 +265,9 @@ impl GetUserData for AaveUserData {
         // update token hash prices to aave oracle values
         generate_token_price_hash(client).await?;
 
-        if health_factor >= &BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap() {
+        // should be health factor threshold and not liquidation threshold because
+        // looking at profit POTENTIAL
+        if health_factor >= &BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).unwrap() {
             return Ok(BigDecimal::from(0));
         }
 

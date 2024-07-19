@@ -15,7 +15,9 @@ use ethers::core::types::U256;
 use generate_logs::{
     create_log_for_collateral_disable_event, create_log_for_collateral_enable_event,
 };
-use generate_mock_users::generate_mock_user_hash;
+use generate_mock_users::{
+    generate_mock_user_hash, USDT_USER_BALANCE, USDT_USER_DEBT, WETH_USER_BALANCE,
+};
 
 use crate::generate_logs::{
     create_log_for_borrow_event, create_log_for_liquidation_event, create_log_for_repay_event,
@@ -34,7 +36,7 @@ async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::E
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
-    let amount_to_repay: u64 = 6000000000;
+    let amount_to_repay: u64 = USDT_USER_DEBT / 2;
     let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
     let repay_event = RepayEvent {
         reserve: reserve_token.parse().unwrap(),
@@ -57,8 +59,8 @@ async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::E
 
     // println!("update users => {:#?}", users);
 
-    let a_token_balance = BigDecimal::from_u64(30000000000).unwrap(); // should be unchanged
-    let remaining_debt = BigDecimal::from_u64(20000000000).unwrap(); // lower remaining debt
+    let a_token_balance = BigDecimal::from_u64(USDT_USER_BALANCE).unwrap(); // should be unchanged
+    let remaining_debt = BigDecimal::from_u64(USDT_USER_DEBT / 2).unwrap(); // lower remaining debt
 
     // get user
     let user = user_hash.user_data.get(&user_address).unwrap();
@@ -81,7 +83,7 @@ async fn test_user_update_with_full_repay_then_withdraw_event(
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     // test that  when  user repays debt and withdraws a token balance token is removed
-    let amount_to_repay: u64 = 26000000000;
+    let amount_to_repay: u64 = USDT_USER_DEBT;
     let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
     let repay_event = RepayEvent {
         reserve: reserve_token.parse().unwrap(),
@@ -102,7 +104,7 @@ async fn test_user_update_with_full_repay_then_withdraw_event(
     // now lets repay user debt and see if amount is updated
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
-    let a_token_balance = BigDecimal::from_u64(30000000000).unwrap(); // should be unchanged
+    let a_token_balance = BigDecimal::from_u64(USDT_USER_BALANCE).unwrap(); // should be unchanged
     let remaining_debt = BigDecimal::from(0); // lower remaining debt
 
     // get user
@@ -115,7 +117,7 @@ async fn test_user_update_with_full_repay_then_withdraw_event(
         }
     }
 
-    let amount_to_withdraw: u64 = 30000000000;
+    let amount_to_withdraw: u64 = USDT_USER_BALANCE;
     let withdraw_event = WithdrawEvent {
         reserve: reserve_token.parse().unwrap(),
         user: user_address,
@@ -147,7 +149,7 @@ async fn test_user_update_with_full_withdraw_then_repay_event(
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 
-    let amount_to_withdraw: u64 = 30000000000;
+    let amount_to_withdraw: u64 = USDT_USER_BALANCE;
     let withdraw_event = WithdrawEvent {
         reserve: reserve_token.parse().unwrap(),
         user: user_address,
@@ -164,7 +166,7 @@ async fn test_user_update_with_full_withdraw_then_repay_event(
     // now lets repay user debt and see if amount is updated
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
-    let remaining_debt = BigDecimal::from_u64(26000000000).unwrap(); // should be unchanged
+    let remaining_debt = BigDecimal::from_u64(USDT_USER_DEBT).unwrap(); // should be unchanged
     let a_token_balance = BigDecimal::from(0); // lower remaining debt
 
     // get user
@@ -178,7 +180,7 @@ async fn test_user_update_with_full_withdraw_then_repay_event(
     }
 
     // test that  when  user repays debt and withdraws a token balance token is removed
-    let amount_to_repay: u64 = 26000000000;
+    let amount_to_repay: u64 = USDT_USER_DEBT;
     let repay_event = RepayEvent {
         reserve: reserve_token.parse().unwrap(),
         user: user_address,
@@ -229,8 +231,8 @@ async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn 
     // now lets repay user debt and see if amount is updated
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
-    let a_token_balance = BigDecimal::from_u64(24000000000).unwrap(); // should be unchanged
-    let remaining_debt = BigDecimal::from_u64(20000000000).unwrap(); // lower remaining debt
+    let a_token_balance = BigDecimal::from_u64(USDT_USER_BALANCE - amount_to_repay).unwrap(); //should drop by amount a token used
+    let remaining_debt = BigDecimal::from_u64(USDT_USER_DEBT - amount_to_repay).unwrap(); // lower remaining debt
 
     // get user
     let user = user_hash.user_data.get(&user_address).unwrap();
@@ -272,7 +274,7 @@ async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>
     // now lets borrow tokens and take on more debt
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
-    let updated_debt = BigDecimal::from_u64(30000000000).unwrap(); // lower remaining debt
+    let updated_debt = BigDecimal::from_u64(USDT_USER_DEBT + amount_to_borrow).unwrap(); // increased debt
 
     // get user
     let user = user_hash.user_data.get(&user_address).unwrap();
@@ -292,8 +294,8 @@ async fn test_user_liquidation() -> Result<(), Box<dyn std::error::Error>> {
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
-    let liquidation_collateral_amount: u128 = 5000000000000000000;
-    let debt_to_cover: u64 = 25000000000;
+    let liquidation_collateral_amount: u128 = WETH_USER_BALANCE / 2;
+    let debt_to_cover: u64 = USDT_USER_DEBT / 2;
     let reserve_token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     let debt_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 
@@ -316,8 +318,8 @@ async fn test_user_liquidation() -> Result<(), Box<dyn std::error::Error>> {
     // now lets borrow tokens and take on more debt
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
-    let updated_debt = BigDecimal::from_u64(1000000000).unwrap(); // lower remaining debt
-    let updated_collateral = BigDecimal::from_u128(10000000000000000000).unwrap(); // lower remaining debt
+    let updated_debt = BigDecimal::from_u64(USDT_USER_DEBT / 2).unwrap(); // lower remaining debt
+    let updated_collateral = BigDecimal::from_u128(WETH_USER_BALANCE / 2).unwrap(); // lower remaining debt
 
     // get user
     let user = user_hash.user_data.get(&user_address).unwrap();
@@ -386,7 +388,7 @@ async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
-    let amount_to_supply: u128 = 500000000000000000;
+    let amount_to_supply: u128 = WETH_USER_BALANCE / 10;
     let reserve_token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     let supply_event = SupplyEvent {
         reserve: reserve_token.parse().unwrap(),
@@ -405,7 +407,7 @@ async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>
     // now lets supply tokens to exchange
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
 
-    let new_supply = BigDecimal::from_u128(15500000000000000000).unwrap();
+    let new_supply = BigDecimal::from_u128(WETH_USER_BALANCE + WETH_USER_BALANCE / 10).unwrap();
 
     // get user
     let user = user_hash.user_data.get(&user_address).unwrap();
@@ -468,7 +470,7 @@ async fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Erro
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
-    let amount_to_withdraw: u128 = 15000000000000000000;
+    let amount_to_withdraw: u128 = WETH_USER_BALANCE;
     let reserve_token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
     let withdraw_event = WithdrawEvent {
         reserve: reserve_token.parse().unwrap(),
