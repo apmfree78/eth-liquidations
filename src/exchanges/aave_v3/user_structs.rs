@@ -78,6 +78,14 @@ pub struct LiquidationArgs {
     pub _receive_a_token: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct LiquidationCandidate {
+    pub user: Address,
+    pub estimated_profit: BigDecimal,
+    pub debt_token: Address,       // highest debt token
+    pub collateral_token: Address, // biggest collateral token
+}
+
 /*
 This below struct is single source of truth for all Aave v3 user data,
 this is the main data source that will be kept up to date based on user
@@ -91,7 +99,7 @@ pub struct AaveUsersHash {
 }
 
 pub enum UsersToLiquidate {
-    Users(Vec<Address>),
+    Users(Vec<LiquidationCandidate>),
     None,
 }
 

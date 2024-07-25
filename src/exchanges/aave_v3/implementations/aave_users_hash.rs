@@ -1,5 +1,7 @@
 use crate::data::erc20::{Erc20Token, TOKENS_WITH_PRICE_CONNECTED_TO_ETH};
-use crate::exchanges::aave_v3::user_structs::{LIQUIDATION_THRESHOLD, PROFIT_THRESHOLD_MAINNET};
+use crate::exchanges::aave_v3::user_structs::{
+    LiquidationCandidate, LIQUIDATION_THRESHOLD, PROFIT_THRESHOLD_MAINNET,
+};
 
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
 use super::super::user_structs::{
@@ -181,7 +183,7 @@ impl UpdateUsers for AaveUsersHash {
         // then user belongs in  low health factor hash map
         let user = self.user_data.get(&user_id).expect("Invalid user id");
         let health_factor = &user.health_factor;
-        let user_profit_potential = user
+        let (user_profit_potential, _, _) = user
             .get_user_liquidation_usd_profit(health_factor, client)
             .await?;
 
@@ -329,7 +331,7 @@ impl UpdateUsers for AaveUsersHash {
         client: &Arc<Provider<Ws>>,
     ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>> {
         // track already updated users and liquidation candidates
-        let mut liquidation_candidates = Vec::<Address>::new();
+        let mut liquidation_candidates = Vec::<LiquidationCandidate>::new();
 
         let user_ids_array = if main_token.symbol == "WETH" {
             // must update full list of tokens if WETH
@@ -353,13 +355,18 @@ impl UpdateUsers for AaveUsersHash {
                 && user.health_factor > BigDecimal::from(0)
             {
                 // now check for user profitability
-                let profitability = user
+                let (profitability, debt_token, collateral_token) = user
                     .get_user_liquidation_usd_profit(&user.health_factor, client)
                     .await?;
                 debug!("user {} profit => {}", user.id, profitability.with_scale(3));
 
                 if profitability > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).unwrap() {
-                    liquidation_candidates.push(user.id);
+                    liquidation_candidates.push(LiquidationCandidate {
+                        user: user.id,
+                        estimated_profit: profitability,
+                        debt_token,
+                        collateral_token,
+                    });
                 }
             }
         }

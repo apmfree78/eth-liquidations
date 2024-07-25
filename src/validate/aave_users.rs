@@ -43,9 +43,9 @@ pub async fn validate_liquidation_candidates(
     // RESETs
     reset_tracked_users().await?; // clear all tracked users
 
-    for user_id in &user_liquidation_candidates {
+    for user in &user_liquidation_candidates {
         let (_, _, _, _, _, health_factor) =
-            aave_v3_pool.get_user_account_data(*user_id).call().await?;
+            aave_v3_pool.get_user_account_data(user.user).call().await?;
 
         let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
 

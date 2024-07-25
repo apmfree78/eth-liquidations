@@ -16,7 +16,7 @@ use ethers::{
     types::Address,
 };
 use log::{error, info, warn};
-use num_traits::One;
+use num_traits::{zero, One};
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -40,7 +40,7 @@ pub trait GetUserData {
         &self,
         health_factor: &BigDecimal,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+    ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -259,7 +259,7 @@ impl GetUserData for AaveUserData {
         &self,
         health_factor: &BigDecimal,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+    ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error>> {
         let bps_factor = BigDecimal::from(BPS_FACTOR);
 
         // update token hash prices to aave oracle values
@@ -268,7 +268,7 @@ impl GetUserData for AaveUserData {
         // should be health factor threshold and not liquidation threshold because
         // looking at profit POTENTIAL
         if health_factor >= &BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).unwrap() {
-            return Ok(BigDecimal::from(0));
+            return Ok((BigDecimal::from(0), Address::zero(), Address::zero()));
         }
 
         let liquidation_factor =
@@ -284,6 +284,8 @@ impl GetUserData for AaveUserData {
         };
 
         let mut highest_token_debt = &BigDecimal::from(0);
+        let mut token_highest_debt = Address::zero();
+        let mut token_highest_collateral = Address::zero();
         let mut highest_debt_to_cover = BigDecimal::from(0);
         let mut maximum_profit = BigDecimal::from(0);
 
@@ -293,6 +295,7 @@ impl GetUserData for AaveUserData {
 
             if &token.current_total_debt > highest_token_debt {
                 highest_token_debt = &token.current_total_debt;
+                token_highest_debt = token.token.address.parse()?;
 
                 let token_price = get_saved_token_price(token.token.address.to_lowercase()).await?;
 
@@ -324,11 +327,12 @@ impl GetUserData for AaveUserData {
 
                 if profit_usd > maximum_profit {
                     maximum_profit = profit_usd;
+                    token_highest_collateral = token.token.address.parse()?;
                 }
             }
         }
 
-        Ok(maximum_profit)
+        Ok((maximum_profit, token_highest_debt, token_highest_collateral))
     }
 }
 
