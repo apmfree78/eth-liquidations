@@ -123,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 Ok(Event::Block(block)) => {
-                    warn!("NEW BLOCK ===> {}", block.timestamp);
+                    info!("NEW BLOCK ===> {}", block.timestamp);
                     // TODO - pass signed client
                     if let Err(error) = aave_users::validate_liquidation_candidates(&client).await {
                         error!("error looking up liquidation candidates => {}", error);

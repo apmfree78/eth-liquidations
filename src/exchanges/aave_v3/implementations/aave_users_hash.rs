@@ -358,11 +358,11 @@ impl UpdateUsers for AaveUsersHash {
                 let (profitability, debt_token, collateral_token) = user
                     .get_user_liquidation_usd_profit(&user.health_factor, client)
                     .await?;
-                debug!("user {} profit => {}", user.id, profitability.with_scale(3));
+                // debug!("user {} profit => {}", user.id, profitability.with_scale(3));
 
                 if profitability > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).unwrap() {
                     liquidation_candidates.push(LiquidationCandidate {
-                        user: user.id,
+                        user_id: user.id,
                         estimated_profit: profitability,
                         debt_token,
                         collateral_token,
@@ -384,7 +384,7 @@ impl UpdateUsers for AaveUsersHash {
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
         let mut users_with_tokens_connected_to_eth = HashSet::<Address>::new();
         for token in TOKENS_WITH_PRICE_CONNECTED_TO_ETH.iter() {
-            debug!("checking which users have {}", token.symbol);
+            // debug!("checking which users have {}", token.symbol);
             match user_type {
                 UserType::LowHealth => {
                     let low_health_users =
@@ -403,21 +403,21 @@ impl UpdateUsers for AaveUsersHash {
                     let standard_users =
                         self.get_users_owning_token_by_user_type(token, UserType::Standard)?;
 
-                    debug!(
-                        "{} standard users have {}",
-                        standard_users.len(),
-                        token.symbol
-                    );
+                    // debug!(
+                    //     "{} standard users have {}",
+                    //     standard_users.len(),
+                    //     token.symbol
+                    // );
                     if !standard_users.is_empty() {
                         users_with_tokens_connected_to_eth.extend(standard_users);
                     }
                 }
             }
         }
-        debug!(
-            "hashset of tokens connected to ETH contain {} unique users",
-            users_with_tokens_connected_to_eth.len()
-        );
+        // debug!(
+        //     "hashset of tokens connected to ETH contain {} unique users",
+        //     users_with_tokens_connected_to_eth.len()
+        // );
         Ok(users_with_tokens_connected_to_eth)
     }
 

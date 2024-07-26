@@ -7,7 +7,7 @@ use crate::{
         users_to_track::{get_tracked_users, reset_tracked_users},
     },
     exchanges::aave_v3::user_structs::{
-        AaveTokenU256, LiquidationArgs, LiquidationCloseFactor, BPS_FACTOR,
+        AaveTokenU256, LiquidationArgs, LiquidationCandidate, LiquidationCloseFactor, BPS_FACTOR,
         CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
     },
     utils::type_conversion::address_to_string,
@@ -20,7 +20,7 @@ use ethers::{
     providers::{Middleware, Provider, Ws},
     types::{Address, U256},
 };
-use log::info;
+use log::{debug, info};
 use num_traits::{ToPrimitive, Zero};
 use std::sync::Arc;
 
@@ -44,8 +44,14 @@ pub async fn validate_liquidation_candidates(
     reset_tracked_users().await?; // clear all tracked users
 
     for user in &user_liquidation_candidates {
+        let LiquidationCandidate {
+            user_id,
+            estimated_profit,
+            debt_token,
+            collateral_token,
+        } = user.clone();
         let (_, _, _, _, _, health_factor) =
-            aave_v3_pool.get_user_account_data(user.user).call().await?;
+            aave_v3_pool.get_user_account_data(user_id).call().await?;
 
         let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
 
@@ -53,7 +59,7 @@ pub async fn validate_liquidation_candidates(
             validation_count += 1;
 
             let (liquidation_args, profit_scaled) =
-                calculate_user_liquidation_usd_profit(user_id, &health_factor, client).await?;
+                calculate_user_liquidation_usd_profit(&user_id, &health_factor, client).await?;
 
             let user_id_string = address_to_string(liquidation_args.user);
             let debt = address_to_string(liquidation_args.debt);
@@ -72,7 +78,25 @@ pub async fn validate_liquidation_candidates(
                 collateral.black().bold(),
             );
 
-            // only check gas cost of profit if greater than zero
+            info!(
+                "estimated profit for this was {}",
+                format!("{:2}", estimated_profit.with_scale(2))
+                    .green()
+                    .bold(),
+            );
+
+            // validate that same collateral and debt tokens as
+            // found in prevous block
+            if liquidation_args.debt != debt_token {
+                debug!("debt tokens do not match, expected => {}", debt_token);
+            }
+
+            if liquidation_args.collateral != collateral_token {
+                debug!(
+                    "collateral token do not match, expected => {}",
+                    collateral_token
+                );
+            }
 
             if profit > BigDecimal::zero() {
                 let gas_cost = calculate_gas_cost(client).await?;
@@ -249,6 +273,7 @@ pub async fn calculate_user_liquidation_usd_profit(
 
             if profit_usd_scaled > maximum_profit {
                 maximum_profit = profit_usd_scaled;
+
                 let token_address = token.token.address.parse()?;
 
                 liquidation_args = LiquidationArgs {

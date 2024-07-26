@@ -3,7 +3,7 @@ use bigdecimal::BigDecimal;
 use ethers::{abi::Address, types::U256};
 use std::collections::{HashMap, HashSet};
 
-pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.1;
+pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.05;
 pub const DEFAULT_LIQUIDATION_CLOSE_FACTOR: f32 = 0.5;
 pub const PROFIT_THRESHOLD_MAINNET: f32 = 1.0; // raise to $10 for prod
 /**
@@ -80,7 +80,7 @@ pub struct LiquidationArgs {
 
 #[derive(Debug, Clone)]
 pub struct LiquidationCandidate {
-    pub user: Address,
+    pub user_id: Address,
     pub estimated_profit: BigDecimal,
     pub debt_token: Address,       // highest debt token
     pub collateral_token: Address, // biggest collateral token

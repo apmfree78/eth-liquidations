@@ -437,7 +437,7 @@ async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
 
     let user = users.first().unwrap();
 
-    assert_eq!(*user, user_address);
+    assert_eq!(user.user_id, user_address);
 
     Ok(())
 }
@@ -473,7 +473,11 @@ async fn test_correct_users_to_liquidate_are_found_for_standard_users(
         UsersToLiquidate::None => None,
     };
 
-    assert_eq!(users, None);
+    let users = users.unwrap_or_default();
+    assert!(
+        users.is_empty(),
+        "Expected no users to liquidate, but some found"
+    );
 
     Ok(())
 }

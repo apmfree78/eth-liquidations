@@ -16,7 +16,7 @@ use ethers::{
     types::Address,
 };
 use log::{error, info, warn};
-use num_traits::{zero, One};
+use num_traits::One;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
