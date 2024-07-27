@@ -101,7 +101,6 @@ pub async fn validate_liquidation_candidates(
             if profit > BigDecimal::zero() {
                 let gas_cost = calculate_gas_cost(client).await?;
 
-                // TODO - calculated NET profit
                 let gas_cost_usd =
                     &u256_to_big_decimal(&gas_cost) * &eth_price_usd / &standard_scale;
 

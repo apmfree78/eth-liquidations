@@ -1,9 +1,7 @@
+use crate::exchanges::aave_v3::user_structs::LiquidationCandidate;
 use futures::lock::Mutex;
 use once_cell::sync::Lazy;
 use std::sync::Arc;
-
-// TODO - change Vec to Vec!!
-use crate::exchanges::aave_v3::user_structs::LiquidationCandidate;
 
 pub static USERS_TO_TRACK: Lazy<Arc<Mutex<Vec<LiquidationCandidate>>>> =
     Lazy::new(|| Arc::new(Mutex::new(Vec::<LiquidationCandidate>::new())));

@@ -30,6 +30,7 @@ pub async fn find_users_and_liquidate(
         match liquidations {
             UsersToLiquidate::Users(users_to_liquidate) => {
                 info!("FOUND {} USERS TO LIQUIDATE", users_to_liquidate.len());
+                // TODO - ADD CALL TO CUSTOM SMART CONTRACT
                 add_tracked_users(users_to_liquidate).await?;
             }
             UsersToLiquidate::None => {}
