@@ -310,18 +310,13 @@ impl GetUserData for AaveUserData {
         // now loop through to get find optimal liquidation combo
         for token in &self.tokens {
             let liquidation_bonus = &token.reserve_liquidation_bonus;
-            let decimal_factor =
-                BigDecimal::from_u64(10_u64.pow(token.token.decimals.into())).unwrap();
 
             // calculate profit
-            // profit = debtToCover$ * liquidaitonBonus * (liquidationBonus - 1) * aTokenBalance
+            // profit = debtToCover$ * liquidaitonBonus * (liquidationBonus - 1)
             // to unscale divide by bps_factor twice and by decimal_factor once
 
             if liquidation_bonus > &BigDecimal::from(0) && token.usage_as_collateral_enabled {
-                let profit_usd = &highest_debt_to_cover * &token.current_atoken_balance
-                    / &decimal_factor
-                    * liquidation_bonus
-                    / &bps_factor
+                let profit_usd = &highest_debt_to_cover * liquidation_bonus / &bps_factor
                     * (liquidation_bonus - &bps_factor)
                     / &bps_factor;
 

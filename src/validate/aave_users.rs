@@ -15,7 +15,6 @@ use crate::{
 
 use bigdecimal::{BigDecimal, FromPrimitive};
 use colored::*;
-// use ethers::{core::k256::ecdsa::SigningKey, middleware::SignerMiddleware, signers::Wallet};
 use ethers::{
     providers::{Middleware, Provider, Ws},
     types::{Address, U256},
@@ -230,11 +229,11 @@ pub async fn calculate_user_liquidation_usd_profit(
     for token in tokens {
         let liquidation_bonus = token.reserve_liquidation_bonus;
         let debt_to_cover_in_usd_scaled = liquidation_args.debt_to_cover;
-        let a_token_balance = token.current_atoken_balance;
-        let decimal_factor = U256::exp10(token.token.decimals.into());
+        // let a_token_balance = token.current_atoken_balance;
+        // let decimal_factor = U256::exp10(token.token.decimals.into());
 
         // calculate profit
-        // profit = debtToCover$ * liquidaitonBonus * (liquidationBonus - 1) * aTokenBalance
+        // profit = debtToCover$ * liquidaitonBonus * (liquidationBonus - 1)
         // let profit_usd_scaled = debt_to_cover_in_usd_scaled * liquidation_bonus / bps_factor
         //     * (liquidation_bonus - bps_factor)
         //     / bps_factor
@@ -242,15 +241,15 @@ pub async fn calculate_user_liquidation_usd_profit(
         //     / decimal_factor;
 
         if liquidation_bonus > U256::from(0) && token.usage_as_collateral_enabled {
+            // let profit_usd_scaled = debt_to_cover_in_usd_scaled
+            //     .checked_mul(a_token_balance)
+            //     .ok_or("profit calc overflow")?;
+            //
+            // let profit_usd_scaled = profit_usd_scaled
+            //     .checked_div(decimal_factor)
+            //     .ok_or("profit overflow div by zero")?;
+
             let profit_usd_scaled = debt_to_cover_in_usd_scaled
-                .checked_mul(a_token_balance)
-                .ok_or("profit calc overflow")?;
-
-            let profit_usd_scaled = profit_usd_scaled
-                .checked_div(decimal_factor)
-                .ok_or("profit overflow div by zero")?;
-
-            let profit_usd_scaled = profit_usd_scaled
                 .checked_mul(liquidation_bonus)
                 .ok_or("profit overflow liquidation bonus")?;
 

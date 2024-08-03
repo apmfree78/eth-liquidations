@@ -19,7 +19,7 @@ use ethers::{
 //     signers::{LocalWallet, Signer},
 // };
 use futures::{lock::Mutex, stream, StreamExt};
-use log::{error, info, warn};
+use log::{error, info};
 use std::sync::Arc;
 
 const WS_URL: &str = "ws://localhost:8546";
