@@ -284,9 +284,10 @@ impl GetUserData for AaveUserData {
         };
 
         let mut highest_token_debt = &BigDecimal::from(0);
-        let mut token_highest_debt = Address::zero();
+        let mut token_highest_debt: &str = "";
         let mut token_highest_collateral = Address::zero();
         let mut highest_debt_to_cover = BigDecimal::from(0);
+        let mut highest_decimal_factor = BigDecimal::from(0);
         let mut maximum_profit = BigDecimal::from(0);
 
         for token in &self.tokens {
@@ -295,15 +296,13 @@ impl GetUserData for AaveUserData {
 
             if &token.current_total_debt > highest_token_debt {
                 highest_token_debt = &token.current_total_debt;
-                token_highest_debt = token.token.address.parse()?;
-
-                let token_price = get_saved_token_price(token.token.address.to_lowercase()).await?;
+                token_highest_debt = token.token.address;
+                highest_decimal_factor = decimal_factor;
 
                 // let debt_to_cover =
                 //     highest_token_debt / decimal_factor * liquidation_close_factor_scaled * token_price
 
-                highest_debt_to_cover =
-                    highest_token_debt * &liquidation_close_factor * &token_price / &decimal_factor;
+                highest_debt_to_cover = highest_token_debt * &liquidation_close_factor;
             }
         }
 
@@ -316,7 +315,12 @@ impl GetUserData for AaveUserData {
             // to unscale divide by bps_factor twice and by decimal_factor once
 
             if liquidation_bonus > &BigDecimal::from(0) && token.usage_as_collateral_enabled {
-                let profit_usd = &highest_debt_to_cover * liquidation_bonus / &bps_factor
+                let debt_token_price =
+                    get_saved_token_price(token_highest_debt.to_string()).await?;
+                let profit_usd = (&highest_debt_to_cover * debt_token_price)
+                    / &highest_decimal_factor
+                    * liquidation_bonus
+                    / &bps_factor
                     * (liquidation_bonus - &bps_factor)
                     / &bps_factor;
 
@@ -327,7 +331,8 @@ impl GetUserData for AaveUserData {
             }
         }
 
-        Ok((maximum_profit, token_highest_debt, token_highest_collateral))
+        let debt_token: Address = token_highest_debt.parse()?;
+        Ok((maximum_profit, debt_token, token_highest_collateral))
     }
 }
 

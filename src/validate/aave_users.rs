@@ -166,6 +166,8 @@ pub async fn calculate_user_liquidation_usd_profit(
 
     let mut tokens = Vec::new();
     let mut highest_token_debt = U256::from(0);
+    let mut highest_token_decimal_factor = U256::from(0);
+    let mut highest_token_price = U256::from(0);
     let mut maximum_profit = U256::from(0);
 
     for token in UNIQUE_TOKEN_DATA.values() {
@@ -196,6 +198,8 @@ pub async fn calculate_user_liquidation_usd_profit(
 
             let token_price = get_saved_token_price(token.address.to_lowercase()).await?;
             let token_price = big_decimal_to_u256_scaled(&token_price).unwrap(); // price times 10^18
+            highest_token_price = token_price;
+            highest_token_decimal_factor = decimal_factor;
 
             // let debt_to_cover =
             //     highest_token_debt / decimal_factor * liquidation_close_factor_scaled * token_price
@@ -206,16 +210,16 @@ pub async fn calculate_user_liquidation_usd_profit(
                 .ok_or("overflow!")?;
 
             let debt_to_cover = debt_to_cover
-                .checked_div(decimal_factor)
+                .checked_div(standard_scale)
                 .ok_or("overflow or div by zero!")?;
 
-            let debt_to_cover = debt_to_cover
-                .checked_mul(token_price)
-                .ok_or("looks like overflow")?;
-
-            let debt_to_cover = debt_to_cover
-                .checked_div(standard_scale)
-                .ok_or("could be overflow or div by zero")?;
+            // let debt_to_cover = debt_to_cover
+            //     .checked_mul(token_price)
+            //     .ok_or("looks like overflow")?;
+            //
+            // let debt_to_cover = debt_to_cover
+            //     .checked_div(standard_scale)
+            //     .ok_or("could be overflow or div by zero")?;
 
             liquidation_args = LiquidationArgs {
                 debt: token_address,
@@ -241,15 +245,15 @@ pub async fn calculate_user_liquidation_usd_profit(
         //     / decimal_factor;
 
         if liquidation_bonus > U256::from(0) && token.usage_as_collateral_enabled {
-            // let profit_usd_scaled = debt_to_cover_in_usd_scaled
-            //     .checked_mul(a_token_balance)
-            //     .ok_or("profit calc overflow")?;
-            //
-            // let profit_usd_scaled = profit_usd_scaled
-            //     .checked_div(decimal_factor)
-            //     .ok_or("profit overflow div by zero")?;
-
             let profit_usd_scaled = debt_to_cover_in_usd_scaled
+                .checked_mul(highest_token_price)
+                .ok_or("profit calc overflow")?;
+
+            let profit_usd_scaled = profit_usd_scaled
+                .checked_div(highest_token_decimal_factor)
+                .ok_or("profit overflow div by zero")?;
+
+            let profit_usd_scaled = profit_usd_scaled
                 .checked_mul(liquidation_bonus)
                 .ok_or("profit overflow liquidation bonus")?;
 
