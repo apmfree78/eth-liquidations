@@ -1,3 +1,4 @@
+use crate::backrun::create_transaction::get_liquidate_user_contract_transaction;
 use crate::data::erc20::Erc20Token;
 use crate::data::users_to_track::add_tracked_users;
 use crate::exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate};
@@ -30,8 +31,10 @@ pub async fn find_users_and_liquidate(
         match liquidations {
             UsersToLiquidate::Users(users_to_liquidate) => {
                 info!("FOUND {} USERS TO LIQUIDATE", users_to_liquidate.len());
-                // TODO - ADD CALL TO CUSTOM SMART CONTRACT
-                add_tracked_users(users_to_liquidate).await?;
+                add_tracked_users(users_to_liquidate.clone()).await?;
+
+                // Determine transaction fto submit to Flashbots
+                get_liquidate_user_contract_transaction(client, users_to_liquidate).await?;
             }
             UsersToLiquidate::None => {}
         }

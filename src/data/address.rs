@@ -22,3 +22,9 @@ pub static AAVE_V3_DATA_PROVIDER_ADDRESS: Lazy<Address> = Lazy::new(|| {
         .parse()
         .expect("Invalid address")
 });
+
+pub static LIQUIDATE_USER_ADDRESS: Lazy<Address> = Lazy::new(|| {
+    "0x0000000000000000000000000000000000000000"
+        .parse()
+        .expect("Invalid address")
+});
