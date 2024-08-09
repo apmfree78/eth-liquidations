@@ -40,6 +40,20 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
                     let to_address = address_to_string(to).to_lowercase();
                     if let Some(token) = TOKEN_DATA.get(&*to_address) {
                         debug!("TRANSMIT FOUND!!!");
+
+                        if tx.transaction_type == Some(2.into()) {
+                            // Confirming it's an EIP-1559 transaction
+                            if let Some(max_priority_fee_per_gas) = tx.max_priority_fee_per_gas {
+                                debug!("Max Priority Fee per Gas: {}", max_priority_fee_per_gas);
+                            }
+                           if let Some(max_fee_per_gas) = tx.max_fee_per_gas {
+                                debug!("Max Fee per Gas: {}", max_fee_per_gas);
+                            }
+                        } else {
+                            debug!("NOT EIP-1559 transaction");
+                        }
+                        
+
                         debug!("Transaction from address: {:?}", to);
                         let contract = AGGREGATOR::new(to, client.clone());
 

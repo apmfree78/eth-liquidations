@@ -306,6 +306,11 @@ impl GetUserData for AaveUserData {
             }
         }
 
+        // if user has no debt then profit is zero
+        if highest_token_debt == &BigDecimal::zero() {
+            return Ok((BigDecimal::from(0), Address::zero(), Address::zero()));
+        }
+
         // now loop through to get find optimal liquidation combo
         for token in &self.tokens {
             let liquidation_bonus = &token.reserve_liquidation_bonus;

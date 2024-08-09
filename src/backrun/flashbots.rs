@@ -1,14 +1,15 @@
 use ethers::core::rand::thread_rng;
 use ethers::types::Transaction;
 use ethers::{
-    core::types::{transaction::eip2718::TypedTransaction, TransactionRequest},
+    core::types::{transaction::eip2718::TypedTransaction, Chain, TransactionRequest},
     middleware::SignerMiddleware,
     providers::{Middleware, Provider, Ws},
-    signers::{LocalWallet, Signer},
+    signers::{LocalWallet, Signer, Wallet},
     types::Address,
 };
 use ethers_flashbots::{BroadcasterMiddleware, BundleRequest, PendingBundleError, SimulatedBundle};
 use log::error;
+use std::str::FromStr;
 use std::{env, sync::Arc};
 use url::Url;
 
@@ -30,23 +31,22 @@ static BUILDER_URLS: &[&str] = &[
     "https://rpc.lokibuilder.xyz",
 ];
 
-const WS_URL: &str = "ws://localhost:8546";
+// TODO - have chatgpt review
 
 pub async fn submit_to_flashbots(
-    _provider: &Arc<Provider<Ws>>,
+    client: &Arc<Provider<Ws>>,
     backrun_tx: TypedTransaction, // the transaction that will backrup mempool_tx
     mempool_tx: Transaction,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Connect to the network
 
-    let provider = Provider::<Ws>::connect(WS_URL).await?;
-    let client = Arc::new(provider);
+    let client = Arc::clone(client);
 
     let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY not found in .env file");
     // let private_key_searcher = env::var("PRIVATE_KEY_SEARCHER").expect("PRIVATE_KEY_SEARCHER not found in .env file");
 
     // create wallet from private key
-    let wallet: LocalWallet = private_key.parse()?;
+    let wallet = LocalWallet::from_str(&private_key)?.with_chain_id(Chain::Mainnet);
 
     // This is your searcher identity
     let bundle_signer = LocalWallet::new(&mut thread_rng());
@@ -70,14 +70,7 @@ pub async fn submit_to_flashbots(
     // get last block number
     let block_number = client.get_block_number().await?;
 
-    // Build a custom bundle that pays 0x0000000000000000000000000000000000000000
-    let tx = {
-        let mut inner: TypedTransaction = TransactionRequest::pay(Address::zero(), 100).into();
-        client.fill_transaction(&mut inner, None).await?;
-        inner
-    };
-
-    let signature = client.signer().sign_transaction(&tx).await?;
+    let signature = client.signer().sign_transaction(&backrun_tx).await?;
     let bundle = BundleRequest::new()
         .push_transaction(backrun_tx.rlp_signed(&signature))
         .push_transaction(mempool_tx)

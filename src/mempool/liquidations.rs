@@ -34,7 +34,9 @@ pub async fn find_users_and_liquidate(
                 add_tracked_users(users_to_liquidate.clone()).await?;
 
                 // Determine transaction fto submit to Flashbots
-                get_liquidate_user_contract_transaction(client, users_to_liquidate).await?;
+                // get_liquidate_user_contract_transaction(client, users_to_liquidate).await?;
+
+                // TODO - SUBMIT TRANSACTION TO FLASHBOTS - will need to pass mempool transaction in here too
             }
             UsersToLiquidate::None => {}
         }
