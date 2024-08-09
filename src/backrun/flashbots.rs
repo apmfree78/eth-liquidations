@@ -1,11 +1,14 @@
+use crate::abi::liquidate_user::{User, LIQUIDATE_USER};
+use crate::data::address::LIQUIDATE_USER_ADDRESS;
+use crate::exchanges::aave_v3::user_structs::LiquidationCandidate;
 use ethers::core::rand::thread_rng;
-use ethers::types::Transaction;
+use ethers::types::{Bytes, Transaction};
 use ethers::{
     core::types::{transaction::eip2718::TypedTransaction, Chain, TransactionRequest},
     middleware::SignerMiddleware,
     providers::{Middleware, Provider, Ws},
     signers::{LocalWallet, Signer, Wallet},
-    types::Address,
+    types::{Eip1559TransactionRequest, NameOrAddress},
 };
 use ethers_flashbots::{BroadcasterMiddleware, BundleRequest, PendingBundleError, SimulatedBundle};
 use log::error;
@@ -34,13 +37,25 @@ static BUILDER_URLS: &[&str] = &[
 // TODO - have chatgpt review
 
 pub async fn submit_to_flashbots(
-    client: &Arc<Provider<Ws>>,
-    backrun_tx: TypedTransaction, // the transaction that will backrup mempool_tx
+    user: &[LiquidationCandidate],
     mempool_tx: Transaction,
+    client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Connect to the network
+    // *******************************************************
+    // CREATE BACKRUN Transaction
+    let calldata = get_liquidate_user_calldata(client, &user)?;
 
-    let client = Arc::clone(client);
+    let backrun_tx = TypedTransaction::Eip1559(Eip1559TransactionRequest {
+        chain_id: Some(Chain::Mainnet.into()), // Mainnet
+        max_priority_fee_per_gas: mempool_tx.max_priority_fee_per_gas,
+        max_fee_per_gas: mempool_tx.max_fee_per_gas,
+        to: Some(NameOrAddress::Address(*LIQUIDATE_USER_ADDRESS)),
+        data: Some(calldata), // Encoded data for the transaction
+        ..Default::default()
+    });
+    // *******************************************************
+    // CREATE SIGNED CLIENT WITH FLASHBOT MIDDLEWARE SET TO BROADCAST TO FLASHBOT AND BUILDER RELAYS
+    let client = Arc::clone(client); // need this to avoid lifetime not long enough error
 
     let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY not found in .env file");
     // let private_key_searcher = env::var("PRIVATE_KEY_SEARCHER").expect("PRIVATE_KEY_SEARCHER not found in .env file");
@@ -67,6 +82,8 @@ pub async fn submit_to_flashbots(
         wallet,
     );
 
+    // *******************************************************
+    // GENERATE Transaction BUNDLE FOR BACKRUN
     // get last block number
     let block_number = client.get_block_number().await?;
 
@@ -78,6 +95,8 @@ pub async fn submit_to_flashbots(
         .set_simulation_block(block_number)
         .set_simulation_timestamp(0);
 
+    // *******************************************************
+    // SIMULATE SENDING BUNDLE AND LISTEN FOR RESPONSE
     // Simulate it
     let simulated_bundle: SimulatedBundle = client.inner().simulate_bundle(&bundle).await?;
     println!("Simulated bundle: {:?}", simulated_bundle);
@@ -110,6 +129,32 @@ pub async fn submit_to_flashbots(
     // }
 
     Ok(())
+}
+
+pub fn get_liquidate_user_calldata(
+    client: &Arc<Provider<Ws>>,
+    liquidation_users: &[LiquidationCandidate],
+) -> Result<Bytes, Box<dyn std::error::Error>> {
+    // convert user to correct type
+    let mut users = Vec::<User>::new();
+
+    for user in liquidation_users {
+        users.push(User {
+            id: user.user_id,
+            debt_token: user.debt_token,
+            collateral_token: user.collateral_token,
+        })
+    }
+
+    let liquidate_user = LIQUIDATE_USER::new(*LIQUIDATE_USER_ADDRESS, client.clone());
+
+    // Encode the function with parameters, and get TypedTransaction
+    let calldata = liquidate_user
+        .find_and_liquidate_account(users)
+        .calldata()
+        .expect("Failed to encode");
+
+    Ok(calldata)
 }
 
 fn is_simulation_success(bundle: &SimulatedBundle) -> bool {

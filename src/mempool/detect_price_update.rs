@@ -34,25 +34,27 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
         if let Some(to) = tx.to {
             // The `data` field contains the input data for contract interactions
             if !tx.input.0.is_empty() && tx.input.0.len() >= 4 {
-                let data = tx.input.0;
+                let data = tx.input.0.clone();
 
                 if data.starts_with(&transmit_hash) {
                     let to_address = address_to_string(to).to_lowercase();
                     if let Some(token) = TOKEN_DATA.get(&*to_address) {
                         debug!("TRANSMIT FOUND!!!");
 
+                        // ***************************************************************************
+                        // ***************************************************************************
+                        // FOR TESTING PURPOSES
                         if tx.transaction_type == Some(2.into()) {
                             // Confirming it's an EIP-1559 transaction
                             if let Some(max_priority_fee_per_gas) = tx.max_priority_fee_per_gas {
                                 debug!("Max Priority Fee per Gas: {}", max_priority_fee_per_gas);
                             }
-                           if let Some(max_fee_per_gas) = tx.max_fee_per_gas {
+                            if let Some(max_fee_per_gas) = tx.max_fee_per_gas {
                                 debug!("Max Fee per Gas: {}", max_fee_per_gas);
                             }
                         } else {
                             debug!("NOT EIP-1559 transaction");
                         }
-                        
 
                         debug!("Transaction from address: {:?}", to);
                         let contract = AGGREGATOR::new(to, client.clone());
@@ -61,11 +63,13 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
                         if let Ok(description) = contract.description().call().await {
                             debug!("aggregator for {}", description);
                         }
+                        // ***************************************************************************
+                        // ***************************************************************************
 
                         // update price of token
                         update_token_price_for_(token, client).await?;
 
-                        find_users_and_liquidate(user_data, token, client).await?;
+                        find_users_and_liquidate(user_data, token, tx, client).await?;
                     }
                 }
             }

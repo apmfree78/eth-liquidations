@@ -321,7 +321,7 @@ impl GetUserData for AaveUserData {
 
             if liquidation_bonus > &BigDecimal::from(0) && token.usage_as_collateral_enabled {
                 let debt_token_price =
-                    get_saved_token_price(token_highest_debt.to_string()).await?;
+                    get_saved_token_price(token_highest_debt.to_lowercase()).await?;
                 let profit_usd = (&highest_debt_to_cover * debt_token_price)
                     / &highest_decimal_factor
                     * liquidation_bonus
