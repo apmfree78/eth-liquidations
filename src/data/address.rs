@@ -1,30 +1,94 @@
-use ethers::types::Address;
+use ethers::types::Chain;
 use once_cell::sync::Lazy;
+use serde::Deserialize;
+use std::{collections::HashMap, fs};
 
-pub static WETH_ADDRESS: Lazy<Address> = Lazy::new(|| {
-    "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-        .parse()
-        .expect("Invalid address")
-});
-pub static AAVE_ORACLE_ADDRESS: Lazy<Address> = Lazy::new(|| {
-    "0x54586bE62E3c3580375aE3723C145253060Ca0C2"
-        .parse()
-        .expect("Invalid address")
-});
-pub static AAVE_V3_POOL_ADDRESS: Lazy<Address> = Lazy::new(|| {
-    "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2"
-        .parse()
-        .expect("Invalid address")
-});
+//*****************************************
+//*****************************************
+//*****************************************
+//*****************************************
+//*****************************************
+// CHANGE THIS VALUE TO SET CHAIN FOR BUILD
+pub const CHAIN: Chain = Chain::Mainnet;
+//*****************************************
+//*****************************************
+//*****************************************
+//*****************************************
+//*****************************************
 
-pub static AAVE_V3_DATA_PROVIDER_ADDRESS: Lazy<Address> = Lazy::new(|| {
-    "0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3"
-        .parse()
-        .expect("Invalid address")
-});
+pub struct ContractAddresses {
+    pub aave_oracle: String,
+    pub aave_v3_pool: String,
+    pub uniswap_factory: String,
+    pub aave_v3_data_provider: String,
+    pub liquidate_user: String,
+    pub weth: String,
+}
 
-pub static LIQUIDATE_USER_ADDRESS: Lazy<Address> = Lazy::new(|| {
-    "0x0000000000000000000000000000000000000000"
-        .parse()
-        .expect("Invalid address")
+pub struct ContractAddressMap {
+    pub addresses: HashMap<Chain, ContractAddresses>,
+}
+
+impl ContractAddressMap {
+    fn new(chains: Chains) -> Self {
+        let mut addresses = HashMap::<Chain, ContractAddresses>::new();
+        addresses.insert(
+            Chain::Mainnet,
+            ContractAddresses {
+                aave_oracle: chains.mainnet.aave_oracle,
+                aave_v3_pool: chains.mainnet.aave_v3_pool,
+                uniswap_factory: chains.mainnet.uniswap_factory,
+                aave_v3_data_provider: chains.mainnet.aave_v3_data_provider,
+                liquidate_user: chains.mainnet.liquidate_user,
+                weth: chains.mainnet.weth,
+            },
+        );
+
+        addresses.insert(
+            Chain::Sepolia,
+            ContractAddresses {
+                aave_oracle: chains.sepolia.aave_oracle,
+                aave_v3_pool: chains.sepolia.aave_v3_pool,
+                uniswap_factory: chains.sepolia.uniswap_factory,
+                aave_v3_data_provider: chains.sepolia.aave_v3_data_provider,
+                liquidate_user: chains.sepolia.liquidate_user,
+                weth: chains.sepolia.weth,
+            },
+        );
+        Self { addresses }
+    }
+
+    pub fn get_address(&self) -> &ContractAddresses {
+        self.addresses.get(&CHAIN).expect("Chain not supported")
+    }
+}
+
+#[derive(Deserialize)]
+struct Chains {
+    mainnet: ChainContracts,
+    sepolia: ChainContracts,
+}
+
+#[derive(Deserialize)]
+struct ChainContracts {
+    aave_v3_pool: String,
+    uniswap_factory: String,
+    aave_oracle: String,
+    weth: String,
+    aave_v3_data_provider: String,
+    liquidate_user: String,
+}
+
+impl Chains {
+    fn load() -> Self {
+        let config = fs::read_to_string("contracts.toml").expect("failed to read toml file");
+        toml::from_str(&config).expect("failed to parse toml to chain config")
+    }
+}
+
+// CREATE GLOBAL INSTANCE OF ALL CONTRACT ADDRESS FOR A GIVEN CHAIN
+pub static CONTRACT: Lazy<ContractAddressMap> = Lazy::new(|| {
+    let chains = Chains::load();
+
+    ContractAddressMap::new(chains)
 });

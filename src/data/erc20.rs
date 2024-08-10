@@ -1,6 +1,7 @@
-use super::address::AAVE_ORACLE_ADDRESS;
+use super::address::CONTRACT;
 use super::token_price_hash::get_saved_token_price;
 use crate::abi::aave_oracle::AAVE_ORACLE;
+use alloy_primitives;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
@@ -12,7 +13,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
 use uniswap_v3_sdk::{
-    constants::{FeeAmount, FACTORY_ADDRESS},
+    constants::FeeAmount,
     extensions::{fraction_to_big_decimal, get_pool},
 };
 
@@ -122,9 +123,11 @@ impl Convert for Erc20Token {
         let decimal_factor =
             BigDecimal::from_u64(10_u64.pow(scale_factor.unsigned_abs() as u32)).unwrap();
 
+        let factory_address: alloy_primitives::Address =
+            CONTRACT.get_address().uniswap_factory.parse()?;
         let pool = get_pool(
             1,
-            FACTORY_ADDRESS,
+            factory_address,
             token.meta.address,
             base_token.meta.address,
             FeeAmount::MEDIUM,
@@ -158,7 +161,8 @@ impl Convert for Erc20Token {
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
         let address: Address = self.address.parse()?;
-        let aave_oracle = AAVE_ORACLE::new(*AAVE_ORACLE_ADDRESS, client.clone());
+        let aave_oracle_address: Address = CONTRACT.get_address().aave_oracle.parse()?;
+        let aave_oracle = AAVE_ORACLE::new(aave_oracle_address, client.clone());
         let oracle_decimal_factor = BigDecimal::from_u64(10_u64.pow(8)).unwrap();
 
         let token_price_oracle = aave_oracle.get_asset_price(address).call().await?;
