@@ -14,14 +14,11 @@ use ethers::{
     core::types::{Log, TxHash},
     providers::{Middleware, Provider, Ws},
 };
-// use ethers::{
-//     middleware::SignerMiddleware,
-//     signers::{LocalWallet, Signer},
-// };
 use futures::{lock::Mutex, stream, StreamExt};
-use log::{error, info, warn};
-use std::{env, sync::Arc};
+use log::{error, info};
+use std::sync::Arc;
 
+// SET ws url and CHAIN we are using
 const WS_URL: &str = "ws://localhost:8546";
 
 enum Event {

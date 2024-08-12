@@ -1,7 +1,7 @@
 use super::implementations::aave_user_data::{HealthFactor, UpdateUserData};
 use super::user_structs::{AaveToken, AaveUserData, PricingSource};
 use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
-use crate::data::address::AAVE_V3_DATA_PROVIDER_ADDRESS;
+use crate::data::address::CONTRACT;
 use crate::data::erc20::{u256_to_big_decimal, UNIQUE_TOKEN_DATA};
 use bigdecimal::BigDecimal;
 use ethers::providers::{Provider, Ws};
@@ -12,8 +12,9 @@ pub async fn get_aave_v3_user_from_data_provider(
     user_address: Address,
     client: &Arc<Provider<Ws>>,
 ) -> Result<AaveUserData, Box<dyn std::error::Error>> {
-    let aave_v3_data_pool =
-        AAVE_V3_DATA_PROVIDER::new(*AAVE_V3_DATA_PROVIDER_ADDRESS, client.clone());
+    let aave_v3_data_pool_address: Address =
+        CONTRACT.get_address().aave_v3_data_provider.parse()?;
+    let aave_v3_data_pool = AAVE_V3_DATA_PROVIDER::new(aave_v3_data_pool_address, client.clone());
 
     let mut tokens = Vec::new();
 

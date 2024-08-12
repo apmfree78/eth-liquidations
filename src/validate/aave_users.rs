@@ -1,7 +1,7 @@
 use crate::{
     abi::{aave_v3_data_provider::AAVE_V3_DATA_PROVIDER, aave_v3_pool::AAVE_V3_POOL},
     data::{
-        address::{AAVE_V3_DATA_PROVIDER_ADDRESS, AAVE_V3_POOL_ADDRESS},
+        address::CONTRACT,
         erc20::{u256_to_big_decimal, TOKEN_DATA, UNIQUE_TOKEN_DATA},
         token_price_hash::{generate_token_price_hash, get_saved_token_price},
         users_to_track::{get_tracked_users, reset_tracked_users},
@@ -27,7 +27,8 @@ pub async fn validate_liquidation_candidates(
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut validation_count: u16 = 0;
-    let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
+    let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
+    let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
     let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
     let eth_token = TOKEN_DATA
         .get("WETH")
@@ -133,6 +134,8 @@ pub async fn calculate_user_liquidation_usd_profit(
 ) -> Result<(LiquidationArgs, U256), Box<dyn std::error::Error>> {
     let bps_factor = U256::from(BPS_FACTOR);
     let standard_scale = U256::exp10(18);
+    let aave_v3_data_provider_address: Address =
+        CONTRACT.get_address().aave_v3_data_provider.parse()?;
 
     // update token hash prices to aave oracle values
     generate_token_price_hash(client).await?;
@@ -157,7 +160,7 @@ pub async fn calculate_user_liquidation_usd_profit(
         };
 
     let aave_v3_data_pool =
-        AAVE_V3_DATA_PROVIDER::new(*AAVE_V3_DATA_PROVIDER_ADDRESS, client.clone());
+        AAVE_V3_DATA_PROVIDER::new(aave_v3_data_provider_address, client.clone());
 
     let liquidation_close_factor_scaled = match liquidation_factor {
         LiquidationCloseFactor::Full => standard_scale,

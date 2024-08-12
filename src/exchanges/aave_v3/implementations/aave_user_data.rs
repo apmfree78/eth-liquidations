@@ -2,7 +2,7 @@ use super::super::get_user_api::{get_aave_v3_users, get_all_aave_v3_users, UserA
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
 use super::super::user_structs::{AaveUserData, AaveUsersHash, PricingSource, SampleSize};
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
-use crate::data::address::AAVE_V3_POOL_ADDRESS;
+use crate::data::address::CONTRACT;
 use crate::data::erc20::{u256_to_big_decimal, Convert, TOKEN_DATA};
 use crate::data::token_price_hash::{generate_token_price_hash, get_saved_token_price};
 use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
@@ -72,7 +72,8 @@ impl GenerateUsers for AaveUserData {
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
     ) -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
-        let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
+        let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
+        let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
 
         // Initialize TOKEN_PRICE_HASH global hashmap of token prices
         if let Err(e) = generate_token_price_hash(client).await {
@@ -393,7 +394,8 @@ impl HealthFactor for AaveUserData {
         &mut self,
         client: &Arc<Provider<Ws>>,
     ) -> Result<bool, Box<dyn std::error::Error>> {
-        let aave_v3_pool = AAVE_V3_POOL::new(*AAVE_V3_POOL_ADDRESS, client.clone());
+        let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
+        let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
 
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
         let (

@@ -1,13 +1,13 @@
 use crate::abi::liquidate_user::{User, LIQUIDATE_USER};
-use crate::data::address::LIQUIDATE_USER_ADDRESS;
+use crate::data::address::CONTRACT;
 use crate::exchanges::aave_v3::user_structs::LiquidationCandidate;
 use ethers::core::rand::thread_rng;
-use ethers::types::{Bytes, Transaction};
+use ethers::types::{Address, Bytes, Transaction};
 use ethers::{
-    core::types::{transaction::eip2718::TypedTransaction, Chain, TransactionRequest},
+    core::types::{transaction::eip2718::TypedTransaction, Chain},
     middleware::SignerMiddleware,
     providers::{Middleware, Provider, Ws},
-    signers::{LocalWallet, Signer, Wallet},
+    signers::{LocalWallet, Signer},
     types::{Eip1559TransactionRequest, NameOrAddress},
 };
 use ethers_flashbots::{BroadcasterMiddleware, BundleRequest, PendingBundleError, SimulatedBundle};
@@ -41,6 +41,8 @@ pub async fn submit_to_flashbots(
     mempool_tx: Transaction,
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let liquidate_user_address: Address = CONTRACT.get_address().liquidate_user.parse()?;
+
     // *******************************************************
     // CREATE BACKRUN Transaction
     let calldata = get_liquidate_user_calldata(client, &user)?;
@@ -49,7 +51,7 @@ pub async fn submit_to_flashbots(
         chain_id: Some(Chain::Mainnet.into()), // Mainnet
         max_priority_fee_per_gas: mempool_tx.max_priority_fee_per_gas,
         max_fee_per_gas: mempool_tx.max_fee_per_gas,
-        to: Some(NameOrAddress::Address(*LIQUIDATE_USER_ADDRESS)),
+        to: Some(NameOrAddress::Address(liquidate_user_address)),
         data: Some(calldata), // Encoded data for the transaction
         ..Default::default()
     });
@@ -135,6 +137,7 @@ pub fn get_liquidate_user_calldata(
     client: &Arc<Provider<Ws>>,
     liquidation_users: &[LiquidationCandidate],
 ) -> Result<Bytes, Box<dyn std::error::Error>> {
+    let liquidate_user_address: Address = CONTRACT.get_address().liquidate_user.parse()?;
     // convert user to correct type
     let mut users = Vec::<User>::new();
 
@@ -146,7 +149,7 @@ pub fn get_liquidate_user_calldata(
         })
     }
 
-    let liquidate_user = LIQUIDATE_USER::new(*LIQUIDATE_USER_ADDRESS, client.clone());
+    let liquidate_user = LIQUIDATE_USER::new(liquidate_user_address, client.clone());
 
     // Encode the function with parameters, and get TypedTransaction
     let calldata = liquidate_user

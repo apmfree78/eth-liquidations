@@ -32,6 +32,7 @@ pub mod data {
     pub mod address;
     pub mod erc20;
     pub mod token_price_hash;
+    pub mod tokens_by_chain;
     pub mod users_to_track;
 }
 

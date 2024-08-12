@@ -196,6 +196,7 @@ pub fn get_graphql_url_and_query(sample_size: SampleSize) -> (String, String) {
         .expect("PROTOCOL_V3_SUBGRAPH_ID not found in .env file");
     let thegraph_url = format!("{}/api/{}/subgraphs/id/{}", root_url, api_key, subgraph_id);
 
+    // TODO - add decimals will use chainlink contract methods get price feed and aggregator address
     let query = match sample_size {
         SampleSize::All => {
             r#"

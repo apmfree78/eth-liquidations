@@ -1,3 +1,4 @@
+use crate::data::address::CONTRACT;
 use crate::exchanges::aave_v3::implementations::aave_user_data::UpdateUserData;
 use crate::exchanges::aave_v3::{
     decode_events::create_aave_event_from_log,
@@ -23,7 +24,6 @@ use crate::exchanges::aave_v3::events::{
     SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
 };
 
-const AAVE_V3_POOL_ADDRESS: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 const SCALE: i64 = 3;
 
 pub async fn update_users_with_event_from_log(
@@ -64,8 +64,10 @@ pub async fn update_users_with_event_from_log(
 }
 
 pub fn set_aave_event_signature_filter() -> Result<Filter, Box<dyn std::error::Error>> {
+    let aave_v3_pool_address = CONTRACT.get_address().aave_v3_pool.clone();
+
     let filter = Filter::new()
-        .address(AAVE_V3_POOL_ADDRESS.parse::<Address>()?)
+        .address(aave_v3_pool_address.parse::<Address>()?)
         .events(
             [
                 WITHDRAW_SIGNATURE,
