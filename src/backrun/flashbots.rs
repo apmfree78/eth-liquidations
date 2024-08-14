@@ -34,8 +34,6 @@ static BUILDER_URLS: &[&str] = &[
     "https://rpc.lokibuilder.xyz",
 ];
 
-// TODO - have chatgpt review
-
 pub async fn submit_to_flashbots(
     user: &[LiquidationCandidate],
     mempool_tx: Transaction,
@@ -45,7 +43,7 @@ pub async fn submit_to_flashbots(
 
     // *******************************************************
     // CREATE BACKRUN Transaction
-    let calldata = get_liquidate_user_calldata(client, &user)?;
+    let calldata = get_liquidate_user_calldata(client, user)?;
 
     let backrun_tx = TypedTransaction::Eip1559(Eip1559TransactionRequest {
         chain_id: Some(Chain::Mainnet.into()), // Mainnet
