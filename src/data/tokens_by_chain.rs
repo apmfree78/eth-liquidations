@@ -115,7 +115,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         decimals: 8,
         address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
         liquidation_bonus: 10500,
-        liquidation_threshold: 8300,
+        liquidation_threshold: 7800,
         chain_link_price_feed: "0x230e0321cf38f09e247e50afc7801ea2351fe56f",
         // track with movement of ETH
         chainlink_aggregator: "0xdBe1941BFbe4410D6865b9b7078e0b49af144D2d", // BTC/USD
@@ -200,7 +200,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         decimals: 18,
         address: "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
         liquidation_bonus: 10850,
-        liquidation_threshold: 6400,
+        liquidation_threshold: 6500,
         chain_link_price_feed: "0xDC3EA94CD0AC27d9A86C180091e7f78C683d3699",
         chainlink_aggregator: "0x06ce8be8729b6ba18dd3416e3c223a5d4db5e755",
     },
