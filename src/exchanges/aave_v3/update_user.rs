@@ -1,6 +1,7 @@
 use super::events::{AaveEvent, AaveUserAction, AaveUserEvent, LiquidationEvent};
 use super::user_structs::{AaveToken, AaveUserData};
-use crate::data::erc20::{u256_to_big_decimal, TOKEN_DATA};
+use crate::data::erc20::u256_to_big_decimal;
+use crate::data::token_data_hash::get_token_data;
 use crate::utils::type_conversion::address_to_string;
 use bigdecimal::BigDecimal;
 use core::panic;
@@ -11,27 +12,30 @@ pub enum TokenToRemove {
     None,
 }
 
-pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
+pub async fn get_user_action_from_event(
+    event: Box<dyn AaveEvent>,
+) -> Result<AaveUserAction, Box<dyn std::error::Error>> {
     let token_address = event.get_reserve();
     let token_address = address_to_string(token_address);
+    let token_data = get_token_data().await?;
 
-    let token = TOKEN_DATA
+    let token = token_data
         .get(token_address.trim())
         .unwrap_or_else(|| panic!("No token found for address: {}", token_address));
     let amount = event.get_amount();
     let amount = u256_to_big_decimal(&amount);
 
-    AaveUserAction {
+    Ok(AaveUserAction {
         user_event: event.get_type(),
         user_address: event.get_user(),
-        token: *token,
+        token: token.clone(),
         amount_transferred: amount,
         use_a_tokens: event.get_use_a_tokens(),
-    }
+    })
 }
 
 pub trait Update {
-    fn update(
+    async fn update(
         &mut self,
         aave_action: &AaveUserAction,
     ) -> Result<TokenToRemove, Box<dyn std::error::Error>>;
@@ -60,11 +64,12 @@ impl Update for AaveUserData {
         Ok(())
     }
 
-    fn update(
+    async fn update(
         &mut self,
         aave_action: &AaveUserAction,
     ) -> Result<TokenToRemove, Box<dyn std::error::Error>> {
         let token_address = aave_action.token.address.to_lowercase();
+        let token_data = get_token_data().await?;
         let mut token_index: Option<usize> = None;
         match aave_action.user_event {
             AaveUserEvent::WithDraw => {
@@ -103,9 +108,9 @@ impl Update for AaveUserData {
                 }
 
                 // token does not exist , add it
-                if let Some(token) = TOKEN_DATA.get(&token_address) {
+                if let Some(token) = token_data.get(&token_address) {
                     self.tokens.push(AaveToken {
-                        token: *token,
+                        token: token.clone(),
                         current_total_debt: aave_action.amount_transferred.clone(),
                         usage_as_collateral_enabled: false,
                         current_atoken_balance: BigDecimal::from(0),
@@ -168,9 +173,9 @@ impl Update for AaveUserData {
                 }
 
                 // token does not exist , add it
-                if let Some(token) = TOKEN_DATA.get(&token_address) {
+                if let Some(token) = token_data.get(&token_address) {
                     self.tokens.push(AaveToken {
-                        token: *token,
+                        token: token.clone(),
                         current_total_debt: BigDecimal::from(0),
                         usage_as_collateral_enabled: false,
                         current_atoken_balance: aave_action.amount_transferred.clone(),

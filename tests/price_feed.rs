@@ -1,6 +1,6 @@
 // create function to get price feed data  using aave_oracle getSourceOfAsset method
 
-use eth_liquadation::data::erc20::TOKEN_DATA;
+use eth_liquadation::data::token_data_hash::get_token_data;
 use eth_liquadation::utils::type_conversion::address_to_string;
 use ethers::abi::Address;
 use ethers::contract::abigen;
@@ -46,13 +46,14 @@ async fn find_price_aggregators_are_valid() -> Result<(), Box<dyn std::error::Er
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    let token_data = get_token_data().await?;
 
     abigen!(
         AGGREGATOR,
         r#"[function aggregator() external view returns (address)]"#
     );
 
-    for token in TOKEN_DATA.deref().values() {
+    for token in token_data.values() {
         let price_feed_address: Address = token.chain_link_price_feed.parse().unwrap();
 
         let contract = AGGREGATOR::new(price_feed_address, client.clone());

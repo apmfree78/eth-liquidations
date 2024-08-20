@@ -3,7 +3,8 @@ use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
 use super::super::user_structs::{AaveUserData, AaveUsersHash, PricingSource, SampleSize};
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
 use crate::data::address::CONTRACT;
-use crate::data::erc20::{u256_to_big_decimal, Convert, TOKEN_DATA};
+use crate::data::erc20::{u256_to_big_decimal, Convert};
+use crate::data::token_data_hash::get_token_data;
 use crate::data::token_price_hash::{generate_token_price_hash, get_saved_token_price};
 use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use crate::exchanges::aave_v3::user_structs::{
@@ -119,7 +120,7 @@ impl GenerateUsers for AaveUserData {
             let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
 
             // this is list of tokens that user is either using as colladeral or borrowing
-            let user_tokens = user.get_list_of_user_tokens().await?;
+            let user_tokens = user.get_list_of_user_tokens(client).await?;
 
             let mut aave_user = AaveUserData {
                 id: user_id,
@@ -202,12 +203,13 @@ impl GetUserData for AaveUserData {
         client: &Arc<Provider<Ws>>,
     ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>> {
         let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
+        let token_data = get_token_data().await?;
 
         let mut total_debt_usd = BigDecimal::from(0);
         let mut liquidation_threshold_collateral_sum = BigDecimal::from(0);
 
         for r in &self.tokens {
-            let token = TOKEN_DATA.get(r.token.symbol).unwrap();
+            let token = token_data.get(&r.token.symbol).unwrap();
             let token_decimal_factor =
                 BigDecimal::from_u64(10_u64.pow(token.decimals.into())).unwrap();
 
@@ -297,7 +299,7 @@ impl GetUserData for AaveUserData {
 
             if &token.current_total_debt > highest_token_debt {
                 highest_token_debt = &token.current_total_debt;
-                token_highest_debt = token.token.address;
+                token_highest_debt = &token.token.address;
                 highest_decimal_factor = decimal_factor;
 
                 // let debt_to_cover =

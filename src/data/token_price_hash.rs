@@ -1,4 +1,5 @@
-use super::erc20::{Convert, UNIQUE_TOKEN_DATA};
+use super::erc20::Convert;
+use super::token_data_hash::get_unique_token_data;
 use bigdecimal::BigDecimal;
 use ethers::providers::{Provider, Ws};
 use futures::lock::Mutex;
@@ -15,8 +16,9 @@ pub async fn generate_token_price_hash(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let token_price_hash = Arc::clone(&TOKEN_PRICE_HASH);
     let mut token_prices = token_price_hash.lock().await;
+    let unique_token_data = get_unique_token_data().await?;
 
-    for token in UNIQUE_TOKEN_DATA.values() {
+    for token in unique_token_data.values() {
         match token.get_token_oracle_price(client).await {
             Ok(token_price) => {
                 token_prices.insert(token.address.to_lowercase(), token_price);

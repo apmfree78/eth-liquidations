@@ -30,7 +30,10 @@ pub mod utils {
 
 pub mod data {
     pub mod address;
+    pub mod chainlink_data;
+    pub mod chainlink_feed_map;
     pub mod erc20;
+    pub mod token_data_hash;
     pub mod token_price_hash;
     pub mod tokens_by_chain;
     pub mod users_to_track;
@@ -40,6 +43,7 @@ pub mod abi {
     pub mod aave_oracle;
     pub mod aave_v3_data_provider;
     pub mod aave_v3_pool;
+    pub mod chainlink_registry;
     pub mod erc20;
     pub mod liquidate_user;
 }

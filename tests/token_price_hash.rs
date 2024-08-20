@@ -1,5 +1,6 @@
 use bigdecimal::BigDecimal;
-use eth_liquadation::data::erc20::{Convert, TOKEN_DATA, UNIQUE_TOKEN_DATA};
+use eth_liquadation::data::erc20::Convert;
+use eth_liquadation::data::token_data_hash::{get_token_data, get_unique_token_data};
 use eth_liquadation::data::token_price_hash::{
     generate_token_price_hash, get_saved_token_price, print_saved_token_prices,
     set_saved_token_price,
@@ -14,21 +15,22 @@ async fn test_setting_price_with_token_price_hash() -> Result<(), Box<dyn std::e
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    let token_data = get_token_data().await?;
 
     generate_token_price_hash(&client).await?;
 
     // get address for WETH
-    let weth_token = TOKEN_DATA.get("WETH").unwrap();
+    let weth_token = token_data.get("WETH").unwrap();
     let weth_price = weth_token.get_token_oracle_price(&client).await?;
     let new_price = BigDecimal::from(2) * &weth_price;
 
-    set_saved_token_price(weth_token.address, new_price.clone()).await?;
+    set_saved_token_price(weth_token.address.as_str(), new_price.clone()).await?;
 
     let updated_price = get_saved_token_price(weth_token.address.to_lowercase()).await?;
 
     assert_eq!(new_price, updated_price);
 
-    set_saved_token_price(weth_token.address, weth_price.clone()).await?;
+    set_saved_token_price(weth_token.address.as_str(), weth_price.clone()).await?;
 
     Ok(())
 }
@@ -39,12 +41,13 @@ async fn test_token_price_token_hash_versus_oracle() -> Result<(), Box<dyn std::
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    let unique_token_data = get_unique_token_data().await?;
 
     generate_token_price_hash(&client).await?;
 
     print_saved_token_prices().await?;
-    println!(" number of test to run {} ", UNIQUE_TOKEN_DATA.len());
-    for token in UNIQUE_TOKEN_DATA.values() {
+    println!(" number of test to run {} ", unique_token_data.len());
+    for token in unique_token_data.values() {
         // if token.name == "Maker" {
         //     continue;
         // }
@@ -66,13 +69,14 @@ async fn test_token_hash_price_update() -> Result<(), Box<dyn std::error::Error>
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    let unique_token_data = get_unique_token_data().await?;
 
     generate_token_price_hash(&client).await?;
 
     print_saved_token_prices().await?;
 
-    println!(" number of test to run {} ", UNIQUE_TOKEN_DATA.len());
-    for token in UNIQUE_TOKEN_DATA.values() {
+    println!(" number of test to run {} ", unique_token_data.len());
+    for token in unique_token_data.values() {
         // below will get token price from uniswap place in saved token hash
         update_token_price_for_(token, &client).await?;
 

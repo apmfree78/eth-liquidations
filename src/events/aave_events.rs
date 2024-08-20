@@ -131,7 +131,7 @@ pub async fn update_aave_user(
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user_address = event.get_user();
-    let user_action = get_user_action_from_event(event);
+    let user_action = get_user_action_from_event(event).await?;
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
@@ -148,7 +148,7 @@ pub async fn update_aave_user(
             user.health_factor.with_scale(SCALE)
         );
 
-        let token_to_remove = match user.update(&user_action) {
+        let token_to_remove = match user.update(&user_action).await {
             Ok(remove_token) => match remove_token {
                 TokenToRemove::TokenToRemove(token_address) => {
                     // there is a token to remove

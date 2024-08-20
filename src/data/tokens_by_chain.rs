@@ -1,7 +1,7 @@
-use super::erc20::Erc20Token;
+use super::erc20::Erc20TokenStatic;
 
-pub static MAINNET_TOKENS: &[Erc20Token] = &[
-    Erc20Token {
+pub static MAINNET_TOKENS: &[Erc20TokenStatic] = &[
+    Erc20TokenStatic {
         name: "Wrapped Ether",
         symbol: "WETH",
         decimals: 18,
@@ -11,7 +11,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
         chainlink_aggregator: "0xe62b71cf983019bff55bc83b48601ce8419650cc",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "ETHx",
         symbol: "ETHx",
         decimals: 18,
@@ -22,7 +22,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0xC5f8c4aB091Be1A899214c0C3636ca33DcA0C547",
         chainlink_aggregator: "0xaa745106db818bfecc39250260df4d453498279f",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Wrapped liquid staked Ether 2.0",
         symbol: "wstETH",
         decimals: 18,
@@ -33,7 +33,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0xB4aB0c94159bc2d8C133946E7241368fc2F2a010",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Staked ETH",
         symbol: "osETH",
         decimals: 18,
@@ -44,7 +44,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x0a2af898cec35197e6944d9e0f525c2626393442",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "USD Coin",
         symbol: "USDC",
         decimals: 6,
@@ -55,7 +55,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x736bF902680e68989886e9807CD7Db4B3E015d3C",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "USDe",
         symbol: "USDe",
         decimals: 18,
@@ -66,7 +66,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0xa569d910839Ae8865Da8F8e70FfFb0cBA869F961",
         chainlink_aggregator: "0xb735cc58d71deac4cfc46de68d3b04988f7d7b2d",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Staked USDe",
         symbol: "sUSDe",
         decimals: 18,
@@ -77,7 +77,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0xa569d910839Ae8865Da8F8e70FfFb0cBA869F961",
         chainlink_aggregator: "0xb735cc58d71deac4cfc46de68d3b04988f7d7b2d",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Dai Stablecoin",
         symbol: "DAI",
         decimals: 18,
@@ -88,7 +88,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0xaEb897E1Dc6BbdceD3B9D551C71a8cf172F27AC4",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "ChainLink Token",
         symbol: "LINK",
         decimals: 18,
@@ -98,7 +98,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x2c1d072e956AFFC0D435Cb7AC38EF18d24d9127c",
         chainlink_aggregator: "0x20807cf61ad17c31837776fa39847a2fa1839e81",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Tether USD",
         symbol: "USDT",
         decimals: 6,
@@ -109,7 +109,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0xc26d4a1c46d884cff6de9800b6ae7a8cf48b4ff8",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Wrapped BTC",
         symbol: "WBTC",
         decimals: 8,
@@ -120,7 +120,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         // track with movement of ETH
         chainlink_aggregator: "0xdBe1941BFbe4410D6865b9b7078e0b49af144D2d", // BTC/USD
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Aave Token",
         symbol: "AAVE",
         decimals: 18,
@@ -130,7 +130,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x547a514d5e3769680Ce22B2361c10Ea13619e8a9",
         chainlink_aggregator: "0x8116b273cd75d79c382afacc706659ded5e0a59d",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Rocket Pool ETH",
         symbol: "rETH",
         decimals: 18,
@@ -139,9 +139,9 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         liquidation_threshold: 7700,
         // also track with ETH movement
         chain_link_price_feed: "0x536218f9E9Eb48863970252233c8F271f554C2d0", // rETH/ETH
-        chainlink_aggregator: "0x9cb248e68fb81d0cfe7d6b3265fe6bf123a71fe0",
+        chainlink_aggregator: "0xc77904cd2ca0806cc3db0819e9630ff3e2f6093d",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Maker",
         symbol: "MKR",
         decimals: 18,
@@ -151,7 +151,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0xec1D1B3b0443256cc3860e24a46F108e699484Aa",
         chainlink_aggregator: "0x71febc2f741f113af322e1b576ef005a4424574f",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Coinbase Wrapped Staked ETH",
         symbol: "cbETH",
         decimals: 18,
@@ -162,7 +162,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x6243d2F41b4ec944F731f647589E28d9745a2674",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "PayPal USD",
         symbol: "PYUSD",
         decimals: 6,
@@ -173,7 +173,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x150bae7ce224555d39afdbc6cb4b8204e594e022",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Lido DAO Token",
         symbol: "LDO",
         decimals: 18,
@@ -184,7 +184,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         // track with movement of ETH
         chainlink_aggregator: "0x7898AcCC83587C3C55116c5230C17a6Cd9C71bad", // LDO/ETH
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Uniswap",
         symbol: "UNI",
         decimals: 18,
@@ -194,7 +194,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x553303d460EE0afB37EdFf9bE42922D8FF63220e",
         chainlink_aggregator: "0x373bce97bec13bfa8a5f07cc578ec2d77f80c589",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Synthetix Network Token",
         symbol: "SNX",
         decimals: 18,
@@ -202,9 +202,9 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         liquidation_bonus: 10850,
         liquidation_threshold: 6500,
         chain_link_price_feed: "0xDC3EA94CD0AC27d9A86C180091e7f78C683d3699",
-        chainlink_aggregator: "0x06ce8be8729b6ba18dd3416e3c223a5d4db5e755",
+        chainlink_aggregator: "0xc778e9686f0fde6fe4d7d8fe4b481463fce898fd",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "1INCH Token",
         symbol: "1INCH",
         decimals: 18,
@@ -212,9 +212,9 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         liquidation_bonus: 10750,
         liquidation_threshold: 6700,
         chain_link_price_feed: "0xc929ad75B72593967DE83E7F7Cda0493458261D9",
-        chainlink_aggregator: "0xd2bdd1e01fd2f8d7d42b209c111c7b32158b5a42",
+        chainlink_aggregator: "0x6AD3961c0348906504ff4125722e4Aa5146ff529",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "LUSD Stablecoin",
         symbol: "LUSD",
         decimals: 18,
@@ -225,7 +225,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x9ecdfacca946614cc32af63f3dbe50959244f3af",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Ethereum Name Service",
         symbol: "ENS",
         decimals: 18,
@@ -235,7 +235,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x5C00128d4d1c2F4f652C267d7bcdD7aC99C16E16",
         chainlink_aggregator: "0x780f1bd91a5a22ede36d4b2b2c0eccb9b1726a28",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Balancer",
         symbol: "BAL",
         decimals: 18,
@@ -245,7 +245,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0xdF2917806E30300537aEB49A7663062F4d1F2b5F",
         chainlink_aggregator: "0xbd9350a3a2fd6e3ad0a053a567f2609a1bf6c505",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Curve DAO Token",
         symbol: "CRV",
         decimals: 18,
@@ -253,9 +253,9 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         liquidation_bonus: 10830,
         liquidation_threshold: 4100,
         chain_link_price_feed: "0xCd627aA160A6fA45Eb793D19Ef54f5062F20f33f",
-        chainlink_aggregator: "0xb4c4a493ab6356497713a78ffa6c60fb53517c63",
+        chainlink_aggregator: "0xda0da298550e8e449b935cea865c8100f3ca1b73",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Frax",
         symbol: "FRAX",
         decimals: 18,
@@ -265,7 +265,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x45d270263bbee500cf8adcf2abc0ac227097b036",
         chainlink_aggregator: "0x9d78092775dfe715dfe1b0d71ac1a4d6e3652559",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Curve.Fi USD Stablecoin",
         symbol: "crvUSD",
         decimals: 18,
@@ -276,7 +276,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x02AeE5b225366302339748951E1a924617b8814F",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Wrapped eETH",
         symbol: "weETH",
         decimals: 18,
@@ -285,19 +285,19 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         liquidation_threshold: 7500,
         // ALSO track with ETH movement
         chain_link_price_feed: "0x5c9C449BbC9a6075A2c061dF312a35fd1E05fF22", // weETH/ETH
-        chainlink_aggregator: "0x4df36f726d8059d881294166db52c1d13e976fe7",
+        chainlink_aggregator: "0x0f316f6b0c2e2ebe3c3a8b23f6c61009238d51fd",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Rocket Pool Protocol",
         symbol: "RPL",
         decimals: 18,
         address: "0xD33526068D116cE69F19A9ee46F0bd304F21A51f",
         liquidation_bonus: 0,
         liquidation_threshold: 0,
-        chainlink_aggregator: "0x5df960959de45a2ba9dc11e6fd6f77107f43256c",
+        chainlink_aggregator: "0x92455F206F6433f161c09a31B0E02A195AFcf23c",
         chain_link_price_feed: "0x4E155eD98aFE9034b7A5962f6C84c86d869daA9d",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Frax Share",
         symbol: "FXS",
         decimals: 18,
@@ -307,7 +307,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x6Ebc52C8C1089be9eB3945C4350B68B8E4C2233f",
         chainlink_aggregator: "0x9d78092775dfe715dfe1b0d71ac1a4d6e3652559",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "StargateToken",
         symbol: "STG",
         decimals: 18,
@@ -317,7 +317,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0x7A9f34a0Aa917D438e9b6E630067062B7F8f6f3d",
         chainlink_aggregator: "0x73455b8acd6d205544cbc034a6f6cab58c56ef47",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Kyber Network Crystal v2",
         symbol: "KNC",
         decimals: 18,
@@ -325,9 +325,9 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         liquidation_bonus: 11000,
         liquidation_threshold: 3700,
         chain_link_price_feed: "0xf8fF43E991A81e6eC886a3D281A2C6cC19aE70Fc",
-        chainlink_aggregator: "0xbc60258f775683ea28048030806ad3a80c4a33ae",
+        chainlink_aggregator: "0x15D8Aac71A442ece966576c85438B0DFa7FcAbe1",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Gho Token",
         symbol: "GHO",
         decimals: 18,
@@ -338,7 +338,7 @@ pub static MAINNET_TOKENS: &[Erc20Token] = &[
         chain_link_price_feed: "0xd110cac5d8682a3b045d5524a9903e031d70fccd",
         chainlink_aggregator: "",
     },
-    Erc20Token {
+    Erc20TokenStatic {
         name: "Savings Dai",
         symbol: "sDAI",
         decimals: 18,

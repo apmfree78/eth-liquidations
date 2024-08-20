@@ -1,7 +1,8 @@
+use crate::data::chainlink_feed_map::get_chainlink_aggregator_map;
 use crate::exchanges::aave_v3::user_structs::AaveUsersHash;
+use crate::mempool::liquidations::find_users_and_liquidate;
 use crate::mempool::update_token_price::update_token_price_for_;
 use crate::utils::type_conversion::address_to_string;
-use crate::{data::erc20::TOKEN_DATA, mempool::liquidations::find_users_and_liquidate};
 use ethers::{
     core::types::TxHash,
     providers::{Provider, Ws},
@@ -18,6 +19,7 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let transmit_signature = "transmit(bytes,bytes32[],bytes32[],bytes32)";
+    let chain_aggregator_map = get_chainlink_aggregator_map().await?;
 
     abigen!(
         AGGREGATOR,
@@ -38,7 +40,7 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
 
                 if data.starts_with(&transmit_hash) {
                     let to_address = address_to_string(to).to_lowercase();
-                    if let Some(token) = TOKEN_DATA.get(&*to_address) {
+                    if let Some(token) = chain_aggregator_map.get(&*to_address) {
                         debug!("TRANSMIT FOUND!!!");
 
                         // ***************************************************************************
