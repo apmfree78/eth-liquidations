@@ -3,6 +3,7 @@ use super::user_structs::{AaveToken, AaveUserData};
 use crate::data::erc20::u256_to_big_decimal;
 use crate::data::token_data_hash::get_token_data;
 use crate::utils::type_conversion::address_to_string;
+use async_trait::async_trait;
 use bigdecimal::BigDecimal;
 use core::panic;
 use log::debug;
@@ -34,6 +35,7 @@ pub async fn get_user_action_from_event(
     })
 }
 
+#[async_trait]
 pub trait Update {
     async fn update(
         &mut self,
@@ -43,6 +45,7 @@ pub trait Update {
     fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>>;
 }
 
+#[async_trait]
 impl Update for AaveUserData {
     fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>> {
         for token in self.tokens.iter_mut() {

@@ -1,7 +1,6 @@
 use super::address::CONTRACT;
 use super::token_data_hash::get_token_data;
 use super::token_price_hash::get_saved_token_price;
-use super::tokens_by_chain::MAINNET_TOKENS;
 use crate::abi::aave_oracle::AAVE_ORACLE;
 use alloy_primitives;
 use async_trait::async_trait;
@@ -9,8 +8,6 @@ use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
 use ethers::core::types::U256;
 use ethers::providers::{Provider, Ws};
-use once_cell::sync::Lazy;
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
