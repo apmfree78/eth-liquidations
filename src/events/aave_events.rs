@@ -148,7 +148,7 @@ pub async fn update_aave_user(
             user.health_factor.with_scale(SCALE)
         );
 
-        let token_to_remove = match user.update(&user_action).await {
+        let token_to_remove = match user.update(&user_action, client).await {
             Ok(remove_token) => match remove_token {
                 TokenToRemove::TokenToRemove(token_address) => {
                     // there is a token to remove

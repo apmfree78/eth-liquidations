@@ -1,15 +1,10 @@
-use crate::utils::type_conversion::address_to_string;
-
-use super::address::CHAIN;
-use super::chainlink_data::{
-    ChainlinkPriceFeed, ARBITRUM_PRICE_FEEDS, BNB_PRICE_FEEDS, ETHEREUM_PRICE_FEEDS,
-    OPTIMISM_PRICE_FEEDS, POLYGON_PRICE_FEEDS, ZKSYNC_PRICE_FEEDS,
-};
+use super::chainlink_data::{get_chainlink_price_feeds_by_chain, ChainlinkPriceFeed};
 use super::erc20::Erc20Token;
 use super::token_data_hash::set_token_connected_to_eth;
+use crate::utils::type_conversion::address_to_string;
 use ethers::contract::abigen;
 use ethers::providers::{Provider, Ws};
-use ethers::types::{Address, Chain};
+use ethers::types::Address;
 use futures::lock::Mutex;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
@@ -109,17 +104,4 @@ pub async fn get_chainlink_aggregator_map(
     let aggregators = chainlink_aggregator_hash.lock().await;
 
     Ok(aggregators.clone())
-}
-
-fn get_chainlink_price_feeds_by_chain() -> Vec<ChainlinkPriceFeed> {
-    let price_feed = match CHAIN {
-        Chain::Mainnet => ETHEREUM_PRICE_FEEDS,
-        Chain::Polygon => POLYGON_PRICE_FEEDS,
-        Chain::Arbitrum => ARBITRUM_PRICE_FEEDS,
-        Chain::Optimism => OPTIMISM_PRICE_FEEDS,
-        Chain::BinanceSmartChain => BNB_PRICE_FEEDS,
-        Chain::ZkSync => ZKSYNC_PRICE_FEEDS,
-        _ => ETHEREUM_PRICE_FEEDS,
-    };
-    price_feed.to_vec()
 }

@@ -80,10 +80,10 @@ pub async fn save_erc20_tokens_from_static_data(
     Ok(())
 }
 
-pub async fn save_erc20_by_token_address(
-    token_address_str: String,
+pub async fn get_and_save_erc20_by_token_address(
+    token_address_str: &str,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<Erc20Token, Box<dyn std::error::Error>> {
     let token_data_hash = Arc::clone(&TOKEN_DATA_HASH);
     let mut tokens = token_data_hash.lock().await;
     let chainlink_aggregator_hash = Arc::clone(&CHAINLINK_AGGREGATOR_HASH);
@@ -92,8 +92,9 @@ pub async fn save_erc20_by_token_address(
     let mut unique_tokens = unique_data_hash.lock().await;
 
     // make sure token is not already in hashmap
-    if tokens.contains_key(&token_address_str) {
-        return Ok(());
+    if tokens.contains_key(token_address_str) {
+        let token = tokens.get(token_address_str).unwrap();
+        return Ok(token.clone());
     }
 
     let token_address: Address = token_address_str.parse()?;
@@ -120,7 +121,7 @@ pub async fn save_erc20_by_token_address(
         name,
         symbol,
         decimals,
-        address: token_address_str,
+        address: token_address_str.to_string(),
         liquidation_bonus,
         liquidation_threshold,
         ..Default::default()
@@ -144,10 +145,10 @@ pub async fn save_erc20_by_token_address(
     unique_tokens.insert(token.address.clone(), token.clone());
 
     if !aggregator_address.is_empty() {
-        aggregators.insert(aggregator_address, token);
+        aggregators.insert(aggregator_address, token.clone());
     }
 
-    Ok(())
+    Ok(token)
 }
 
 pub async fn get_token_data() -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error>> {

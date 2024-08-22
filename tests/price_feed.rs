@@ -6,7 +6,6 @@ use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Provider, Ws};
 use std::{ops::Deref, sync::Arc};
-use uniswap_sdk_core::entities::fractions::price;
 
 // #[tokio::test]
 // async fn verify_price_oarcles_are_valid() -> Result<(), Box<dyn std::error::Error>> {
