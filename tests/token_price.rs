@@ -1,6 +1,8 @@
 use bigdecimal::BigDecimal;
 use eth_liquadation::data::erc20::Convert;
-use eth_liquadation::data::token_data_hash::get_unique_token_data;
+use eth_liquadation::data::token_data_hash::{
+    get_unique_token_data, save_erc20_tokens_from_static_data,
+};
 use ethers::prelude::*;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -11,6 +13,8 @@ async fn test_token_price_uniswap_versus_oracle() -> Result<(), Box<dyn std::err
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     let unique_token_data = get_unique_token_data().await?;
 
     println!(" number of test to run {} ", 3 * unique_token_data.len());

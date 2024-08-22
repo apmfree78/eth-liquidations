@@ -2114,20 +2114,1337 @@ pub static ARBITRUM_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
     },
 ];
 
-pub static OPTIMISM_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[ChainlinkPriceFeed {
-    token_symbol: "",
-    base_currency: "",
-    address: "",
-}];
+pub static OPTIMISM_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
+    ChainlinkPriceFeed {
+        token_symbol: "AAVE",
+        base_currency: "USD",
+        address: "0x338ed6787f463394D24813b297401B9F05a8C9d1",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ADA",
+        base_currency: "USD",
+        address: "0x43dEa17DeE1ca50c6266acb59b32659E44D3ee5D",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ALGO",
+        base_currency: "USD",
+        address: "0xBf5384854988939729E8B76b8AeCe7d8D930F9f3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "APE",
+        base_currency: "USD",
+        address: "0x89178957E9bD07934d7792fFc0CF39f11c8C2B1F",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "APT",
+        base_currency: "USD",
+        address: "0x48f2EcF0Bd180239AEF474a9da945F2e2d41daA3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ARB",
+        base_currency: "USD",
+        address: "0x8f14546d0B960793180ee355B73fA55041a4a356",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ATOM",
+        base_currency: "USD",
+        address: "0xEF89db2eA46B4aD4E333466B6A486b809e613F39",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AUD",
+        base_currency: "USD",
+        address: "0x39be70E93D2D285C9E71be7f70FC5a45A7777B14",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AVAX",
+        base_currency: "USD",
+        address: "0x5087Dc69Fd3907a016BD42B38022F7f024140727",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AXS",
+        base_currency: "USD",
+        address: "0x805a61D54bb686e57F02D1EC96A1491C7aF40893",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BAL",
+        base_currency: "USD",
+        address: "0x30D9d31C1ac29Bc2c2c312c1bCa9F8b3D60e2376",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BCH",
+        base_currency: "USD",
+        address: "0x33E047119359161288bcB143e0C15467C7151d4c",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BLUR",
+        base_currency: "USD",
+        address: "0x517C2557c29F7c53Aa5F97a1DAE465E0d5C174AA",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BNB",
+        base_currency: "USD",
+        address: "0xD38579f7cBD14c22cF1997575eA8eF7bfe62ca2c",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BONK",
+        base_currency: "USD",
+        address: "0xec236454209A76a6deCdf5C1183aE2Eb5e82a829",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BRL",
+        base_currency: "USD",
+        address: "0xB22900D4D0CEa5DB0B3bb08565a9f0f4a831D32C",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BTC",
+        base_currency: "USD",
+        address: "0xD702DD976Fb76Fffc2D3963D037dfDae5b04E593",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "CBETH",
+        base_currency: "ETH",
+        address: "0x138b809B8472fF09Cd3E075E6EcbB2e42D41d870",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "COMP",
+        base_currency: "USD",
+        address: "0xe1011160d78a80E2eEBD60C228EEf7af4Dfcd4d7",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "CRV",
+        base_currency: "USD",
+        address: "0xbD92C6c284271c227a1e0bF1786F468b539f51D9",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "CVX",
+        base_currency: "USD",
+        address: "0x955b05dD4573dDFAfB47cb78db16B1Fa127E6e71",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DAI",
+        base_currency: "USD",
+        address: "0x8dBa75e83DA73cc766A7e5a0ee71F656BAb470d6",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DOGE",
+        base_currency: "USD",
+        address: "0xC6066533917f034Cf610c08e1fe5e9c7eADe0f54",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DOT",
+        base_currency: "USD",
+        address: "0x28e67BAeEB5dE7A788f3Dde6CF6ee491369Bb3Fa",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DYDX",
+        base_currency: "USD",
+        address: "0xee35A95c9a064491531493D8b380bC40A4CCd0Da",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "EOS",
+        base_currency: "USD",
+        address: "0x8E8E6C8c4942e4963C682fF54A0d058458393DCC",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ETC",
+        base_currency: "USD",
+        address: "0xb7B9A39CC63f856b90B364911CC324dC46aC1770",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ETH",
+        base_currency: "BTC",
+        address: "0xe4b9bcD7d0AA917f19019165EB89BdbbF36d2cBe",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ETH",
+        base_currency: "USD",
+        address: "0x13e3Ee699D1909E989722E753853AE30b17e08c5",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ETHx",
+        base_currency: "ETH",
+        address: "0x4Fe3caF5752AD3EEE3BfC0Bb4D07069E569bc66C",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "EUR",
+        base_currency: "USD",
+        address: "0x3626369857A10CcC6cc3A6e4f5C2f5984a519F20",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FIL",
+        base_currency: "USD",
+        address: "0x66F61FEe824c1dF059BccCC5F21ca39e083EefDf",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FLOW",
+        base_currency: "USD",
+        address: "0x2fF1EB7D0ceC35959F0248E9354c3248c6683D9b",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FRAX",
+        base_currency: "USD",
+        address: "0xc7D132BeCAbE7Dcc4204841F33bae45841e41D9C",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FTM",
+        base_currency: "USD",
+        address: "0xc19d58652d6BfC6Db6FB3691eDA6Aa7f3379E4E9",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FXS",
+        base_currency: "USD",
+        address: "0xB9B16330671067B1b062B9aC2eFd2dB75F03436E",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "GBP",
+        base_currency: "USD",
+        address: "0x540D48C01F946e729174517E013Ad0bdaE5F08C0",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "GMX",
+        base_currency: "USD",
+        address: "0x62f42f70ba85De1086476bB6BADE926d0E0b8a4C",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "GRT",
+        base_currency: "USD",
+        address: "0xfa042d5F474d7A39454C594CCfE014Ea011495f2",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ICP",
+        base_currency: "USD",
+        address: "0xe98290265E4aE3758503a03e937F381A2A7aFB57",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "IMX",
+        base_currency: "USD",
+        address: "0x26Fce884555FAe5F0E4701cc976FE8D8bB111A38",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "INJ",
+        base_currency: "USD",
+        address: "0x90CC16F5493894eff84a5Fedd1dcE297d174fEEf",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "INR",
+        base_currency: "USD",
+        address: "0x5535e67d8f99c8ebe961E1Fc1F6DDAE96FEC82C9",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "JPY",
+        base_currency: "USD",
+        address: "0x536944c3A71FEb7c1E5C66Ee37d1a148d8D8f619",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "JTO",
+        base_currency: "USD",
+        address: "0xFC3b7bd4368b2919f67E437f8c6Ca42C7FD55dd5",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "JUP",
+        base_currency: "USD",
+        address: "0x5eb9F7baCd59C886fBD9aa2C0a891223482a1ed4",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "KNC",
+        base_currency: "USD",
+        address: "0xCB24d22aF35986aC1feb8874AdBbDF68f6dC2e96",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LDO",
+        base_currency: "USD",
+        address: "0x221618871470f78D8a3391d35B77dFb3C0fbc383",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LINK",
+        base_currency: "ETH",
+        address: "0x464A1515ADc20de946f8d0DEB99cead8CEAE310d",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LINK",
+        base_currency: "USD",
+        address: "0xCc232dcFAAE6354cE191Bd574108c1aD03f86450",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LTC",
+        base_currency: "USD",
+        address: "0x45954efBD01f5A12428A09E4C38b8434C3dD4Ac3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LUSD",
+        base_currency: "USD",
+        address: "0x9dfc79Aaeb5bb0f96C6e9402671981CdFc424052",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MATIC",
+        base_currency: "USD",
+        address: "0x0ded608AFc23724f614B76955bbd9dFe7dDdc828",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MAV",
+        base_currency: "USD",
+        address: "0x51E06250C8E46c8E5DE41ac8B917a47D706128C2",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MEME",
+        base_currency: "USD",
+        address: "0xC6884869673a6960486FE0f6B0E775A53521e433",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MKR",
+        base_currency: "USD",
+        address: "0x607b417DF51e0E1ed3A12fDb7FC0e8307ED250F3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "NEAR",
+        base_currency: "USD",
+        address: "0xca6fa4b8CB365C02cd3Ba70544EFffe78f63ac82",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ONE",
+        base_currency: "USD",
+        address: "0x7CFB4fac1a2FDB1267F8bc17FADc12804AC13CFE",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "OP",
+        base_currency: "USD",
+        address: "0x0D276FC14719f9292D5C1eA2198673d1f4269246",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ORDI",
+        base_currency: "USD",
+        address: "0x30795BeACc0f43920EF1288dB6676B5e205AE288",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "PENDLE",
+        base_currency: "USD",
+        address: "0x58F23F80bF389DB1af9e3aA8c59679806749A8a4",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "PEPE",
+        base_currency: "USD",
+        address: "0x64Ecf089a6594Be781908D5a26FC8fA6CB08A2C7",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "PERP",
+        base_currency: "USD",
+        address: "0xA12CDDd8e986AF9288ab31E58C60e65F2987fB13",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "PYTH",
+        base_currency: "USD",
+        address: "0x0838cFe6A97C9CE1611a6Ed17252477a3c71eBEb",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "RETH",
+        base_currency: "ETH",
+        address: "0xb429DE60943a8e6DeD356dca2F93Cd31201D9ed0",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "RPL",
+        base_currency: "USD",
+        address: "0xADE082c91A6AeCC86fC11704a830e933e1b382eA",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "RSETH",
+        base_currency: "ETH",
+        address: "0x03fe94a215E3842deD931769F913d93FF33d0051",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "RUNE",
+        base_currency: "USD",
+        address: "0x372cc5e685115A56F14fa7e4716F1294e04c278A",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SAND",
+        base_currency: "USD",
+        address: "0xAE33e077a02071E62d342E449Afd9895b016d541",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SEI",
+        base_currency: "USD",
+        address: "0x6f6cED6B096708C1276056fdBdb7BbDe07Ca462C",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SHIB",
+        base_currency: "USD",
+        address: "0xd1e56e7657C0E0d20c0e11C2B6ae0D90932d5665",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SNX",
+        base_currency: "USD",
+        address: "0x2FCF37343e916eAEd1f1DdaaF84458a359b53877",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SOL",
+        base_currency: "USD",
+        address: "0xC663315f7aF904fbbB0F785c32046dFA03e85270",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "STETH",
+        base_currency: "ETH",
+        address: "0x14d2d3a82AeD4019FddDfe07E8bdc485fb0d2249",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "STETH",
+        base_currency: "USD",
+        address: "0x41878779a388585509657CE5Fb95a80050502186",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "STRK",
+        base_currency: "USD",
+        address: "0x8814dEC83E2862A3792A0D6aDFC48CF76Add1890",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "STX",
+        base_currency: "USD",
+        address: "0x602eB777BE29Fbe63349A33306bD73Ff333D02bB",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SUI",
+        base_currency: "USD",
+        address: "0xEaf1a9fe242aa9928faedc6CE7e09aD4875f7133",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SUSD",
+        base_currency: "USD",
+        address: "0x7f99817d87baD03ea21E05112Ca799d715730efe",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SUSHI",
+        base_currency: "USD",
+        address: "0x72155D46FD9f03AF1739637F9E7Db8A87C40A730",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "TBTC",
+        base_currency: "USD",
+        address: "0x5a61374950D4BFa5a3D4f2CA36FC1d23A92b6f21",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "TIA",
+        base_currency: "USD",
+        address: "0xD7bC56BBF8D555936cb5121f38d1d362c586776A",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "TRX",
+        base_currency: "USD",
+        address: "0x0E09921cf7801A5aD47B892C8727593275625a9f",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "UNI",
+        base_currency: "USD",
+        address: "0x11429eE838cC01071402f21C219870cbAc0a59A0",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDC",
+        base_currency: "USD",
+        address: "0x16a9FA2FDa030272Ce99B29CF780dFA30361E0f3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDT",
+        base_currency: "USD",
+        address: "0xECef79E109e997bCA29c1c0897ec9d7b03647F5E",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDe",
+        base_currency: "USD",
+        address: "0xEEDF0B095B5dfe75F3881Cb26c19DA209A27463a",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "VELO",
+        base_currency: "USD",
+        address: "0x0f2Ed59657e391746C1a097BDa98F2aBb94b1120",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "WBTC",
+        base_currency: "USD",
+        address: "0x718A5788b89454aAE3A028AE9c111A29Be6c2a6F",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "WIF",
+        base_currency: "USD",
+        address: "0x75c3bF05EeF2c1966D6d5890Def3DbE640627642",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "WLD",
+        base_currency: "USD",
+        address: "0x4e1C6B168DCFD7758bC2Ab9d2865f1895813D236",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "WSTETH",
+        base_currency: "ETH",
+        address: "0x524299Ab0987a7c4B3c8022a35669DdcdC715a10",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "WSTETH",
+        base_currency: "USD",
+        address: "0x698B585CbC4407e2D54aa898B2600B53C68958f7",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XAG",
+        base_currency: "USD",
+        address: "0x290dd71254874f0d4356443607cb8234958DEe49",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XAU",
+        base_currency: "USD",
+        address: "0x8F7bFb42Bf7421c2b34AAD619be4654bFa7B3B8B",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XLM",
+        base_currency: "USD",
+        address: "0x799A346e7dBfa0f66Ad0961259366F93A1ee34C4",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XMR",
+        base_currency: "USD",
+        address: "0x2a8D91686A048E98e6CCF1A89E82f40D14312672",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XRP",
+        base_currency: "USD",
+        address: "0x8788F0DBDa7678244Ac7FF09d963d7696D56A8a0",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XTZ",
+        base_currency: "USD",
+        address: "0xeA2aeD0087A620995Bf609D1bCD76Ea099905138",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "YFI",
+        base_currency: "USD",
+        address: "0x5cdC797acCBf57EE2363Fed9701262Abc87a232e",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ankrETH",
+        base_currency: "ETH",
+        address: "0x98FB6366E71E9A71C247052d447E928303e17bB6",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "apxETH",
+        base_currency: "pxETH",
+        address: "0x21515B1Da412ecdCa071a84f32193eD90D4ddb59",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ezETH",
+        base_currency: "ETH",
+        address: "0xFAD40C0e2BeF93c6a822015863045CAAeAAde4d3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "inETH",
+        base_currency: "ETH",
+        address: "0x5CC26e6798A3b05525076913840aa07b1d65eE00",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "instETH",
+        base_currency: "ETH",
+        address: "0x028F7347Df25220DA7D63eB7c29fa10448231489",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "rETH",
+        base_currency: "ETH",
+        address: "0x22F3727be377781d1579B7C9222382b21c9d1a8f",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "rswETH",
+        base_currency: "ETH",
+        address: "0x90da1D1DB26c0A84164Ff03090e0B31Ad08A137A",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "sFRAX",
+        base_currency: "FRAX",
+        address: "0x8f096bFFe37313Ad6bD5B9fF48F9FF6E4E5Cd065",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "sUSDe",
+        base_currency: "USD",
+        address: "0x05950959B6d876ae0fed1BBe5Caa2d74d8659D59",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "sUSDe",
+        base_currency: "USDe",
+        address: "0x85342bC62aadef58f029ab6d17D643949e6F073e",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "sfrxETH",
+        base_currency: "frxETH",
+        address: "0xd2AdD08d9Cd83720c9296A991ce066BB08265eAc",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "wOETH",
+        base_currency: "OETH",
+        address: "0x70843CE8E54d2b87Ee02B1911c06EA5632cd07d3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "weETH",
+        base_currency: "ETH",
+        address: "0xb4479d436DDa5c1A79bD88D282725615202406E3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "weETH",
+        base_currency: "eETH",
+        address: "0x72EC6bF88effEd88290C66DCF1bE2321d80502f5",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "wstETH",
+        base_currency: "stETH",
+        address: "0xe59EBa0D492cA53C6f46015EEa00517F2707dc77",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ynETH",
+        base_currency: "ETH",
+        address: "0x4D4f9BF097DfE85C513E29D770e7CaceD9C07801",
+    },
+];
 
-pub static ZKSYNC_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[ChainlinkPriceFeed {
-    token_symbol: "",
-    base_currency: "",
-    address: "",
-}];
+pub static ZKSYNC_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
+    ChainlinkPriceFeed {
+        token_symbol: "AAVE",
+        base_currency: "USD",
+        address: "0x2137c69DCb41f611Cc8f39F8A98047e774d6ED74",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BTC",
+        base_currency: "USD",
+        address: "0x4Cba285c15e3B540C474A114a7b135193e4f1EA6",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DAI",
+        base_currency: "USD",
+        address: "0x5d336664b5D7A332Cd256Bf68CbF2270C6202fc6",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DOGE",
+        base_currency: "USD",
+        address: "0x2cC24D99500a134ea7f78736b5C329C84599fb1B",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ETH",
+        base_currency: "USD",
+        address: "0x6D41d1dc818112880b40e26BD6FD347E41008eDA",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LINK",
+        base_currency: "ETH",
+        address: "0xB66325FC0F8aA6dE6FeDFF4e51e54025cEea51eE",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LINK",
+        base_currency: "USD",
+        address: "0x1b5a683579f53b9E30B538F70544444389633c75",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "PEPE",
+        base_currency: "USD",
+        address: "0x7a6333CaC589e9B11b1fEC190a5828272A2893B5",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SOL",
+        base_currency: "USD",
+        address: "0x498232F0a52D4e94A6e0Ea93D63C07Bc63133009",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "UNI",
+        base_currency: "USD",
+        address: "0x93A08A9D592101938D4a63c86d0989d7018c00D9",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDC",
+        base_currency: "USD",
+        address: "0x1824D297C6d6D311A204495277B63e943C2D376E",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDT",
+        base_currency: "USD",
+        address: "0xB615075979AE1836B476F651f1eB79f0Cd3956a9",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDe",
+        base_currency: "USD",
+        address: "0x4899faF0b6c36620168D00e3DbD4CB9361244c4d",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ZK",
+        base_currency: "USD",
+        address: "0xD1ce60dc8AE060DDD17cA8716C96f193bC88DD13",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ezETH",
+        base_currency: "ETH",
+        address: "0x600E54Fc4cF6148Cd6696A3D37F5f672829BF7C2",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "rswETH",
+        base_currency: "ETH",
+        address: "0x92c2ed09B096470DF40973231Dac5aC987F9b8F9",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "sUSDe",
+        base_currency: "USDe",
+        address: "0x97920183c36B022B46D6C14b9dA36c5f31A98C6A",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "weETH",
+        base_currency: "eETH",
+        address: "0x8D3184a992f93729b249407C33F1e78abE0d650e",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "wstETH",
+        base_currency: "stETH",
+        address: "0x24a0C9404101A8d7497676BE12F10aEa356bAC28",
+    },
+];
 
-pub static BNB_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[ChainlinkPriceFeed {
-    token_symbol: "",
-    base_currency: "",
-    address: "",
-}];
+pub static BNB_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
+    ChainlinkPriceFeed {
+        token_symbol: "1INCH",
+        base_currency: "USD",
+        address: "0x9a177Bb9f5b6083E962f9e62bD21d4b5660Aeb03",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AAPL",
+        base_currency: "USD",
+        address: "0xb7Ed5bE7977d61E83534230f3256C021e0fae0B6",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AAVE",
+        base_currency: "USD",
+        address: "0xA8357BF572460fC40f4B0aCacbB2a6A61c89f475",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AAVE Network Emergency Count",
+        base_currency: "",
+        address: "0xcabb46FfB38c93348Df16558DF156e9f68F9F7F1",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ADA",
+        base_currency: "BNB",
+        address: "0x2d5Fc41d1365fFe13d03d91E82e04Ca878D69f4B",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ADA",
+        base_currency: "USD",
+        address: "0xa767f745331D267c7751297D982b050c93985627",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ALPACA",
+        base_currency: "USD",
+        address: "0xe0073b60833249ffd1bb2af809112c2fbf221DF6",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AMZN",
+        base_currency: "USD",
+        address: "0x51d08ca89d3e8c12535BA8AEd33cDf2557ab5b2a",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ATOM",
+        base_currency: "USD",
+        address: "0xb056B7C804297279A9a673289264c17E6Dc6055d",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AUD",
+        base_currency: "USD",
+        address: "0x498F912B09B5dF618c77fcC9E8DA503304Df92bF",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AVAX",
+        base_currency: "USD",
+        address: "0x5974855ce31EE8E1fff2e76591CbF83D7110F151",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "AXS",
+        base_currency: "USD",
+        address: "0x7B49524ee5740c99435f52d731dFC94082fE61Ab",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BAND",
+        base_currency: "BNB",
+        address: "0x3334bF7ec892Ca03D1378B51769b7782EAF318C4",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BAND",
+        base_currency: "USD",
+        address: "0xC78b99Ae87fF43535b0C782128DB3cB49c74A4d3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BCH",
+        base_currency: "BNB",
+        address: "0x2a548935a323Bb7329a5E3F1667B979f16Bc890b",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BCH",
+        base_currency: "USD",
+        address: "0x43d80f616DAf0b0B42a928EeD32147dC59027D41",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BETH",
+        base_currency: "USD",
+        address: "0x2A3796273d47c4eD363b361D3AEFb7F7E2A13782",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BNB",
+        base_currency: "USD",
+        address: "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BRL",
+        base_currency: "USD",
+        address: "0x5cb1Cb3eA5FB46de1CE1D0F3BaDB3212e8d8eF48",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BSW",
+        base_currency: "USD",
+        address: "0x08E70777b982a58D23D05E3D7714f44837c06A21",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BTC",
+        base_currency: "BNB",
+        address: "0x116EeB23384451C78ed366D4f67D5AD44eE771A0",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BTC",
+        base_currency: "ETH",
+        address: "0xf1769eB4D1943AF02ab1096D7893759F6177D6B8",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "BTC",
+        base_currency: "USD",
+        address: "0x264990fbd0A4796A3E3d8E37C4d5F87a3aCa5Ebf",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "C98",
+        base_currency: "USD",
+        address: "0x889158E39628C0397DC54B84F6b1cbe0AaEb7FFc",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "CAKE",
+        base_currency: "BNB",
+        address: "0xcB23da9EA243f53194CBc2380A6d4d9bC046161f",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "CAKE",
+        base_currency: "USD",
+        address: "0xB6064eD41d4f67e353768aA239cA86f4F73665a1",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "CFX",
+        base_currency: "USD",
+        address: "0xe3cA2f3Bad1D8327820f648C759f17162b5383ae",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "CHF",
+        base_currency: "USD",
+        address: "0x964261740356cB4aaD0C3D2003Ce808A4176a46d",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "CHR",
+        base_currency: "USD",
+        address: "0x1f771B2b1F3c3Db6C7A1d5F38961a49CEcD116dA",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "COIN",
+        base_currency: "USD",
+        address: "0x2d1AB79D059e21aE519d88F978cAF39d74E31AEB",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "COMP",
+        base_currency: "USD",
+        address: "0x0Db8945f9aEf5651fa5bd52314C5aAe78DfDe540",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "CRV",
+        base_currency: "USD",
+        address: "0x2e1C3b6Fcae47b20Dd343D9354F7B1140a1E6B27",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "Calculated BNBx",
+        base_currency: "USD",
+        address: "0xc4429B539397a3166eF3ef132c29e34715a3ABb4",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "Calculated SAVAX",
+        base_currency: "USD",
+        address: "0x3b37C6f1e3207DE5a4664E837072Bd9A25269B39",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DAI",
+        base_currency: "BNB",
+        address: "0x8EC213E7191488C7873cEC6daC8e97cdbAdb7B35",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DAI",
+        base_currency: "USD",
+        address: "0x132d3C0B1D2cEa0BC552588063bdBb210FDeecfA",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DODO",
+        base_currency: "USD",
+        address: "0x87701B15C08687341c2a847ca44eCfBc8d7873E1",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DOGE",
+        base_currency: "USD",
+        address: "0x3AB0A0d137D4F946fBB19eecc6e92E64660231C8",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DOT",
+        base_currency: "BNB",
+        address: "0xBA8683E9c3B1455bE6e18E7768e8cAD95Eb5eD49",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "DOT",
+        base_currency: "USD",
+        address: "0xC333eb0086309a16aa7c8308DfD32c8BBA0a2592",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "EOS",
+        base_currency: "BNB",
+        address: "0xed93F3764334788f2f6628b30e505fe1fc5d1D7b",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "EOS",
+        base_currency: "USD",
+        address: "0xd5508c8Ffdb8F15cE336e629fD4ca9AdB48f50F0",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ETH",
+        base_currency: "BNB",
+        address: "0x63D407F32Aa72E63C7209ce1c2F5dA40b3AaE726",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ETH",
+        base_currency: "USD",
+        address: "0x9ef1B8c0E4F7dc8bF5719Ea496883DC6401d5b2e",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "EUR",
+        base_currency: "USD",
+        address: "0x0bf79F617988C472DcA68ff41eFe1338955b9A80",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FDUSD",
+        base_currency: "USD",
+        address: "0x390180e80058A8499930F0c13963AD3E0d86Bfc9",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FIL",
+        base_currency: "USD",
+        address: "0xE5dbFD9003bFf9dF5feB2f4F445Ca00fb121fb83",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FRAX",
+        base_currency: "USD",
+        address: "0x13A9c98b07F098c5319f4FF786eB16E22DC738e1",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FTM",
+        base_currency: "USD",
+        address: "0xe2A47e87C0f4134c8D06A41975F6860468b2F925",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "FXS",
+        base_currency: "USD",
+        address: "0x0E9D55932893Fb1308882C7857285B2B0bcc4f4a",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "GBP",
+        base_currency: "USD",
+        address: "0x8FAf16F710003E538189334541F5D4a391Da46a0",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "GME",
+        base_currency: "USD",
+        address: "0x66cD2975d02f5F5cdEF2E05cBca12549B1a5022D",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "GMT",
+        base_currency: "USD",
+        address: "0x8b0D36ae4CF8e277773A7ba5F35c09Edb144241b",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "GOOGL",
+        base_currency: "USD",
+        address: "0xeDA73F8acb669274B15A977Cb0cdA57a84F18c2a",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "HIGH",
+        base_currency: "USD",
+        address: "0xdF4Dd957a84F798acFADd448badd2D8b9bC99047",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ICP",
+        base_currency: "USD",
+        address: "0x84210d9013A30C6ab169e28840A6CC54B60fa042",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "INJ",
+        base_currency: "USD",
+        address: "0x63A9133cd7c611d6049761038C16f238FddA71d7",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "INR",
+        base_currency: "USD",
+        address: "0xeF0a3109ce97e0B58557F0e3Ba95eA16Bfa4A89d",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "JPM",
+        base_currency: "USD",
+        address: "0x8f26ba94180371baA2D2C143f96b6886DCACA250",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "JPY",
+        base_currency: "USD",
+        address: "0x22Db8397a6E77E41471dE256a7803829fDC8bC57",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "KAVA",
+        base_currency: "USD",
+        address: "0x12bf0C3f7D5aca9E711930d704dA2774358d9210",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "KLAY",
+        base_currency: "USD",
+        address: "0xfD07b211044572898cDbcb1435f0a1369Fd15726",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "KNC",
+        base_currency: "USD",
+        address: "0xF2f8273F6b9Fc22C90891DC802cAf60eeF805cDF",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LINA",
+        base_currency: "USD",
+        address: "0x38393201952f2764E04B290af9df427217D56B41",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LINK",
+        base_currency: "BNB",
+        address: "0xB38722F6A608646a538E882Ee9972D15c86Fc597",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LINK",
+        base_currency: "USD",
+        address: "0xca236E327F629f9Fc2c30A4E95775EbF0B89fac8",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LIT",
+        base_currency: "USD",
+        address: "0x83766bA8d964fEAeD3819b145a69c947Df9Cb035",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LTC",
+        base_currency: "BNB",
+        address: "0x4e5a43A79f53c0a8e83489648Ea7e429278f8b2D",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "LTC",
+        base_currency: "USD",
+        address: "0x74E72F37A8c415c8f1a98Ed42E78Ff997435791D",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MASK",
+        base_currency: "USD",
+        address: "0x4978c0abE6899178c1A74838Ee0062280888E2Cf",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MATIC",
+        base_currency: "USD",
+        address: "0x7CA57b0cA6367191c94C8914d7Df09A57655905f",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "META",
+        base_currency: "USD",
+        address: "0xfc76E9445952A3C31369dFd26edfdfb9713DF5Bb",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MRNA",
+        base_currency: "USD",
+        address: "0x6101F4DFBb24Cac3D64e28A815255B428b93639f",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MS",
+        base_currency: "USD",
+        address: "0x6b25F7f189c3f26d3caC43b754578b67Fc8d952A",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MSFT",
+        base_currency: "USD",
+        address: "0x5D209cE1fBABeAA8E6f9De4514A74FFB4b34560F",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "MXN",
+        base_currency: "USD",
+        address: "0x16c0C1f971b1780F952572670A9d5ce4123582a1",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "NEAR",
+        base_currency: "USD",
+        address: "0x0Fe4D87883005fCAFaF56B81d09473D9A29dCDC3",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "NFLX",
+        base_currency: "USD",
+        address: "0x1fE6c9Bd9B29e5810c2819f37dDa8559739ebeC9",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "NULS",
+        base_currency: "USD",
+        address: "0xaCFBE73231d312AC6954496b3f786E892bF0f7e5",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "NVDA",
+        base_currency: "USD",
+        address: "0xea5c2Cbb5cD57daC24E26180b19a929F3E9699B8",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ONG",
+        base_currency: "USD",
+        address: "0xcF95796f3016801A1dA5C518Fc7A59C51dcEf793",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ONT",
+        base_currency: "USD",
+        address: "0x887f177CBED2cf555a64e7bF125E1825EB69dB82",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "PAXG",
+        base_currency: "USD",
+        address: "0x7F8caD4690A38aC28BDA3D132eF83DB1C17557Df",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "PFE",
+        base_currency: "USD",
+        address: "0xe96fFdE2ba50E0e869520475ee1bC73cA2dEE326",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "PHP",
+        base_currency: "USD",
+        address: "0x1CcaD765D39Aa2060eB4f6dD94e5874db786C16f",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "QQQ",
+        base_currency: "USD",
+        address: "0x9A41B56b2c24683E2f23BdE15c14BC7c4a58c3c4",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "RDNT",
+        base_currency: "USD",
+        address: "0x20123C6ebd45c6496102BeEA86e1a6616Ca547c6",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "REEF",
+        base_currency: "USD",
+        address: "0x46f13472A4d4FeC9E07E8A00eE52f4Fa77810736",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SGD",
+        base_currency: "USD",
+        address: "0x3065b2369820f76C829b9BBCAF4B90F9f47d6314",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SHIB",
+        base_currency: "USD",
+        address: "0xA615Be6cb0f3F36A641858dB6F30B9242d0ABeD8",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SOL",
+        base_currency: "USD",
+        address: "0x0E8a53DD9c13589df6382F13dA6B3Ec8F919B323",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SPELL",
+        base_currency: "USD",
+        address: "0x47e01580C537Cd47dA339eA3a4aFb5998CCf037C",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SPY",
+        base_currency: "USD",
+        address: "0xb24D1DeE5F9a3f761D286B56d2bC44CE1D02DF7e",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "STONE",
+        base_currency: "ETH",
+        address: "0xC6A1314E89d01517a90AE4b0d9d5e499A324B283",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SUSHI",
+        base_currency: "USD",
+        address: "0xa679C72a97B654CFfF58aB704de3BA15Cde89B07",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "SXP",
+        base_currency: "USD",
+        address: "0xE188A9875af525d25334d75F3327863B2b8cd0F1",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "TRX",
+        base_currency: "USD",
+        address: "0xF4C5e535756D11994fCBB12Ba8adD0192D9b88be",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "TSLA",
+        base_currency: "USD",
+        address: "0xEEA2ae9c074E87596A85ABE698B2Afebc9B57893",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "TUSD",
+        base_currency: "USD",
+        address: "0xa3334A9762090E827413A7495AfeCE76F41dFc06",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "TWT",
+        base_currency: "BNB",
+        address: "0x7E728dFA6bCa9023d9aBeE759fDF56BEAb8aC7aD",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "UNI",
+        base_currency: "BNB",
+        address: "0x25298F020c3CA1392da76Eb7Ac844813b218ccf7",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "UNI",
+        base_currency: "USD",
+        address: "0xb57f259E7C24e56a1dA00F66b55A5640d9f9E7e4",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDC",
+        base_currency: "BNB",
+        address: "0x45f86CA2A8BC9EBD757225B19a1A0D7051bE46Db",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDC",
+        base_currency: "USD",
+        address: "0x51597f405303C4377E36123cBc172b13269EA163",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDT",
+        base_currency: "BNB",
+        address: "0xD5c40f5144848Bd4EF08a9605d860e727b991513",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDT",
+        base_currency: "USD",
+        address: "0xB97Ad0E74fa7d920791E90258A6E2085088b4320",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "USDV",
+        base_currency: "USD",
+        address: "0x75e9262c8E87af54fAdF2f7A1BdD975D1C7A5479",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "VET",
+        base_currency: "USD",
+        address: "0x9f1fD2cEf7b226D555A747DA0411F93c5fe74e13",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "WIN",
+        base_currency: "USD",
+        address: "0x9e7377E194E41d63795907c92c3EB351a2eb0233",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "WING",
+        base_currency: "USD",
+        address: "0xf7E7c0ffCB11dAC6eCA1434C67faB9aE000e10a7",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "WOO",
+        base_currency: "USD",
+        address: "0x02Bfe714e78E2Ad1bb1C2beE93eC8dc5423B66d4",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "WTI",
+        base_currency: "USD",
+        address: "0xb1BED6C1fC1adE2A975F54F24851c7F410e27718",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XAG",
+        base_currency: "USD",
+        address: "0x817326922c909b16944817c207562B25C4dF16aD",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XAU",
+        base_currency: "USD",
+        address: "0x86896fEB19D8A607c3b11f2aF50A0f239Bd71CD0",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XLM",
+        base_currency: "USD",
+        address: "0x27Cc356A5891A3Fe6f84D0457dE4d108C6078888",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XRP",
+        base_currency: "BNB",
+        address: "0x798A65D349B2B5E6645695912880b54dfFd79074",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XRP",
+        base_currency: "USD",
+        address: "0x93A67D414896A280bF8FFB3b389fE3686E014fda",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XTZ / ",
+        base_currency: "BNB",
+        address: "0x8264d6983B219be65C4D62f1c82B3A2999944cF2",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XTZ",
+        base_currency: "USD",
+        address: "0x9A18137ADCF7b05f033ad26968Ed5a9cf0Bf8E6b",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XVS",
+        base_currency: "BNB",
+        address: "0xf369A13E7f2449E58DdE8302F008eE9131f8d859",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "XVS",
+        base_currency: "USD",
+        address: "0xBF63F430A79D4036A5900C19818aFf1fa710f206",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "YFI",
+        base_currency: "BNB",
+        address: "0xF841761481DF19831cCC851A54D8350aE6022583",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "YFI",
+        base_currency: "USD",
+        address: "0xD7eAa5Bf3013A96e3d515c055Dbd98DbdC8c620D",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ZAR",
+        base_currency: "USD",
+        address: "0xDE1952A1bF53f8E558cc761ad2564884E55B2c6F",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ezETH",
+        base_currency: "ETH",
+        address: "0xD164a1559e78B9e6eacb12B2E627F31d2f603C0f",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "ezETH",
+        base_currency: "ETH",
+        address: "0x06F34EdD61Be3b2Ff3F630B500dF81eeA8312350",
+    },
+    ChainlinkPriceFeed {
+        token_symbol: "weETH",
+        base_currency: "eETH",
+        address: "0xF37Be32598E9851f785acA86c2162e7C1A8466dd",
+    },
+];
+
+pub static FANTOM_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
+  // ... ADD HERE
+];
+
+pub static METIS_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
+  // ... ADD HERE
+];
+
+pub static SCROLL_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
+  // ... ADD HERE
+];
+
+pub static AVALANCHE_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
+  // ... ADD HERE
+];

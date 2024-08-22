@@ -2,6 +2,7 @@ use super::chainlink_feed_map::{
     get_chainlink_aggregator, get_chainlink_price_feed_for_token_, CHAINLINK_AGGREGATOR_HASH,
 };
 use super::erc20::Erc20Token;
+use super::tokens_by_chain::MAINNET_TOKENS;
 use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::abi::erc20::ERC20;
 use crate::data::address::CONTRACT;
@@ -18,6 +19,7 @@ static TOKEN_DATA_HASH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
 static UNIQUE_TOKEN_DATA_HASH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
     Lazy::new(|| Arc::new(Mutex::new(HashMap::<String, Erc20Token>::new())));
 
+// TODO - Fix bug where WETH and other eth tokens do not have chain link feeds
 pub async fn save_erc20_token(
     token: &Erc20Token,
     client: &Arc<Provider<Ws>>,
@@ -48,11 +50,31 @@ pub async fn save_erc20_token(
     };
 
     tokens.insert(token.symbol.clone(), updated_token.clone());
-    tokens.insert(token.address.clone(), updated_token.clone());
-    unique_tokens.insert(token.address.clone(), updated_token.clone());
+    tokens.insert(token.address.to_lowercase(), updated_token.clone());
+    unique_tokens.insert(token.address.to_lowercase(), updated_token.clone());
 
     if !aggregator_address.is_empty() {
         aggregators.insert(aggregator_address, updated_token);
+    }
+
+    Ok(())
+}
+
+pub async fn save_erc20_tokens_from_static_data(
+    client: &Arc<Provider<Ws>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    for static_token in MAINNET_TOKENS {
+        let token = Erc20Token {
+            name: static_token.name.to_string(),
+            symbol: static_token.symbol.to_string(),
+            decimals: static_token.decimals,
+            address: static_token.address.to_string(),
+            liquidation_bonus: static_token.liquidation_bonus,
+            liquidation_threshold: static_token.liquidation_threshold,
+            ..Default::default()
+        };
+
+        save_erc20_token(&token, client).await?;
     }
 
     Ok(())

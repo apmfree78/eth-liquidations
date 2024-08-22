@@ -15,7 +15,7 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub static STABLE_COINS: &[&str] = &[
+static STABLE_COINS: &[&str] = &[
     "USDC", "USDE", "CRVUSD", "SUSDE", "SDAI", "DAI", "USDT", "PYUSD", "USDD", "FRAX", "TUSD",
     "USDB", "GHO", "GUSD", "USDX", "LUSD", "BUSD", "MIM", "USDM", "CUSD",
 ];
@@ -23,7 +23,7 @@ pub static STABLE_COINS: &[&str] = &[
 pub static CHAINLINK_AGGREGATOR_HASH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
     Lazy::new(|| Arc::new(Mutex::new(HashMap::<String, Erc20Token>::new())));
 
-pub static CHAINLINK_FEED_MAP: Lazy<HashMap<String, ChainlinkPriceFeed>> = Lazy::new(|| {
+static CHAINLINK_FEED_MAP: Lazy<HashMap<String, ChainlinkPriceFeed>> = Lazy::new(|| {
     let mut price_feed_hash = HashMap::new();
 
     let chainlink_price_feeds = get_chainlink_price_feeds_by_chain();
@@ -31,9 +31,13 @@ pub static CHAINLINK_FEED_MAP: Lazy<HashMap<String, ChainlinkPriceFeed>> = Lazy:
     // create hashmap with token symbol as index
     for feed in chainlink_price_feeds {
         if feed.base_currency == "USD" {
-            price_feed_hash.insert(feed.token_symbol.to_string() + "/USD", feed);
+            if feed.token_symbol == "ETH" {
+                price_feed_hash.insert("weth/USD".to_string(), feed);
+            } else {
+                price_feed_hash.insert(feed.token_symbol.to_lowercase() + "/USD", feed);
+            }
         } else if feed.base_currency == "ETH" {
-            price_feed_hash.insert(feed.token_symbol.to_string() + "/ETH", feed);
+            price_feed_hash.insert(feed.token_symbol.to_lowercase() + "/ETH", feed);
         }
     }
 
@@ -59,20 +63,20 @@ pub async fn get_chainlink_aggregator(
 }
 
 pub async fn get_chainlink_price_feed_for_token_(token_symbol: &str, token: &Erc20Token) -> String {
-    let usd_feed_symbol = token_symbol.to_string() + "/USD";
-    let eth_feed_symbol = token_symbol.to_string() + "/ETH";
+    let usd_feed_symbol = token_symbol.to_lowercase() + "/USD";
+    let eth_feed_symbol = token_symbol.to_lowercase() + "/ETH";
 
     // check for BTC TOKEN
     if token_symbol.to_string().contains("BTC") {
         return CHAINLINK_FEED_MAP
-            .get("BTC/USD")
+            .get("btc/USD")
             .unwrap()
             .address
             .to_string();
     }
 
     // check for stable coin
-    if STABLE_COINS.contains(&token_symbol.to_string().to_uppercase().as_str()) {
+    if STABLE_COINS.contains(&token_symbol.to_uppercase().as_str()) {
         return "".to_string();
     }
 
@@ -92,6 +96,9 @@ pub async fn get_chainlink_price_feed_for_token_(token_symbol: &str, token: &Erc
             .address
             .to_string()
     } else {
+        if token_symbol.to_lowercase().contains("eth") {
+            set_token_connected_to_eth(token_symbol.to_string(), token).await;
+        }
         "".to_string()
     }
 }
@@ -104,7 +111,7 @@ pub async fn get_chainlink_aggregator_map(
     Ok(aggregators.clone())
 }
 
-pub fn get_chainlink_price_feeds_by_chain() -> Vec<ChainlinkPriceFeed> {
+fn get_chainlink_price_feeds_by_chain() -> Vec<ChainlinkPriceFeed> {
     let price_feed = match CHAIN {
         Chain::Mainnet => ETHEREUM_PRICE_FEEDS,
         Chain::Polygon => POLYGON_PRICE_FEEDS,

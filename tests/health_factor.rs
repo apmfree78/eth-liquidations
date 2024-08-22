@@ -1,8 +1,11 @@
 use bigdecimal::BigDecimal;
 use dotenv::dotenv;
-use eth_liquadation::exchanges::aave_v3::{
-    implementations::aave_user_data::{GenerateUsers, HealthFactor},
-    user_structs::{AaveUserData, AaveUsersHash, PricingSource, SampleSize},
+use eth_liquadation::{
+    data::token_price_hash::{generate_token_price_hash, print_saved_token_prices},
+    exchanges::aave_v3::{
+        implementations::aave_user_data::{GenerateUsers, HealthFactor},
+        user_structs::{AaveUserData, AaveUsersHash, PricingSource, SampleSize},
+    },
 };
 use ethers::providers::{Provider, Ws};
 use std::str::FromStr;
@@ -23,7 +26,9 @@ async fn test_that_health_factor_is_self_consistent_in_user_data(
 
     let aave_users_hash: AaveUsersHash =
         AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
+    println!("users => {:#?}", aave_users_hash);
 
+    print_saved_token_prices().await?;
     for user in aave_users_hash.user_data.values() {
         let given_health_factor = &user.health_factor.with_scale(scale);
         if user.total_debt > BigDecimal::from(0) {

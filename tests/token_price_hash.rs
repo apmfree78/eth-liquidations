@@ -1,6 +1,8 @@
 use bigdecimal::BigDecimal;
 use eth_liquadation::data::erc20::Convert;
-use eth_liquadation::data::token_data_hash::{get_token_data, get_unique_token_data};
+use eth_liquadation::data::token_data_hash::{
+    get_token_data, get_unique_token_data, save_erc20_tokens_from_static_data,
+};
 use eth_liquadation::data::token_price_hash::{
     generate_token_price_hash, get_saved_token_price, print_saved_token_prices,
     set_saved_token_price,
@@ -15,6 +17,8 @@ async fn test_setting_price_with_token_price_hash() -> Result<(), Box<dyn std::e
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     let token_data = get_token_data().await?;
 
     generate_token_price_hash(&client).await?;
@@ -43,6 +47,9 @@ async fn test_token_price_token_hash_versus_oracle() -> Result<(), Box<dyn std::
     let client = Arc::new(provider);
     let unique_token_data = get_unique_token_data().await?;
 
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
 
     print_saved_token_prices().await?;
@@ -70,6 +77,9 @@ async fn test_token_hash_price_update() -> Result<(), Box<dyn std::error::Error>
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     let unique_token_data = get_unique_token_data().await?;
+
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
 
     generate_token_price_hash(&client).await?;
 

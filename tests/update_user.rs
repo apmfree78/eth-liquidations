@@ -5,6 +5,7 @@ mod generate_logs;
 mod generate_mock_users;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
+use eth_liquadation::data::token_data_hash::save_erc20_tokens_from_static_data;
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
 use eth_liquadation::events::aave_events::update_users_with_event_from_log;
 use eth_liquadation::exchanges::aave_v3::events::{
@@ -33,6 +34,10 @@ const AAVE_V3_POOL: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -79,6 +84,9 @@ async fn test_user_update_with_full_repay_then_withdraw_event(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -145,6 +153,9 @@ async fn test_user_update_with_full_withdraw_then_repay_event(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let reserve_token = "0xdac17f958d2ee523a2206206994597c13d831ec7";
@@ -211,6 +222,9 @@ async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn 
 {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -250,6 +264,9 @@ async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn 
 async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -291,6 +308,9 @@ async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>
 async fn test_user_liquidation() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -340,6 +360,9 @@ async fn test_user_liquidation() -> Result<(), Box<dyn std::error::Error>> {
 async fn test_user_update_with_borrow_new_token() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -385,6 +408,9 @@ async fn test_user_update_with_borrow_new_token() -> Result<(), Box<dyn std::err
 async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -424,6 +450,9 @@ async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>
 async fn test_user_update_with_supply_to_new_token() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -467,6 +496,9 @@ async fn test_user_update_with_supply_to_new_token() -> Result<(), Box<dyn std::
 async fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -504,6 +536,9 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
 {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
     generate_token_price_hash(&client).await?;
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 

@@ -1,11 +1,12 @@
 // create function to get price feed data  using aave_oracle getSourceOfAsset method
 
-use eth_liquadation::data::token_data_hash::get_token_data;
+use eth_liquadation::data::token_data_hash::{get_token_data, save_erc20_tokens_from_static_data};
 use eth_liquadation::utils::type_conversion::address_to_string;
 use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Provider, Ws};
 use std::{ops::Deref, sync::Arc};
+use uniswap_sdk_core::entities::fractions::price;
 
 // #[tokio::test]
 // async fn verify_price_oarcles_are_valid() -> Result<(), Box<dyn std::error::Error>> {
@@ -46,6 +47,8 @@ async fn find_price_aggregators_are_valid() -> Result<(), Box<dyn std::error::Er
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     let token_data = get_token_data().await?;
 
     abigen!(
@@ -54,6 +57,10 @@ async fn find_price_aggregators_are_valid() -> Result<(), Box<dyn std::error::Er
     );
 
     for token in token_data.values() {
+        if token.chain_link_price_feed.is_empty() {
+            println!("no price feed found for {}", token.symbol);
+            continue;
+        }
         let price_feed_address: Address = token.chain_link_price_feed.parse().unwrap();
 
         let contract = AGGREGATOR::new(price_feed_address, client.clone());

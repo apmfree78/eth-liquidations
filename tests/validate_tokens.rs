@@ -3,7 +3,9 @@ use eth_liquadation::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use eth_liquadation::abi::chainlink_registry::CHAINLINK_REGISTRY;
 use eth_liquadation::abi::erc20::ERC20;
 use eth_liquadation::data::address::{CONTRACT, ETH, USD};
-use eth_liquadation::data::token_data_hash::{get_token_data, get_unique_token_data};
+use eth_liquadation::data::token_data_hash::{
+    get_token_data, get_unique_token_data, save_erc20_tokens_from_static_data,
+};
 use ethers::prelude::*;
 use std::sync::Arc;
 
@@ -15,6 +17,11 @@ async fn test_token_data_matches_token_contract() -> Result<(), Box<dyn std::err
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
+    // grab tokens from token state
     let token_data = get_token_data().await?;
     let unique_token_data = get_unique_token_data().await?;
 
@@ -46,10 +53,10 @@ async fn test_token_data_matches_token_contract() -> Result<(), Box<dyn std::err
                 .call()
                 .await?;
 
-        let aggregator = match get_aggregator(address, &client).await? {
-            Some(value) => value,
-            None => Address::zero(),
-        };
+        // let aggregator = match get_aggregator(address, &client).await? {
+        //     Some(value) => value,
+        //     None => Address::zero(),
+        // };
 
         println!("normalized address {}", address_str);
         println!("normalized address length {}", address_str.len());

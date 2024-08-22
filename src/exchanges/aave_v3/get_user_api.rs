@@ -49,7 +49,8 @@ impl UserAccountData for AaveUser {
             let token = Erc20Token {
                 name,
                 symbol,
-                decimals: u8::from_str(&decimals).unwrap(),
+                // decimals: u8::from_str(&decimals).unwrap(),
+                decimals,
                 address: id,
                 liquidation_bonus: u16::from_str(&reserve_liquidation_bonus).unwrap(),
                 liquidation_threshold: u16::from_str(&reserve_liquidation_threshold).unwrap(),
@@ -57,6 +58,7 @@ impl UserAccountData for AaveUser {
                 chainlink_aggregator: "".to_string(),
             };
 
+            println!("new token => {:#?}", token);
             //*******************************************************************************
             // SAVE TOKEN TO GLOBAL STATE
             save_erc20_token(&token, client).await?;
@@ -102,7 +104,7 @@ pub struct Reserve {
     id: String,
     name: String,
     symbol: String,
-    decimals: String,
+    decimals: u8,
     #[serde(rename = "usageAsCollateralEnabled")]
     usage_as_collateral_enabled: bool,
     #[serde(rename = "reserveLiquidationThreshold")]
