@@ -132,10 +132,10 @@ impl GenerateUsers for AaveUserData {
 
             // this step is needed to make sure collateral and debt values are scaled properly
             aave_user
-                .update_meta_data(PricingSource::SavedTokenPrice, client)
+                .update_meta_data(PricingSource::AaveOracle, client)
                 .await?;
 
-            // validate user data - at least 10% of graphql data for aave users is not accurate
+            // validate user data
             let aave_user_health_factor = aave_user.health_factor.clone();
             let aave_user_calculated_health_factor = aave_user
                 .get_health_factor_from_(PricingSource::AaveOracle, client)

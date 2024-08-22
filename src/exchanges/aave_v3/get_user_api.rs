@@ -46,19 +46,20 @@ impl UserAccountData for AaveUser {
                 usage_as_collateral_enabled,
             } = r.reserve.clone();
 
+            let token_address = extract_first_address(&id).unwrap().to_string();
+
             let token = Erc20Token {
                 name,
                 symbol,
                 // decimals: u8::from_str(&decimals).unwrap(),
                 decimals,
-                address: id,
+                address: token_address,
                 liquidation_bonus: u16::from_str(&reserve_liquidation_bonus).unwrap(),
                 liquidation_threshold: u16::from_str(&reserve_liquidation_threshold).unwrap(),
                 chain_link_price_feed: "".to_string(),
                 chainlink_aggregator: "".to_string(),
             };
 
-            println!("new token => {:#?}", token);
             //*******************************************************************************
             // SAVE TOKEN TO GLOBAL STATE
             save_erc20_token(&token, client).await?;
@@ -284,4 +285,13 @@ pub fn get_graphql_url_and_query(sample_size: SampleSize) -> (String, String) {
     };
 
     (thegraph_url.to_string(), query.to_string())
+}
+
+fn extract_first_address(addresses: &str) -> Option<&str> {
+    if addresses.len() >= 42 {
+        // Check if string is at least as long as one Ethereum address
+        Some(&addresses[..42]) // Extract the first 42 characters, which should be the first address
+    } else {
+        None // Return None if string is too short
+    }
 }

@@ -26,7 +26,6 @@ async fn test_that_health_factor_is_self_consistent_in_user_data(
 
     let aave_users_hash: AaveUsersHash =
         AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
-    println!("users => {:#?}", aave_users_hash);
 
     print_saved_token_prices().await?;
     for user in aave_users_hash.user_data.values() {
