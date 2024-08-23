@@ -1,5 +1,5 @@
 use crate::data::erc20::Erc20Token;
-use crate::data::token_data_hash::get_token_connected_to_eth;
+use crate::data::token_data_hash::get_tokens_connected_to_eth;
 use crate::exchanges::aave_v3::user_structs::{
     LiquidationCandidate, LIQUIDATION_THRESHOLD, PROFIT_THRESHOLD_MAINNET,
 };
@@ -385,7 +385,7 @@ impl UpdateUsers for AaveUsersHash {
         user_type: UserType,
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
         let mut users_with_tokens_connected_to_eth = HashSet::<Address>::new();
-        let token_price_connected_to_eth = get_token_connected_to_eth().await?;
+        let token_price_connected_to_eth = get_tokens_connected_to_eth().await?;
 
         for token in token_price_connected_to_eth.values() {
             // debug!("checking which users have {}", token.symbol);

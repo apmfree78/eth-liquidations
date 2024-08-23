@@ -78,6 +78,9 @@ pub async fn get_chainlink_price_feed_for_token_(token_symbol: &str, token: &Erc
     // check if chainlink price feed exists for USD or ETH base pair
     // and return , if neither exists then just retrun ""
     if CHAINLINK_FEED_MAP.contains_key(&usd_feed_symbol) {
+        if token_symbol.to_lowercase().contains("eth") {
+            set_token_connected_to_eth(token_symbol.to_string(), token).await;
+        }
         CHAINLINK_FEED_MAP
             .get(&usd_feed_symbol)
             .unwrap()
@@ -91,9 +94,7 @@ pub async fn get_chainlink_price_feed_for_token_(token_symbol: &str, token: &Erc
             .address
             .to_string()
     } else {
-        if token_symbol.to_lowercase().contains("eth") {
-            set_token_connected_to_eth(token_symbol.to_string(), token).await;
-        }
+        set_token_connected_to_eth(token_symbol.to_string(), token).await;
         "".to_string()
     }
 }

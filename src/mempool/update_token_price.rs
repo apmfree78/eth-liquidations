@@ -1,5 +1,5 @@
 use crate::data::erc20::{Convert, Erc20Token};
-use crate::data::token_data_hash::get_token_connected_to_eth;
+use crate::data::token_data_hash::get_tokens_connected_to_eth;
 use crate::data::token_price_hash::set_saved_token_price;
 use eyre::Result;
 use log::info;
@@ -12,7 +12,7 @@ pub async fn update_token_price_for_(
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if token_to_update.symbol == "WETH" {
-        let tokens_with_price_connected_to_eth = get_token_connected_to_eth().await?;
+        let tokens_with_price_connected_to_eth = get_tokens_connected_to_eth().await?;
         // when ETH price changes must update prices for all these tokens
         for token in tokens_with_price_connected_to_eth.values() {
             info!("price updated for {} => {}", token.name, token.symbol);

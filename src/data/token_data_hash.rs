@@ -178,7 +178,7 @@ pub async fn set_token_connected_to_eth(token_symbol: String, token: &Erc20Token
     tokens.entry(token_symbol).or_insert(token.clone());
 }
 
-pub async fn get_token_connected_to_eth(
+pub async fn get_tokens_connected_to_eth(
 ) -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error>> {
     let tokens_connected_to_eth_hash = Arc::clone(&TOKENS_WITH_PRICE_CONNECTED_TO_ETH);
     let tokens = tokens_connected_to_eth_hash.lock().await;
