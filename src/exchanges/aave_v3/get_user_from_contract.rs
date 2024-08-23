@@ -23,20 +23,11 @@ pub async fn get_aave_v3_user_from_data_provider(
     for token in unique_token_data.values() {
         let token_address = token.address.parse()?;
 
-        let (
-            a_token_balance,
-            stable_debt,
-            variable_debt,
-            _principal_debt,
-            _scaled_variable_debt,
-            _borrow_rate,
-            _liquidity_rate,
-            _timestamp,
-            use_as_collateral,
-        ) = aave_v3_data_pool
-            .get_user_reserve_data(token_address, user_address)
-            .call()
-            .await?;
+        let (a_token_balance, stable_debt, variable_debt, _, _, _, _, _, use_as_collateral) =
+            aave_v3_data_pool
+                .get_user_reserve_data(token_address, user_address)
+                .call()
+                .await?;
 
         let total_debt = stable_debt + variable_debt;
         let total_debt = u256_to_big_decimal(&total_debt);
