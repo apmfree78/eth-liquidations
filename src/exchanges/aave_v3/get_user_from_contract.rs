@@ -2,7 +2,8 @@ use super::implementations::aave_user_data::{HealthFactor, UpdateUserData};
 use super::user_structs::{AaveToken, AaveUserData, PricingSource};
 use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::data::address::CONTRACT;
-use crate::data::erc20::{u256_to_big_decimal, UNIQUE_TOKEN_DATA};
+use crate::data::erc20::u256_to_big_decimal;
+use crate::data::token_data_hash::get_unique_token_data;
 use bigdecimal::BigDecimal;
 use ethers::providers::{Provider, Ws};
 use ethers::types::Address;
@@ -15,26 +16,18 @@ pub async fn get_aave_v3_user_from_data_provider(
     let aave_v3_data_pool_address: Address =
         CONTRACT.get_address().aave_v3_data_provider.parse()?;
     let aave_v3_data_pool = AAVE_V3_DATA_PROVIDER::new(aave_v3_data_pool_address, client.clone());
+    let unique_token_data = get_unique_token_data().await?;
 
     let mut tokens = Vec::new();
 
-    for token in UNIQUE_TOKEN_DATA.values() {
+    for token in unique_token_data.values() {
         let token_address = token.address.parse()?;
 
-        let (
-            a_token_balance,
-            stable_debt,
-            variable_debt,
-            _principal_debt,
-            _scaled_variable_debt,
-            _borrow_rate,
-            _liquidity_rate,
-            _timestamp,
-            use_as_collateral,
-        ) = aave_v3_data_pool
-            .get_user_reserve_data(token_address, user_address)
-            .call()
-            .await?;
+        let (a_token_balance, stable_debt, variable_debt, _, _, _, _, _, use_as_collateral) =
+            aave_v3_data_pool
+                .get_user_reserve_data(token_address, user_address)
+                .call()
+                .await?;
 
         let total_debt = stable_debt + variable_debt;
         let total_debt = u256_to_big_decimal(&total_debt);
@@ -42,7 +35,7 @@ pub async fn get_aave_v3_user_from_data_provider(
 
         if total_debt > BigDecimal::from(0) || a_token_balance > BigDecimal::from(0) {
             tokens.push(AaveToken {
-                token: *token,
+                token: token.clone(),
                 current_total_debt: total_debt,
                 usage_as_collateral_enabled: use_as_collateral,
                 current_atoken_balance: a_token_balance,

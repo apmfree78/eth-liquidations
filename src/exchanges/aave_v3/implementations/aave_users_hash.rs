@@ -1,4 +1,5 @@
-use crate::data::erc20::{Erc20Token, TOKENS_WITH_PRICE_CONNECTED_TO_ETH};
+use crate::data::erc20::Erc20Token;
+use crate::data::token_data_hash::get_tokens_connected_to_eth;
 use crate::exchanges::aave_v3::user_structs::{
     LiquidationCandidate, LIQUIDATION_THRESHOLD, PROFIT_THRESHOLD_MAINNET,
 };
@@ -24,7 +25,7 @@ pub trait UpdateUsers {
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
     ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>>;
-    fn generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(
+    async fn generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(
         &mut self,
         user_type: UserType,
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>>;
@@ -110,7 +111,9 @@ impl UpdateUsers for AaveUsersHash {
                 self.user_data.insert(user.id, user);
                 debug!("new user successfully added",)
             }
-            Err(error) => warn!("user did not fit criteria ==> {}", error),
+            Err(error) => {
+                // warn!("user did not fit criteria ==> {}", error),
+            }
         };
         Ok(())
     }
@@ -335,8 +338,9 @@ impl UpdateUsers for AaveUsersHash {
 
         let user_ids_array = if main_token.symbol == "WETH" {
             // must update full list of tokens if WETH
-            let users_with_tokens_connected_to_eth =
-                self.generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(user_type)?;
+            let users_with_tokens_connected_to_eth = self
+                .generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(user_type)
+                .await?;
             users_with_tokens_connected_to_eth.into_iter().collect()
         } else {
             self.get_users_owning_token_by_user_type(main_token, user_type)?
@@ -378,12 +382,14 @@ impl UpdateUsers for AaveUsersHash {
         }
     }
 
-    fn generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(
+    async fn generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(
         &mut self,
         user_type: UserType,
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
         let mut users_with_tokens_connected_to_eth = HashSet::<Address>::new();
-        for token in TOKENS_WITH_PRICE_CONNECTED_TO_ETH.iter() {
+        let token_price_connected_to_eth = get_tokens_connected_to_eth().await?;
+
+        for token in token_price_connected_to_eth.values() {
             // debug!("checking which users have {}", token.symbol);
             match user_type {
                 UserType::LowHealth => {

@@ -2,7 +2,8 @@ use crate::{
     abi::{aave_v3_data_provider::AAVE_V3_DATA_PROVIDER, aave_v3_pool::AAVE_V3_POOL},
     data::{
         address::CONTRACT,
-        erc20::{u256_to_big_decimal, TOKEN_DATA, UNIQUE_TOKEN_DATA},
+        erc20::u256_to_big_decimal,
+        token_data_hash::{get_token_data, get_unique_token_data},
         token_price_hash::{generate_token_price_hash, get_saved_token_price},
         users_to_track::{get_tracked_users, reset_tracked_users},
     },
@@ -30,7 +31,9 @@ pub async fn validate_liquidation_candidates(
     let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
     let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
     let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
-    let eth_token = TOKEN_DATA
+    let token_data = get_token_data().await?;
+
+    let eth_token = token_data
         .get("WETH")
         .unwrap_or_else(|| panic!("could not find WETH token"));
     let eth_price_usd = get_saved_token_price(eth_token.address.to_lowercase()).await?;
@@ -136,6 +139,7 @@ pub async fn calculate_user_liquidation_usd_profit(
     let standard_scale = U256::exp10(18);
     let aave_v3_data_provider_address: Address =
         CONTRACT.get_address().aave_v3_data_provider.parse()?;
+    let unique_token_data = get_unique_token_data().await?;
 
     // update token hash prices to aave oracle values
     generate_token_price_hash(client).await?;
@@ -173,7 +177,7 @@ pub async fn calculate_user_liquidation_usd_profit(
     let mut highest_token_price = U256::from(0);
     let mut maximum_profit = U256::from(0);
 
-    for token in UNIQUE_TOKEN_DATA.values() {
+    for token in unique_token_data.values() {
         let token_address = token.address.parse()?;
         let decimal_factor = U256::exp10(token.decimals.into());
 
@@ -187,7 +191,7 @@ pub async fn calculate_user_liquidation_usd_profit(
 
         if total_debt > U256::from(0) || a_token_balance > U256::from(0) {
             tokens.push(AaveTokenU256 {
-                token: *token,
+                token: token.clone(),
                 current_total_debt: total_debt,
                 usage_as_collateral_enabled: use_as_collateral,
                 current_atoken_balance: a_token_balance,

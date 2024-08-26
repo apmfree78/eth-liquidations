@@ -1,6 +1,6 @@
 use super::address::CONTRACT;
+use super::token_data_hash::get_token_data;
 use super::token_price_hash::get_saved_token_price;
-use super::tokens_by_chain::MAINNET_TOKENS;
 use crate::abi::aave_oracle::AAVE_ORACLE;
 use alloy_primitives;
 use async_trait::async_trait;
@@ -8,8 +8,6 @@ use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
 use ethers::core::types::U256;
 use ethers::providers::{Provider, Ws};
-use once_cell::sync::Lazy;
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use uniswap_sdk_core::entities::token::{Token, TokenMeta};
@@ -18,8 +16,20 @@ use uniswap_v3_sdk::{
     extensions::{fraction_to_big_decimal, get_pool},
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct Erc20Token {
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
+    pub address: String,
+    pub liquidation_bonus: u16,
+    pub liquidation_threshold: u16,
+    pub chain_link_price_feed: String,
+    pub chainlink_aggregator: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct Erc20TokenStatic {
     pub name: &'static str,
     pub symbol: &'static str,
     pub decimals: u8,
@@ -56,8 +66,8 @@ impl Convert for Erc20Token {
         return Ok(Token {
             chain_id,
             decimals: self.decimals,
-            symbol: Some(self.symbol.into()),
-            name: Some(self.name.into()),
+            symbol: Some(self.symbol.clone()),
+            name: Some(self.name.clone()),
             meta: TokenMeta {
                 address: self.address.parse()?,
                 buy_fee_bps: None,
@@ -71,6 +81,8 @@ impl Convert for Erc20Token {
         base_token_symbol: &str,
         client: &Arc<Provider<Ws>>,
     ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+        let token_data = get_token_data().await?;
+
         if self.symbol == base_token_symbol || self.symbol == "USDC" || self.symbol == "USDe" {
             return Ok(BigDecimal::from(1));
         } else if (self.symbol == "sDAI"
@@ -105,7 +117,7 @@ impl Convert for Erc20Token {
             let token_price_in_weth = self.get_token_price_in_("WETH", client).await?;
 
             // 2. get ETH price in USDC
-            let weth_token: &Erc20Token = TOKEN_DATA.get("WETH").unwrap();
+            let weth_token: &Erc20Token = token_data.get("WETH").unwrap();
             let weth_price_in_usdc = weth_token.get_token_price_in_("USDC", client).await?;
 
             // determine token price in USDC by multipying
@@ -114,7 +126,7 @@ impl Convert for Erc20Token {
             return Ok(token_usdc_price);
         }
 
-        let base_token: &Erc20Token = TOKEN_DATA.get(base_token_symbol).unwrap();
+        let base_token: &Erc20Token = token_data.get(base_token_symbol).unwrap();
         let base_token = base_token.get_token(1).await?;
 
         let token = self.get_token(1).await?;
@@ -189,54 +201,55 @@ fn convert_uniswap_to_bigdecimal(
     bigdecimal::BigDecimal::from_str(&as_string).expect("Invalid BigDecimal format")
     // Convert String to bigdecimal BigDecimal
 }
+//
+// pub static token_data: Lazy<HashMap<String, Erc20TokenStatic>> = Lazy::new(|| {
+//     let mut token_hash = HashMap::new();
+//
+//     // create hashmap with token symbol as index
+//     for token in MAINNET_TOKENS {
+//         token_hash.insert(token.symbol.to_string(), token.clone());
+//     }
+//
+//     // copy hashmap with token address as index
+//     for token in MAINNET_TOKENS {
+//         token_hash.insert(token.address.to_lowercase(), token.clone());
+//     }
+//
+//     // copy hashmap with chain link price feed as index
+//     for token in MAINNET_TOKENS {
+//         if !token.chainlink_aggregator.is_empty() {
+//             token_hash.insert(token.chainlink_aggregator.to_lowercase(), token.clone());
+//         }
+//     }
+//
+//     token_hash
+// });
 
-pub static TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
-    let mut token_hash = HashMap::new();
-
-    // create hashmap with token symbol as index
-    for token in MAINNET_TOKENS {
-        token_hash.insert(token.symbol.to_string(), *token);
-    }
-
-    // copy hashmap with token address as index
-    for token in MAINNET_TOKENS {
-        token_hash.insert(token.address.to_lowercase(), *token);
-    }
-
-    // copy hashmap with chain link price feed as index
-    for token in MAINNET_TOKENS {
-        if !token.chainlink_aggregator.is_empty() {
-            token_hash.insert(token.chainlink_aggregator.to_lowercase(), *token);
-        }
-    }
-
-    token_hash
-});
-
-pub static UNIQUE_TOKEN_DATA: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
-    let unique_tokens = TOKEN_DATA
-        .values()
-        .map(|token| (token.address.to_lowercase(), *token))
-        .collect();
-    unique_tokens
-});
-
-pub static TOKENS_WITH_PRICE_CONNECTED_TO_ETH: Lazy<Vec<&Erc20Token>> = Lazy::new(|| {
-    let token_symbols_connected_to_eth = vec![
-        "WETH", "wstETH", "osETH", "WBTC", "rETH", "cbETH", "LDO", "weETH", "ETHx",
-    ];
-
-    let mut tokens_with_price_connected_to_eth = Vec::<&Erc20Token>::new();
-
-    for token_symbol in token_symbols_connected_to_eth {
-        let token = TOKEN_DATA
-            .get(token_symbol)
-            .unwrap_or_else(|| panic!("invalid token symbol"));
-
-        tokens_with_price_connected_to_eth.push(token);
-    }
-    tokens_with_price_connected_to_eth
-});
+// pub static UNIQUE_token_data: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
+//     let unique_tokens = token_data
+//         .values()
+//         .map(|token| (token.address.to_lowercase(), token.clone()))
+//         .collect();
+//     unique_tokens
+// });
+//
+// pub static TOKENS_WITH_PRICE_CONNECTED_TO_ETH: Lazy<Vec<&Erc20Token>> = Lazy::new(|| {
+//     let token_symbols_connected_to_eth = vec![
+//         "WETH", "wstETH", "osETH", "WBTC", "rETH", "cbETH", "LDO", "weETH", "ETHx",
+//     ];
+//
+//     let mut tokens_with_price_connected_to_eth = Vec::<&Erc20Token>::new();
+//
+//     for token_symbol in token_symbols_connected_to_eth {
+//         let token = token_data
+//             .get(token_symbol)
+//             .unwrap_or_else(|| panic!("invalid token symbol"));
+//
+//         tokens_with_price_connected_to_eth.push(token);
+//     }
+//     tokens_with_price_connected_to_eth
+// });
+//
 
 pub async fn generate_token(
     chain_id: u64,

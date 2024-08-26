@@ -24,7 +24,7 @@ use crate::exchanges::aave_v3::events::{
     SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
 };
 
-const SCALE: i64 = 3;
+// const SCALE: i64 = 3;
 
 pub async fn update_users_with_event_from_log(
     log: Log,
@@ -36,11 +36,11 @@ pub async fn update_users_with_event_from_log(
     if !log.topics.is_empty() {
         //determine which aave event was found
         if let Some(aave_event_enum) = aave_event_map.get(&log.topics[0]) {
-            debug!("{:?} event", aave_event_enum);
+            // debug!("{:?} event", aave_event_enum);
 
             // extract event data from log
             let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);
-            debug!("event data => {:?}", aave_event_type_with_data);
+            // debug!("event data => {:?}", aave_event_type_with_data);
 
             // if event is LIQUATION handle separately (see else)
             if *aave_event_enum != AaveUserEvent::Liquidation {
@@ -131,24 +131,24 @@ pub async fn update_aave_user(
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user_address = event.get_user();
-    let user_action = get_user_action_from_event(event);
+    let user_action = get_user_action_from_event(event).await?;
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();
         let user_id = user.id;
 
-        debug!("updating user {}", user_id.to_string());
-        debug!("user debt ...{:?}", user.total_debt.with_scale(SCALE));
-        debug!(
-            "user a scaled collateral...{:?}",
-            user.collateral_times_liquidation_factor.with_scale(SCALE)
-        );
-        debug!(
-            "user health factor...{:?}",
-            user.health_factor.with_scale(SCALE)
-        );
+        // debug!("updating user {}", user_id.to_string());
+        // debug!("user debt ...{:?}", user.total_debt.with_scale(SCALE));
+        // debug!(
+        //     "user a scaled collateral...{:?}",
+        //     user.collateral_times_liquidation_factor.with_scale(SCALE)
+        // );
+        // debug!(
+        //     "user health factor...{:?}",
+        //     user.health_factor.with_scale(SCALE)
+        // );
 
-        let token_to_remove = match user.update(&user_action) {
+        let token_to_remove = match user.update(&user_action, client).await {
             Ok(remove_token) => match remove_token {
                 TokenToRemove::TokenToRemove(token_address) => {
                     // there is a token to remove
@@ -160,22 +160,23 @@ pub async fn update_aave_user(
             Err(err) => return Err(err),
         };
 
-        debug!("user updated!");
+        // debug!("user updated!");
 
         user.update_meta_data(PricingSource::SavedTokenPrice, client)
             .await?;
-        debug!(
-            "updated user debt ...{:?}",
-            user.total_debt.with_scale(SCALE)
-        );
-        debug!(
-            "updated user scaled collateral...{:?}",
-            user.collateral_times_liquidation_factor.with_scale(SCALE)
-        );
-        debug!(
-            "updated user health factor...{:?}",
-            user.health_factor.with_scale(SCALE)
-        );
+
+        // debug!(
+        //     "updated user debt ...{:?}",
+        //     user.total_debt.with_scale(SCALE)
+        // );
+        // debug!(
+        //     "updated user scaled collateral...{:?}",
+        //     user.collateral_times_liquidation_factor.with_scale(SCALE)
+        // );
+        // debug!(
+        //     "updated user health factor...{:?}",
+        //     user.health_factor.with_scale(SCALE)
+        // );
 
         // update token => user mappings , includes adding new tokens
         users

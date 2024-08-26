@@ -1,44 +1,54 @@
 use super::events::{AaveEvent, AaveUserAction, AaveUserEvent, LiquidationEvent};
 use super::user_structs::{AaveToken, AaveUserData};
-use crate::data::erc20::{u256_to_big_decimal, TOKEN_DATA};
+use crate::data::erc20::u256_to_big_decimal;
+use crate::data::token_data_hash::{get_and_save_erc20_by_token_address, get_token_data};
 use crate::utils::type_conversion::address_to_string;
+use async_trait::async_trait;
 use bigdecimal::BigDecimal;
 use core::panic;
+use ethers::providers::{Provider, Ws};
 use log::debug;
+use std::sync::Arc;
 
 pub enum TokenToRemove {
     TokenToRemove(String),
     None,
 }
 
-pub fn get_user_action_from_event(event: Box<dyn AaveEvent>) -> AaveUserAction {
+pub async fn get_user_action_from_event(
+    event: Box<dyn AaveEvent>,
+) -> Result<AaveUserAction, Box<dyn std::error::Error>> {
     let token_address = event.get_reserve();
     let token_address = address_to_string(token_address);
+    let token_data = get_token_data().await?;
 
-    let token = TOKEN_DATA
+    let token = token_data
         .get(token_address.trim())
         .unwrap_or_else(|| panic!("No token found for address: {}", token_address));
     let amount = event.get_amount();
     let amount = u256_to_big_decimal(&amount);
 
-    AaveUserAction {
+    Ok(AaveUserAction {
         user_event: event.get_type(),
         user_address: event.get_user(),
-        token: *token,
+        token: token.clone(),
         amount_transferred: amount,
         use_a_tokens: event.get_use_a_tokens(),
-    }
+    })
 }
 
+#[async_trait]
 pub trait Update {
-    fn update(
+    async fn update(
         &mut self,
         aave_action: &AaveUserAction,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<TokenToRemove, Box<dyn std::error::Error>>;
 
     fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>>;
 }
 
+#[async_trait]
 impl Update for AaveUserData {
     fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>> {
         for token in self.tokens.iter_mut() {
@@ -60,11 +70,13 @@ impl Update for AaveUserData {
         Ok(())
     }
 
-    fn update(
+    async fn update(
         &mut self,
         aave_action: &AaveUserAction,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<TokenToRemove, Box<dyn std::error::Error>> {
         let token_address = aave_action.token.address.to_lowercase();
+        let token_data = get_token_data().await?;
         let mut token_index: Option<usize> = None;
         match aave_action.user_event {
             AaveUserEvent::WithDraw => {
@@ -103,23 +115,25 @@ impl Update for AaveUserData {
                 }
 
                 // token does not exist , add it
-                if let Some(token) = TOKEN_DATA.get(&token_address) {
-                    self.tokens.push(AaveToken {
-                        token: *token,
-                        current_total_debt: aave_action.amount_transferred.clone(),
-                        usage_as_collateral_enabled: false,
-                        current_atoken_balance: BigDecimal::from(0),
-                        reserve_liquidation_threshold: BigDecimal::from(
-                            token.liquidation_threshold,
-                        ),
-                        reserve_liquidation_bonus: BigDecimal::from(token.liquidation_bonus),
-                    });
-                } else {
-                    panic!(
-                        "token address provided is invalid or doesn't exist! => {}",
-                        token_address
-                    );
-                }
+                let new_token = match token_data.get(&token_address) {
+                    Some(token) => token.clone(),
+                    None => {
+                        let token =
+                            get_and_save_erc20_by_token_address(&token_address, client).await?;
+                        token.clone()
+                    }
+                };
+
+                self.tokens.push(AaveToken {
+                    token: new_token.clone(),
+                    current_total_debt: aave_action.amount_transferred.clone(),
+                    usage_as_collateral_enabled: false,
+                    current_atoken_balance: BigDecimal::from(0),
+                    reserve_liquidation_threshold: BigDecimal::from(
+                        new_token.liquidation_threshold,
+                    ),
+                    reserve_liquidation_bonus: BigDecimal::from(new_token.liquidation_bonus),
+                });
             }
             AaveUserEvent::Repay => {
                 // find token in aave user data
@@ -168,23 +182,25 @@ impl Update for AaveUserData {
                 }
 
                 // token does not exist , add it
-                if let Some(token) = TOKEN_DATA.get(&token_address) {
-                    self.tokens.push(AaveToken {
-                        token: *token,
-                        current_total_debt: BigDecimal::from(0),
-                        usage_as_collateral_enabled: false,
-                        current_atoken_balance: aave_action.amount_transferred.clone(),
-                        reserve_liquidation_threshold: BigDecimal::from(
-                            token.liquidation_threshold,
-                        ),
-                        reserve_liquidation_bonus: BigDecimal::from(token.liquidation_bonus),
-                    });
-                } else {
-                    panic!(
-                        "token address provided is invalid or doesn't exist! => {}",
-                        token_address
-                    );
-                }
+                let new_token = match token_data.get(&token_address) {
+                    Some(token) => token.clone(),
+                    None => {
+                        let token =
+                            get_and_save_erc20_by_token_address(&token_address, client).await?;
+                        token.clone()
+                    }
+                };
+
+                self.tokens.push(AaveToken {
+                    token: new_token.clone(),
+                    current_total_debt: aave_action.amount_transferred.clone(),
+                    usage_as_collateral_enabled: false,
+                    current_atoken_balance: BigDecimal::from(0),
+                    reserve_liquidation_threshold: BigDecimal::from(
+                        new_token.liquidation_threshold,
+                    ),
+                    reserve_liquidation_bonus: BigDecimal::from(new_token.liquidation_bonus),
+                });
             }
             AaveUserEvent::ReserveUsedAsCollateralEnabled => {
                 // find token in aave user data

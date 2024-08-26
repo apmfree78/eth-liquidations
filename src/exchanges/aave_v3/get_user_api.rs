@@ -1,15 +1,15 @@
-use crate::data::erc20::TOKEN_DATA;
+use super::user_structs::SampleSize;
+use crate::data::{erc20::Erc20Token, token_data_hash::save_erc20_token};
 use crate::exchanges::aave_v3::user_structs::AaveToken;
 use async_trait::async_trait;
 use bigdecimal::BigDecimal;
-use core::panic;
+use ethers::providers::{Provider, Ws};
 use log::{debug, error, info, warn};
 use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
 use serde_json;
+use std::sync::Arc;
 use std::{env, str::FromStr};
-
-use super::user_structs::SampleSize;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AaveUser {
@@ -21,32 +21,61 @@ pub struct AaveUser {
 
 #[async_trait]
 pub trait UserAccountData {
-    async fn get_list_of_user_tokens(&self) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>>;
+    async fn get_list_of_user_tokens(
+        &self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
 impl UserAccountData for AaveUser {
-    async fn get_list_of_user_tokens(&self) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>> {
+    async fn get_list_of_user_tokens(
+        &self,
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>> {
         let mut user_token_list: Vec<AaveToken> = Vec::new();
 
         for r in &self.reserves {
-            let token = TOKEN_DATA.get(&*r.reserve.symbol).unwrap_or_else(|| {
-                panic!(
-                    "could not find token with symbol, and name: {} => {} ",
-                    r.reserve.symbol, r.reserve.name
-                )
-            });
+            let Reserve {
+                name,
+                id,
+                symbol,
+                decimals,
+                reserve_liquidation_bonus,
+                reserve_liquidation_threshold,
+                usage_as_collateral_enabled,
+            } = r.reserve.clone();
 
+            let token_address = extract_first_address(&id).unwrap().to_string();
+
+            let token = Erc20Token {
+                name,
+                symbol,
+                // decimals: u8::from_str(&decimals).unwrap(),
+                decimals,
+                address: token_address,
+                liquidation_bonus: u16::from_str(&reserve_liquidation_bonus).unwrap(),
+                liquidation_threshold: u16::from_str(&reserve_liquidation_threshold).unwrap(),
+                chain_link_price_feed: "".to_string(),
+                chainlink_aggregator: "".to_string(),
+            };
+
+            //*******************************************************************************
+            // SAVE TOKEN TO GLOBAL STATE
+            save_erc20_token(&token, client).await?;
+
+            //*******************************************************************************
             let current_total_debt = BigDecimal::from_str(&r.current_total_debt)?;
             let current_atoken_balance = BigDecimal::from_str(&r.current_atoken_balance).unwrap();
             let reserve_liquidation_threshold =
                 BigDecimal::from_str(&r.reserve.reserve_liquidation_threshold).unwrap();
             let reserve_liquidation_bonus =
                 BigDecimal::from_str(&r.reserve.reserve_liquidation_bonus).unwrap();
-            let usage_as_collateral_enabled = r.reserve.usage_as_collateral_enabled;
+            // let usage_as_collateral_enabled = r.reserve.usage_as_collateral_enabled;
+
             // get debt, colladeral, liquidation threshold, bonus, and usage colladeral boolean
             user_token_list.push(AaveToken {
-                token: *token,
+                token,
                 current_total_debt,
                 usage_as_collateral_enabled,
                 current_atoken_balance,
@@ -71,11 +100,12 @@ pub struct UserReserve {
     reserve: Reserve,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Reserve {
     id: String,
     name: String,
     symbol: String,
+    decimals: u8,
     #[serde(rename = "usageAsCollateralEnabled")]
     usage_as_collateral_enabled: bool,
     #[serde(rename = "reserveLiquidationThreshold")]
@@ -213,6 +243,7 @@ pub fn get_graphql_url_and_query(sample_size: SampleSize) -> (String, String) {
             id
             name
             symbol
+            decimals
             usageAsCollateralEnabled
             reserveLiquidationThreshold
             reserveLiquidationBonus
@@ -239,6 +270,7 @@ pub fn get_graphql_url_and_query(sample_size: SampleSize) -> (String, String) {
             id
             name
             symbol
+            decimals
             usageAsCollateralEnabled
             reserveLiquidationThreshold
             reserveLiquidationBonus
@@ -253,4 +285,13 @@ pub fn get_graphql_url_and_query(sample_size: SampleSize) -> (String, String) {
     };
 
     (thegraph_url.to_string(), query.to_string())
+}
+
+fn extract_first_address(addresses: &str) -> Option<&str> {
+    if addresses.len() >= 42 {
+        // Check if string is at least as long as one Ethereum address
+        Some(&addresses[..42]) // Extract the first 42 characters, which should be the first address
+    } else {
+        None // Return None if string is too short
+    }
 }

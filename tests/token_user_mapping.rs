@@ -2,7 +2,7 @@
 mod generate_mock_users;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
-use eth_liquadation::data::erc20::TOKEN_DATA;
+use eth_liquadation::data::token_data_hash::{get_token_data, save_erc20_tokens_from_static_data};
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
 use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use eth_liquadation::exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate};
@@ -19,6 +19,8 @@ const WS_URL: &str = "ws://localhost:8546";
 async fn test_user_is_placed_in_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
 
     let users_hash = generate_mock_user_hash()?;
@@ -46,6 +48,8 @@ async fn test_user_is_placed_in_correct_mapping() -> Result<(), Box<dyn std::err
 async fn test_users_are_placed_in_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
 
     let users_hash = generate_mock_2_user_hash()?;
@@ -75,6 +79,8 @@ async fn test_both_users_are_moved_to_correct_mapping() -> Result<(), Box<dyn st
     let client = Arc::new(provider);
 
     let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
 
     generate_token_price_hash(&client).await?;
 
@@ -129,12 +135,15 @@ async fn test_both_users_are_moved_to_correct_mapping() -> Result<(), Box<dyn st
 async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    let token_data = get_token_data().await?;
 
     let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let user_id_2: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let token_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-    let token = TOKEN_DATA.get(&token_address.to_lowercase()).unwrap();
+    let token = token_data.get(&token_address.to_lowercase()).unwrap();
 
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
 
     let mut users_hash = generate_mock_2_user_hash()?;
@@ -289,6 +298,8 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
 async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
     let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
@@ -357,6 +368,8 @@ async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error:
 async fn test_user_is_removed_from_mapping() -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
 
     let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
@@ -404,12 +417,15 @@ async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
+    let token_data = get_token_data().await?;
 
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let token_address = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 
-    let token = TOKEN_DATA.get(token_address).unwrap();
+    let token = token_data.get(token_address).unwrap();
 
     let mut users_hash = generate_mock_2_user_hash_v2()?;
 
@@ -447,11 +463,14 @@ async fn test_correct_users_to_liquidate_are_found_for_standard_users(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
+    let token_data = get_token_data().await?;
 
     let token_address = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 
-    let token = TOKEN_DATA.get(token_address).unwrap();
+    let token = token_data.get(token_address).unwrap();
     let mut users_hash = generate_mock_2_user_hash_v2()?;
 
     println!(

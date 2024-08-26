@@ -15,6 +15,9 @@ pub const CHAIN: Chain = Chain::Mainnet;
 //*****************************************
 //*****************************************
 //*****************************************
+pub const ETH: &str = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+pub const BTC: &str = "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB";
+pub const USD: &str = "0x0000000000000000000000000000000000000348";
 
 pub struct ContractAddresses {
     pub aave_oracle: String,
@@ -23,6 +26,7 @@ pub struct ContractAddresses {
     pub aave_v3_data_provider: String,
     pub liquidate_user: String,
     pub weth: String,
+    pub chain_link_feed_registry: String,
 }
 
 pub struct ContractAddressMap {
@@ -40,6 +44,7 @@ impl ContractAddressMap {
                 uniswap_factory: chains.mainnet.uniswap_factory,
                 aave_v3_data_provider: chains.mainnet.aave_v3_data_provider,
                 liquidate_user: chains.mainnet.liquidate_user,
+                chain_link_feed_registry: chains.mainnet.chain_link_feed_registry,
                 weth: chains.mainnet.weth,
             },
         );
@@ -52,6 +57,7 @@ impl ContractAddressMap {
                 uniswap_factory: chains.sepolia.uniswap_factory,
                 aave_v3_data_provider: chains.sepolia.aave_v3_data_provider,
                 liquidate_user: chains.sepolia.liquidate_user,
+                chain_link_feed_registry: chains.sepolia.chain_link_feed_registry,
                 weth: chains.sepolia.weth,
             },
         );
@@ -77,6 +83,7 @@ struct ChainContracts {
     weth: String,
     aave_v3_data_provider: String,
     liquidate_user: String,
+    chain_link_feed_registry: String,
 }
 
 impl Chains {
