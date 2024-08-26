@@ -18,6 +18,7 @@ pub mod backrun {
 }
 
 pub mod mempool {
+    pub mod decode_new_price;
     pub mod detect_price_update;
     pub mod liquidations;
     pub mod update_token_price;
@@ -43,6 +44,7 @@ pub mod abi {
     pub mod aave_oracle;
     pub mod aave_v3_data_provider;
     pub mod aave_v3_pool;
+    pub mod chainlink_aggregator;
     pub mod chainlink_registry;
     pub mod erc20;
     pub mod liquidate_user;

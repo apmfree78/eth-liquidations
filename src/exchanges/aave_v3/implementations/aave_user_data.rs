@@ -161,7 +161,7 @@ impl GenerateUsers for AaveUserData {
                         aave_user_data.push(aave_user);
                     }
                     Err(error) => {
-                        error!("user did not fit criteria => {}", error);
+                        // error!("user did not fit criteria => {}", error);
                     }
                 };
             }
@@ -363,7 +363,7 @@ impl UpdateUserData for AaveUserData {
         let health_factor = if self.total_debt > BigDecimal::zero() {
             &self.collateral_times_liquidation_factor / &self.total_debt
         } else {
-            warn!("no health factor because user has no debt");
+            // warn!("no health factor because user has no debt");
             BigDecimal::from(0)
         };
 
@@ -386,7 +386,7 @@ impl HealthFactor for AaveUserData {
         let health_factor = if current_total_debt > BigDecimal::zero() {
             liquidation_threshold_collateral_sum / current_total_debt
         } else {
-            warn!("no health factor because user has no debt");
+            // warn!("no health factor because user has no debt");
             BigDecimal::from(0)
         };
         Ok(health_factor)

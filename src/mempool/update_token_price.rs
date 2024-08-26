@@ -18,6 +18,7 @@ pub async fn update_token_price_for_(
             info!("price updated for {} => {}", token.name, token.symbol);
             let original_token_price = token.get_saved_price_from_token_price_hash().await?;
 
+            // TODO - use price from transmit
             // use UNISWAP to get real time price for token
             let token_price = token.get_token_price_in_("USDC", client).await?;
             set_saved_token_price(&token.address, token_price).await?;

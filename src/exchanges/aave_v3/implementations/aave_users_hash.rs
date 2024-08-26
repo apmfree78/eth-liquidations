@@ -111,7 +111,9 @@ impl UpdateUsers for AaveUsersHash {
                 self.user_data.insert(user.id, user);
                 debug!("new user successfully added",)
             }
-            Err(error) => warn!("user did not fit criteria ==> {}", error),
+            Err(error) => {
+                // warn!("user did not fit criteria ==> {}", error),
+            }
         };
         Ok(())
     }

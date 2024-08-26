@@ -1,8 +1,11 @@
+use crate::abi::chainlink_aggregator::CHAINLINK_AGGREGATOR;
 use crate::data::chainlink_feed_map::get_chainlink_aggregator_map;
 use crate::exchanges::aave_v3::user_structs::AaveUsersHash;
+use crate::mempool::decode_new_price::decode_transmit_report;
 use crate::mempool::liquidations::find_users_and_liquidate;
 use crate::mempool::update_token_price::update_token_price_for_;
 use crate::utils::type_conversion::address_to_string;
+use ethers::abi::{Abi, Token};
 use ethers::{
     core::types::TxHash,
     providers::{Provider, Ws},
@@ -19,12 +22,32 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let transmit_signature = "transmit(bytes,bytes32[],bytes32[],bytes32)";
+
     let chain_aggregator_map = get_chainlink_aggregator_map().await?;
 
     abigen!(
         AGGREGATOR,
         r#"[function description() external view returns (string)]"#
     );
+
+    let transmit_abi = r#"
+    [
+        {
+            "constant": false,
+            "inputs": [
+                {"name": "report", "type": "bytes"},
+                {"name": "rs", "type": "bytes32[]"},
+                {"name": "ss", "type": "bytes32[]"},
+                {"name": "rawVs", "type": "bytes32"}
+            ],
+            "name": "transmit",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+    ]
+    "#;
 
     // Compute the Keccak-256 hashes of the event signatures
     // let transmit_hash = H256::from(keccak256(transmit_signature.as_bytes()));
@@ -42,10 +65,33 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
                     let to_address = address_to_string(to).to_lowercase();
                     if let Some(token) = chain_aggregator_map.get(&*to_address) {
                         debug!("TRANSMIT FOUND!!!");
+                        // debug!("tx.input => {:#?}", tx.input);
 
-                        // ***************************************************************************
-                        // ***************************************************************************
-                        // FOR TESTING PURPOSES
+                        // TEST DECODING
+                        // let abi_json = r#"[{"inputs":[{"internalType":"bytes","name":"report","type":"bytes"},{"internalType":"bytes32[]","name":"rs","type":"bytes32[]"},{"internalType":"bytes32[]","name":"ss","type":"bytes32[]"},{"internalType":"bytes32","name":"rawVs","type":"bytes32"}],"name":"transmit","type":"function"}]"#;
+                        let abi = Abi::load(transmit_abi.as_bytes())?;
+                        if let Ok(function) = abi.function("transmit") {
+                            if let Ok(decoded) = function.decode_input(&data[4..]) {
+                                // Skip selector if included
+                                match decoded.as_slice() {
+                                    [Token::Bytes(report), Token::Array(_), Token::Array(_), Token::FixedBytes(_)] =>
+                                    {
+                                        let observations = decode_transmit_report(report.clone())?;
+                                    }
+                                    _ => {
+                                        return Err(
+                                            "Failed to match decoded arguments with expected types"
+                                                .into(),
+                                        )
+                                    }
+                                }
+                            } else {
+                                return Err("Failed to decode input data for `transmit`".into());
+                            }
+                        } else {
+                            return Err("Transmit function not found in ABI".into());
+                        }
+
                         if tx.transaction_type == Some(2.into()) {
                             // Confirming it's an EIP-1559 transaction
                             if let Some(max_priority_fee_per_gas) = tx.max_priority_fee_per_gas {
