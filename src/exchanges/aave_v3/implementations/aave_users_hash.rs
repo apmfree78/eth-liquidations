@@ -426,11 +426,7 @@ impl UpdateUsers for AaveUsersHash {
 
         let token_price_type_tokens = match token_price_type {
             TokenPriceType::PricedInETH => get_tokens_priced_in_eth().await?,
-            TokenPriceType::PricedInBTC => {
-                let tokens = get_tokens_priced_in_btc().await?;
-                debug!("btc priced tokens => {:#?}", tokens);
-                tokens
-            }
+            TokenPriceType::PricedInBTC => get_tokens_priced_in_btc().await?,
         };
 
         for token in token_price_type_tokens.values() {

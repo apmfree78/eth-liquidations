@@ -53,8 +53,14 @@ pub async fn validate_liquidation_candidates(
             debt_token,
             collateral_token,
         } = user.clone();
-        let (_, _, _, _, _, health_factor) =
-            aave_v3_pool.get_user_account_data(user_id).call().await?;
+
+        let health_factor = match aave_v3_pool.get_user_account_data(user_id).call().await {
+            Ok((_, _, _, _, _, health_factor)) => health_factor,
+            Err(err) => {
+                debug!("error fetching usr health factor => {}", err);
+                U256::zero()
+            }
+        };
 
         let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
 
@@ -182,10 +188,14 @@ pub async fn calculate_user_liquidation_usd_profit(
         let decimal_factor = U256::exp10(token.decimals.into());
 
         let (a_token_balance, stable_debt, variable_debt, _, _, _, _, _, use_as_collateral) =
-            aave_v3_data_pool
+            match aave_v3_data_pool
                 .get_user_reserve_data(token_address, *user_id)
                 .call()
-                .await?;
+                .await
+            {
+                Ok(result) => result,
+                Err(_) => panic!("could not retrieve user data using aave v3 pool"),
+            };
 
         let total_debt = stable_debt + variable_debt;
 

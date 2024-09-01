@@ -25,10 +25,10 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
 
     let chain_aggregator_map = get_chainlink_aggregator_map().await?;
 
-    abigen!(
-        AGGREGATOR,
-        r#"[function description() external view returns (string)]"#
-    );
+    // abigen!(
+    //     AGGREGATOR,
+    //     r#"[function description() external view returns (string)]"#
+    // );
 
     // Compute the Keccak-256 hashes of the event signatures
     // let transmit_hash = H256::from(keccak256(transmit_signature.as_bytes()));
@@ -46,7 +46,7 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
                     let to_address = address_to_string(to).to_lowercase();
                     if let Some(token) = chain_aggregator_map.get(&*to_address) {
                         debug!("TRANSMIT FOUND!!!");
-                        debug!("data => {:#?}", data);
+                        // debug!("data => {:#?}", data);
 
                         let new_token_price =
                             get_chainlink_price_from_transmit_tx(&data.into(), token).await?;

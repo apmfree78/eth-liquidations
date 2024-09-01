@@ -2,6 +2,7 @@ use crate::abi::wsteth;
 use crate::backrun::flashbots::submit_to_flashbots;
 use crate::data::erc20::Erc20Token;
 use crate::data::token_data_hash::get_token_data;
+use crate::data::token_price_hash::print_saved_token_prices;
 use crate::data::users_to_track::add_tracked_users;
 use crate::exchanges::aave_v3::user_structs::{LiquidationCandidate, UserType, UsersToLiquidate};
 use crate::exchanges::aave_v3::{
@@ -9,7 +10,7 @@ use crate::exchanges::aave_v3::{
 };
 use ethers::types::Transaction;
 use eyre::Result;
-use log::info;
+use log::{debug, info};
 use std::sync::Arc;
 
 use ethers::providers::{Provider, Ws};
@@ -26,6 +27,9 @@ pub async fn find_users_and_liquidate(
     let wsteth_token = token_data.get("wstETH").unwrap();
     // 1. update low health user health factor (that own or borrow token)
     // 2. check if liquidation candidates found
+    debug!("using these prices to find health factor");
+    print_saved_token_prices().await?;
+
     let mut user_accounts_to_liquidate =
         update_and_get_accounts_to_liquidate(user_data, token, UserType::LowHealth, client).await?;
 

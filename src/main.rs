@@ -18,7 +18,7 @@ use ethers::{
     providers::{Middleware, Provider, Ws},
 };
 use futures::{lock::Mutex, stream, StreamExt};
-use log::{error, info};
+use log::{debug, error, info};
 use std::sync::Arc;
 
 // SET ws url and CHAIN we are using
@@ -117,6 +117,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     info!("NEW BLOCK ===> {}", block.timestamp);
 
                     // FOR TESTING ONLY
+                    debug!("using these prices to find health factor in new block");
                     let _ = generate_token_price_hash(&client).await;
                     if let Err(_) = print_saved_token_prices().await {
                         error!("could not print out prices");
