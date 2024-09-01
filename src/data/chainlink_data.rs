@@ -37,6 +37,11 @@ static ETHEREUM_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
         base_currency: "USD",
         address: "0xc929ad75B72593967DE83E7F7Cda0493458261D9",
     },
+    // ChainlinkPriceFeed {
+    //     token_symbol: "osETH",
+    //     base_currency: "ETH",
+    //     address: "0x8023518b2192FB5384DAdc596765B3dD1cdFe471",
+    // },
     ChainlinkPriceFeed {
         token_symbol: "AAVE",
         base_currency: "ETH",
@@ -503,12 +508,7 @@ static ETHEREUM_PRICE_FEEDS: &[ChainlinkPriceFeed] = &[
         address: "0x8c110B94C5f1d347fAcF5E1E938AB2db60E3c9a8",
     },
     ChainlinkPriceFeed {
-        token_symbol: "STETH",
-        base_currency: "ETH",
-        address: "0x86392dC19c0b719886221c78AB11eb8Cf5c52812",
-    },
-    ChainlinkPriceFeed {
-        token_symbol: "STETH",
+        token_symbol: "stETH",
         base_currency: "USD",
         address: "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8",
     },

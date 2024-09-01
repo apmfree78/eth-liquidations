@@ -131,7 +131,7 @@ pub async fn update_aave_user(
     client: &Arc<Provider<Ws>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let user_address = event.get_user();
-    let user_action = get_user_action_from_event(event).await?;
+    let user_action = get_user_action_from_event(event, client).await?;
 
     if users.user_data.contains_key(&user_address) {
         let user = users.user_data.get_mut(&user_address).unwrap();

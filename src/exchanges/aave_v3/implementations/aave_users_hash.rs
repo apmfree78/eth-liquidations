@@ -1,5 +1,5 @@
 use crate::data::erc20::Erc20Token;
-use crate::data::token_data_hash::get_tokens_connected_to_eth;
+use crate::data::token_data_hash::{get_tokens_priced_in_btc, get_tokens_priced_in_eth};
 use crate::exchanges::aave_v3::user_structs::{
     LiquidationCandidate, LIQUIDATION_THRESHOLD, PROFIT_THRESHOLD_MAINNET,
 };
@@ -13,9 +13,14 @@ use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
-use log::{debug, error, warn};
+use log::{debug, error};
 use std::collections::HashSet;
 use std::sync::Arc;
+
+pub enum TokenPriceType {
+    PricedInETH,
+    PricedInBTC,
+}
 
 #[async_trait]
 pub trait UpdateUsers {
@@ -25,7 +30,12 @@ pub trait UpdateUsers {
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
     ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>>;
-    async fn generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(
+    async fn generate_hashset_of_user_by_user_type_for_(
+        &mut self,
+        token_price_type: TokenPriceType,
+        user_type: UserType,
+    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>>;
+    async fn generate_hashset_of_user_by_user_type_for_tokens_priced_in_eth(
         &mut self,
         user_type: UserType,
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>>;
@@ -159,6 +169,9 @@ impl UpdateUsers for AaveUsersHash {
         token: &Erc20Token,
         client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        if token.symbol == "BTC" {
+            return Ok(());
+        }
         let low_health_users =
             self.get_users_owning_token_by_user_type(token, UserType::LowHealth)?;
 
@@ -336,15 +349,37 @@ impl UpdateUsers for AaveUsersHash {
         // track already updated users and liquidation candidates
         let mut liquidation_candidates = Vec::<LiquidationCandidate>::new();
 
-        let user_ids_array = if main_token.symbol == "WETH" {
-            // must update full list of tokens if WETH
-            let users_with_tokens_connected_to_eth = self
-                .generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(user_type)
-                .await?;
-            users_with_tokens_connected_to_eth.into_iter().collect()
-        } else {
-            self.get_users_owning_token_by_user_type(main_token, user_type)?
+        let user_ids_array = match main_token.symbol.as_str() {
+            "WETH" => {
+                let users = self
+                    .generate_hashset_of_user_by_user_type_for_(
+                        TokenPriceType::PricedInETH,
+                        user_type,
+                    )
+                    .await?;
+                users.into_iter().collect()
+            }
+            "BTC" => {
+                let users = self
+                    .generate_hashset_of_user_by_user_type_for_(
+                        TokenPriceType::PricedInBTC,
+                        user_type,
+                    )
+                    .await?;
+                users.into_iter().collect()
+            }
+            _ => self.get_users_owning_token_by_user_type(main_token, user_type)?,
         };
+
+        // let user_ids_array = if main_token.symbol == "WETH" {
+        //     // must update full list of tokens if WETH
+        //     let users_with_tokens_priced_in_eth = self
+        //         .generate_hashset_of_user_by_user_type_for_tokens_priced_in_eth(user_type)
+        //         .await?;
+        //     users_with_tokens_priced_in_eth.into_iter().collect()
+        // } else {
+        //     self.get_users_owning_token_by_user_type(main_token, user_type)?
+        // };
 
         for user_id in user_ids_array {
             let user = self
@@ -382,14 +417,23 @@ impl UpdateUsers for AaveUsersHash {
         }
     }
 
-    async fn generate_hashset_of_user_by_user_type_for_tokens_connected_to_eth(
+    async fn generate_hashset_of_user_by_user_type_for_(
         &mut self,
+        token_price_type: TokenPriceType,
         user_type: UserType,
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
-        let mut users_with_tokens_connected_to_eth = HashSet::<Address>::new();
-        let token_price_connected_to_eth = get_tokens_connected_to_eth().await?;
+        let mut users_that_own_token_price_type_tokens = HashSet::<Address>::new();
 
-        for token in token_price_connected_to_eth.values() {
+        let token_price_type_tokens = match token_price_type {
+            TokenPriceType::PricedInETH => get_tokens_priced_in_eth().await?,
+            TokenPriceType::PricedInBTC => {
+                let tokens = get_tokens_priced_in_btc().await?;
+                debug!("btc priced tokens => {:#?}", tokens);
+                tokens
+            }
+        };
+
+        for token in token_price_type_tokens.values() {
             // debug!("checking which users have {}", token.symbol);
             match user_type {
                 UserType::LowHealth => {
@@ -402,7 +446,7 @@ impl UpdateUsers for AaveUsersHash {
                     );
 
                     if !low_health_users.is_empty() {
-                        users_with_tokens_connected_to_eth.extend(low_health_users);
+                        users_that_own_token_price_type_tokens.extend(low_health_users);
                     }
                 }
                 UserType::Standard => {
@@ -415,16 +459,61 @@ impl UpdateUsers for AaveUsersHash {
                     //     token.symbol
                     // );
                     if !standard_users.is_empty() {
-                        users_with_tokens_connected_to_eth.extend(standard_users);
+                        users_that_own_token_price_type_tokens.extend(standard_users);
                     }
                 }
             }
         }
         // debug!(
         //     "hashset of tokens connected to ETH contain {} unique users",
-        //     users_with_tokens_connected_to_eth.len()
+        //     users_with_tokens_priced_in_eth.len()
         // );
-        Ok(users_with_tokens_connected_to_eth)
+        Ok(users_that_own_token_price_type_tokens)
+    }
+
+    async fn generate_hashset_of_user_by_user_type_for_tokens_priced_in_eth(
+        &mut self,
+        user_type: UserType,
+    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
+        let mut users_with_tokens_priced_in_eth = HashSet::<Address>::new();
+        let token_price_priced_in_eth = get_tokens_priced_in_eth().await?;
+
+        for token in token_price_priced_in_eth.values() {
+            // debug!("checking which users have {}", token.symbol);
+            match user_type {
+                UserType::LowHealth => {
+                    let low_health_users =
+                        self.get_users_owning_token_by_user_type(token, UserType::LowHealth)?;
+                    debug!(
+                        "{} user with low health score have {}",
+                        low_health_users.len(),
+                        token.symbol
+                    );
+
+                    if !low_health_users.is_empty() {
+                        users_with_tokens_priced_in_eth.extend(low_health_users);
+                    }
+                }
+                UserType::Standard => {
+                    let standard_users =
+                        self.get_users_owning_token_by_user_type(token, UserType::Standard)?;
+
+                    // debug!(
+                    //     "{} standard users have {}",
+                    //     standard_users.len(),
+                    //     token.symbol
+                    // );
+                    if !standard_users.is_empty() {
+                        users_with_tokens_priced_in_eth.extend(standard_users);
+                    }
+                }
+            }
+        }
+        // debug!(
+        //     "hashset of tokens connected to ETH contain {} unique users",
+        //     users_with_tokens_priced_in_eth.len()
+        // );
+        Ok(users_with_tokens_priced_in_eth)
     }
 
     fn get_users_owning_token_by_user_type(
@@ -434,12 +523,22 @@ impl UpdateUsers for AaveUsersHash {
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
         let token_address: Address = token.address.parse()?;
 
+        if token.symbol.to_lowercase().contains("btc") {
+            debug!("btc is showing up here => {}", token.symbol);
+        }
+
         match user_type {
             UserType::LowHealth => {
                 let low_health_users = self
                     .low_health_user_ids_by_token
                     .get(&token_address)
-                    .unwrap_or_else(|| panic!("invalid low_health_user_ids_by_token"));
+                    .unwrap_or_else(|| {
+                        // TODO should we really panic here?
+                        panic!(
+                            "invalid low_health_user_ids_by_token {} => {}",
+                            token.symbol, token.address
+                        )
+                    });
 
                 Ok(low_health_users.to_owned())
             }

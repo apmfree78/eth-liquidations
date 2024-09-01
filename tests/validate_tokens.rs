@@ -9,7 +9,7 @@ use eth_liquadation::data::token_data_hash::{
 use ethers::prelude::*;
 use std::sync::Arc;
 
-pub static SKIP_AGGREGATOR_CHECK: &[&str] = &["KNC"];
+// pub static SKIP_AGGREGATOR_CHECK: &[&str] = &["KNC"];
 
 #[tokio::test]
 async fn test_token_data_matches_token_contract() -> Result<(), Box<dyn std::error::Error>> {

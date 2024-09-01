@@ -56,9 +56,6 @@ async fn test_that_calculated_health_factor_roughly_matches_given_one(
         let given_health_factor = user.health_factor.clone();
         if user.total_debt > BigDecimal::from(0) {
             println!("testing {:#?}", user.tokens);
-            let health_factor_uniswap_v3 = user
-                .get_health_factor_from_(PricingSource::UniswapV3, &client)
-                .await?;
 
             let health_factor_oracle = user
                 .get_health_factor_from_(PricingSource::AaveOracle, &client)
@@ -67,18 +64,12 @@ async fn test_that_calculated_health_factor_roughly_matches_given_one(
             let lower_bound = BigDecimal::from_str("0.9")? * &given_health_factor;
             let upper_bound = BigDecimal::from_str("1.10")? * &given_health_factor;
 
-            println!("health_factor_uniswap_v3: {}", health_factor_uniswap_v3);
             println!("health_factor_oracle: {}", health_factor_oracle);
             println!("given health_factor: {}", given_health_factor);
 
             assert!(
                 health_factor_oracle > lower_bound && health_factor_oracle < upper_bound,
                 "aave oracle health factor out of bound"
-            );
-
-            assert!(
-                health_factor_uniswap_v3 > lower_bound && health_factor_uniswap_v3 < upper_bound,
-                "uniswap health factor out of bound"
             );
         }
     }

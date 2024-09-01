@@ -35,3 +35,6 @@ ethers-flashbots = "0.15.0"
 url = "2.5.2"
 toml = "0.8.19"
 alloy-primitives = "0.7.7"
+
+[dev-dependencies]
+serial_test = "0.5"

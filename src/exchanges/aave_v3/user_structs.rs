@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 
 pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.05;
 pub const DEFAULT_LIQUIDATION_CLOSE_FACTOR: f32 = 0.5;
-pub const PROFIT_THRESHOLD_MAINNET: f32 = 50.0; // raise to $50 for prod
+pub const PROFIT_THRESHOLD_MAINNET: f32 = 1.0; // raise to $50 for prod
 /**
  * @dev Maximum percentage of borrower's debt to be repaid in a liquidation
  * @dev Percentage applied when the users health factor is below `CLOSE_FACTOR_HF_THRESHOLD`
@@ -25,7 +25,7 @@ pub const BPS_FACTOR: u64 = 10_u64.pow(4);
 #[derive(Clone, Copy, Debug)]
 pub enum PricingSource {
     AaveOracle,
-    UniswapV3,
+    // UniswapV3,
     SavedTokenPrice,
 }
 

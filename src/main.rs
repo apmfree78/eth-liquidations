@@ -1,6 +1,9 @@
 use dotenv::dotenv;
 use eth_liquadation::{
-    data::token_price_hash::{generate_token_price_hash, print_saved_token_prices},
+    data::{
+        token_data_hash::save_btc_as_token,
+        token_price_hash::{generate_token_price_hash, print_saved_token_prices},
+    },
     events::aave_events::{set_aave_event_signature_filter, update_users_with_event_from_log},
     exchanges::aave_v3::{
         implementations::aave_user_data::GenerateUsers,
@@ -39,7 +42,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let aave_users = AaveUserData::get_users(&client, SampleSize::All).await?;
 
-    // Initialize TOKEN_PRICE_HASH global hashmap of token prices
+    // Initialize TOKEN_PRICE_HASH global hashmap of token prices and save mock BTC TOKEN
+    save_btc_as_token(&client).await?;
     if let Err(e) = generate_token_price_hash(&client).await {
         error!("Failed to initialize token prices: {}", e);
     }
@@ -111,6 +115,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Ok(Event::Block(block)) => {
                     info!("NEW BLOCK ===> {}", block.timestamp);
+
+                    // FOR TESTING ONLY
+                    let _ = generate_token_price_hash(&client).await;
+                    if let Err(_) = print_saved_token_prices().await {
+                        error!("could not print out prices");
+                    };
+
                     if let Err(error) = aave_users::validate_liquidation_candidates(&client).await {
                         error!("error looking up liquidation candidates => {}", error);
                     }

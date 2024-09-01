@@ -5,7 +5,6 @@ use crate::data::token_data_hash::{get_and_save_erc20_by_token_address, get_toke
 use crate::utils::type_conversion::address_to_string;
 use async_trait::async_trait;
 use bigdecimal::BigDecimal;
-use core::panic;
 use ethers::providers::{Provider, Ws};
 use log::debug;
 use std::sync::Arc;
@@ -17,14 +16,21 @@ pub enum TokenToRemove {
 
 pub async fn get_user_action_from_event(
     event: Box<dyn AaveEvent>,
+    client: &Arc<Provider<Ws>>,
 ) -> Result<AaveUserAction, Box<dyn std::error::Error>> {
     let token_address = event.get_reserve();
     let token_address = address_to_string(token_address);
     let token_data = get_token_data().await?;
 
-    let token = token_data
-        .get(token_address.trim())
-        .unwrap_or_else(|| panic!("No token found for address: {}", token_address));
+    // token does not exist , add it
+    let token = match token_data.get(&token_address) {
+        Some(token) => token.clone(),
+        None => {
+            let token = get_and_save_erc20_by_token_address(&token_address, client).await?;
+            token.clone()
+        }
+    };
+
     let amount = event.get_amount();
     let amount = u256_to_big_decimal(&amount);
 
@@ -193,9 +199,9 @@ impl Update for AaveUserData {
 
                 self.tokens.push(AaveToken {
                     token: new_token.clone(),
-                    current_total_debt: aave_action.amount_transferred.clone(),
+                    current_total_debt: BigDecimal::from(0),
                     usage_as_collateral_enabled: false,
-                    current_atoken_balance: BigDecimal::from(0),
+                    current_atoken_balance: aave_action.amount_transferred.clone(),
                     reserve_liquidation_threshold: BigDecimal::from(
                         new_token.liquidation_threshold,
                     ),

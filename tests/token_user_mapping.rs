@@ -270,7 +270,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
         .user_data
         .get_mut(&user_id_2)
         .expect("invalid user id");
-    user_2.health_factor = BigDecimal::from_f32(1.05).unwrap();
+    user_2.health_factor = BigDecimal::from_f32(1.04).unwrap();
 
     users_hash
         .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
@@ -344,7 +344,7 @@ async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error:
         .user_data
         .get_mut(&user_id)
         .expect("invalid user id");
-    user.health_factor = BigDecimal::from_f32(1.05).unwrap();
+    user.health_factor = BigDecimal::from_f32(1.04).unwrap();
 
     // update token user mapping
     users_hash

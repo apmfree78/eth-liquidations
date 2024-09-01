@@ -1,3 +1,5 @@
+use crate::data::token_data_hash::get_token_data;
+
 use super::erc20::Convert;
 use super::token_data_hash::get_unique_token_data;
 use bigdecimal::BigDecimal;
@@ -60,7 +62,12 @@ pub async fn set_saved_token_price(
 pub async fn print_saved_token_prices() -> Result<(), Box<dyn std::error::Error>> {
     let token_price_hash = Arc::clone(&TOKEN_PRICE_HASH);
     let token_prices = token_price_hash.lock().await;
+    let token_data = get_token_data().await?;
 
-    debug!("saved token price => {:#?}", token_prices);
+    for (token_address, price) in token_prices.iter() {
+        let token = token_data.get(token_address).unwrap();
+        debug!("{} price => {:?}", token.symbol, price);
+    }
+
     Ok(())
 }

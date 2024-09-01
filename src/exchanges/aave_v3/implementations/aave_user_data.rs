@@ -4,7 +4,7 @@ use super::super::user_structs::{AaveUserData, AaveUsersHash, PricingSource, Sam
 use crate::abi::aave_v3_pool::AAVE_V3_POOL;
 use crate::data::address::CONTRACT;
 use crate::data::erc20::{u256_to_big_decimal, Convert};
-use crate::data::token_data_hash::get_token_data;
+use crate::data::token_data_hash::{get_token_data, TOKENS_WITH_NO_AGGREGATOR};
 use crate::data::token_price_hash::{generate_token_price_hash, get_saved_token_price};
 use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use crate::exchanges::aave_v3::user_structs::{
@@ -16,7 +16,7 @@ use ethers::{
     providers::{Provider, Ws},
     types::Address,
 };
-use log::{error, info, warn};
+use log::{debug, error, info};
 use num_traits::One;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
@@ -122,6 +122,16 @@ impl GenerateUsers for AaveUserData {
             // this is list of tokens that user is either using as colladeral or borrowing
             let user_tokens = user.get_list_of_user_tokens(client).await?;
 
+            let has_forbidden_token = user_tokens
+                .iter()
+                .any(|token| TOKENS_WITH_NO_AGGREGATOR.contains(&token.token.symbol.as_str()));
+
+            // check that user does not have token we cannot track
+            if has_forbidden_token {
+                debug!("excluded use with forbidden token!!");
+                continue;
+            }
+
             let mut aave_user = AaveUserData {
                 id: user_id,
                 total_debt: total_debt.clone(),
@@ -149,6 +159,9 @@ impl GenerateUsers for AaveUserData {
             {
                 // save data to AvveUserData
                 valid_users_from_graphql += 1;
+
+                // set user health factor to more current calculated one
+                aave_user.health_factor = aave_user_calculated_health_factor;
                 aave_user_data.push(aave_user);
             } else {
                 // get user data from pool contract
@@ -160,7 +173,7 @@ impl GenerateUsers for AaveUserData {
                         valid_users_from_contract += 1;
                         aave_user_data.push(aave_user);
                     }
-                    Err(error) => {
+                    Err(_) => {
                         // error!("user did not fit criteria => {}", error);
                     }
                 };
@@ -215,7 +228,6 @@ impl GetUserData for AaveUserData {
 
             // 1. get token price USD
             let token_price_usd = match source_for_pricing {
-                PricingSource::UniswapV3 => token.get_token_price_in_("USDC", client).await?,
                 PricingSource::AaveOracle => token.get_token_oracle_price(client).await?,
                 PricingSource::SavedTokenPrice => {
                     token.get_saved_price_from_token_price_hash().await?

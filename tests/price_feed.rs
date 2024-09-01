@@ -1,11 +1,13 @@
 // create function to get price feed data  using aave_oracle getSourceOfAsset method
 
+use eth_liquadation::data::chainlink_data::get_chainlink_price_feeds_by_chain;
 use eth_liquadation::data::token_data_hash::{get_token_data, save_erc20_tokens_from_static_data};
 use eth_liquadation::utils::type_conversion::address_to_string;
 use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Provider, Ws};
 use std::{ops::Deref, sync::Arc};
+use uniswap_sdk_core::entities::base_currency;
 
 // #[tokio::test]
 // async fn verify_price_oarcles_are_valid() -> Result<(), Box<dyn std::error::Error>> {
@@ -41,6 +43,43 @@ use std::{ops::Deref, sync::Arc};
 //     Ok(())
 // }
 
+#[tokio::test]
+async fn check_chainlink_data_is_valid() -> Result<(), Box<dyn std::error::Error>> {
+    const WS_URL: &str = "ws://localhost:8546";
+    let provider = Provider::<Ws>::connect(WS_URL).await?;
+    let client = Arc::new(provider);
+    // populate token state
+    save_erc20_tokens_from_static_data(&client).await?;
+
+    let price_feeds = get_chainlink_price_feeds_by_chain();
+
+    abigen!(
+        DESCRIPTION,
+        r#"[function description() external view returns (string)]"#
+    );
+
+    for price_feed in price_feeds {
+        if price_feed.base_currency.is_empty() {
+            continue;
+        }
+
+        let price_feed_address: Address = price_feed.address.parse()?;
+        let price_feed_contract = DESCRIPTION::new(price_feed_address, client.clone());
+
+        let description = price_feed_contract.description().call().await?;
+        let expected_description =
+            format!("{} / {}", price_feed.token_symbol, price_feed.base_currency);
+
+        println!("**********************************************************************");
+        println!("for token {}", price_feed.token_symbol);
+        println!("for base currency {}", price_feed.base_currency);
+        println!("description ==> {}", description);
+        println!("**********************************************************************");
+        assert_eq!(description, expected_description);
+    }
+
+    Ok(())
+}
 #[tokio::test]
 async fn find_price_aggregators_are_valid() -> Result<(), Box<dyn std::error::Error>> {
     const WS_URL: &str = "ws://localhost:8546";

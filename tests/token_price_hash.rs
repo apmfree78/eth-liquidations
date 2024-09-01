@@ -7,7 +7,6 @@ use eth_liquadation::data::token_price_hash::{
     generate_token_price_hash, get_saved_token_price, print_saved_token_prices,
     set_saved_token_price,
 };
-use eth_liquadation::mempool::update_token_price::update_token_price_for_;
 use ethers::prelude::*;
 use std::sync::Arc;
 
@@ -70,35 +69,35 @@ async fn test_token_price_token_hash_versus_oracle() -> Result<(), Box<dyn std::
     Ok(())
 }
 
-#[tokio::test]
-async fn test_token_hash_price_update() -> Result<(), Box<dyn std::error::Error>> {
-    // Set up the Ethereum client connection and wallet
-    const WS_URL: &str = "ws://localhost:8546";
-    let provider = Provider::<Ws>::connect(WS_URL).await?;
-    let client = Arc::new(provider);
-    let unique_token_data = get_unique_token_data().await?;
-
-    // populate token state
-    save_erc20_tokens_from_static_data(&client).await?;
-
-    generate_token_price_hash(&client).await?;
-
-    print_saved_token_prices().await?;
-
-    println!(" number of test to run {} ", unique_token_data.len());
-    for token in unique_token_data.values() {
-        // below will get token price from uniswap place in saved token hash
-        update_token_price_for_(token, &client).await?;
-
-        // uniswap price
-        let token_price_saved = token.get_saved_price_from_token_price_hash().await?;
-
-        // price from chainlink oracle price
-        let token_price_uniswap = token.get_token_price_in_("USDC", &client).await?;
-
-        println!("token price check for {}", token.symbol);
-
-        assert_eq!(token_price_saved, token_price_uniswap);
-    }
-    Ok(())
-}
+// #[tokio::test]
+// async fn test_token_hash_price_update() -> Result<(), Box<dyn std::error::Error>> {
+//     // Set up the Ethereum client connection and wallet
+//     const WS_URL: &str = "ws://localhost:8546";
+//     let provider = Provider::<Ws>::connect(WS_URL).await?;
+//     let client = Arc::new(provider);
+//     let unique_token_data = get_unique_token_data().await?;
+//
+//     // populate token state
+//     save_erc20_tokens_from_static_data(&client).await?;
+//
+//     generate_token_price_hash(&client).await?;
+//
+//     print_saved_token_prices().await?;
+//
+//     println!(" number of test to run {} ", unique_token_data.len());
+//     for token in unique_token_data.values() {
+//         // below will get token price from uniswap place in saved token hash
+//         update_token_price_for_(token, &client).await?;
+//
+//         // uniswap price
+//         let token_price_saved = token.get_saved_price_from_token_price_hash().await?;
+//
+//         // price from chainlink oracle price
+//         let token_price_uniswap = token.get_token_price_in_("USDC", &client).await?;
+//
+//         println!("token price check for {}", token.symbol);
+//
+//         assert_eq!(token_price_saved, token_price_uniswap);
+//     }
+//     Ok(())
+// }

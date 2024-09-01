@@ -1,3 +1,4 @@
+use super::address::BTC;
 use super::chainlink_feed_map::{
     get_chainlink_aggregator, get_chainlink_price_feed_for_token_, CHAINLINK_AGGREGATOR_HASH,
 };
@@ -9,9 +10,12 @@ use crate::data::address::CONTRACT;
 use ethers::providers::{Provider, Ws};
 use ethers::types::{Address, U256};
 use futures::lock::Mutex;
+use log::debug;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
+
+pub static TOKENS_WITH_NO_AGGREGATOR: &[&str] = &["osETH"];
 
 static TOKEN_DATA_HASH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
     Lazy::new(|| Arc::new(Mutex::new(HashMap::<String, Erc20Token>::new())));
@@ -19,7 +23,53 @@ static TOKEN_DATA_HASH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
 static UNIQUE_TOKEN_DATA_HASH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
     Lazy::new(|| Arc::new(Mutex::new(HashMap::<String, Erc20Token>::new())));
 
-// TODO - Fix bug where WETH and other eth tokens do not have chain link feeds
+pub async fn save_btc_as_token(
+    client: &Arc<Provider<Ws>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let btc_token = Erc20Token {
+        name: "Bitcoin".to_string(),
+        symbol: "BTC".to_string(),
+        address: BTC.to_lowercase(),
+        decimals: 8,
+        liquidation_bonus: 0,
+        liquidation_threshold: 0,
+        ..Default::default()
+    };
+
+    let chainlink_aggregator_hash = Arc::clone(&CHAINLINK_AGGREGATOR_HASH);
+    let mut aggregators = chainlink_aggregator_hash.lock().await;
+
+    let chainlink_price_feed =
+        get_chainlink_price_feed_for_token_(&btc_token.symbol, &btc_token).await;
+    let aggregator_address = if !chainlink_price_feed.is_empty() {
+        get_chainlink_aggregator(&chainlink_price_feed, client).await?
+    } else {
+        "".to_string()
+    };
+
+    let btc_token = Erc20Token {
+        chain_link_price_feed: chainlink_price_feed.to_string(),
+        chainlink_aggregator: aggregator_address.clone(),
+        ..btc_token.clone()
+    };
+
+    let token_data_hash = Arc::clone(&TOKEN_DATA_HASH);
+    let mut tokens = token_data_hash.lock().await;
+    let unique_data_hash = Arc::clone(&UNIQUE_TOKEN_DATA_HASH);
+    let mut unique_tokens = unique_data_hash.lock().await;
+
+    debug!("saving BTC token");
+    tokens.insert(btc_token.symbol.clone(), btc_token.clone());
+    tokens.insert(btc_token.address.to_lowercase(), btc_token.clone());
+    unique_tokens.insert(btc_token.address.to_lowercase(), btc_token.clone());
+
+    if !aggregator_address.is_empty() {
+        aggregators.insert(aggregator_address, btc_token);
+    }
+
+    Ok(())
+}
+
 pub async fn save_erc20_token(
     token: &Erc20Token,
     client: &Arc<Provider<Ws>>,
@@ -68,7 +118,7 @@ pub async fn save_erc20_tokens_from_static_data(
             name: static_token.name.to_string(),
             symbol: static_token.symbol.to_string(),
             decimals: static_token.decimals,
-            address: static_token.address.to_string(),
+            address: static_token.address.to_lowercase(),
             liquidation_bonus: static_token.liquidation_bonus,
             liquidation_threshold: static_token.liquidation_threshold,
             ..Default::default()
@@ -121,7 +171,7 @@ pub async fn get_and_save_erc20_by_token_address(
         name,
         symbol,
         decimals,
-        address: token_address_str.to_string(),
+        address: token_address_str.to_lowercase(),
         liquidation_bonus,
         liquidation_threshold,
         ..Default::default()
@@ -141,8 +191,8 @@ pub async fn get_and_save_erc20_by_token_address(
     };
 
     tokens.insert(token.symbol.clone(), token.clone());
-    tokens.insert(token.address.clone(), token.clone());
-    unique_tokens.insert(token.address.clone(), token.clone());
+    tokens.insert(token.address.to_lowercase(), token.clone());
+    unique_tokens.insert(token.address.to_lowercase(), token.clone());
 
     if !aggregator_address.is_empty() {
         aggregators.insert(aggregator_address, token.clone());
@@ -168,20 +218,38 @@ pub async fn get_unique_token_data(
 
 // TODO - CREATE METHOD TO UPDATE AGGREGATORS
 
-pub static TOKENS_WITH_PRICE_CONNECTED_TO_ETH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
+static TOKENS_PRICED_IN_ETH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
     Lazy::new(|| Arc::new(Mutex::new(HashMap::<String, Erc20Token>::new())));
 
-pub async fn set_token_connected_to_eth(token_symbol: String, token: &Erc20Token) {
-    let tokens_connected_to_eth_hash = Arc::clone(&TOKENS_WITH_PRICE_CONNECTED_TO_ETH);
-    let mut tokens = tokens_connected_to_eth_hash.lock().await;
+pub async fn set_token_priced_in_eth(token_symbol: String, token: &Erc20Token) {
+    let tokens_priced_in_eth_hash = Arc::clone(&TOKENS_PRICED_IN_ETH);
+    let mut tokens = tokens_priced_in_eth_hash.lock().await;
 
     tokens.entry(token_symbol).or_insert(token.clone());
 }
 
-pub async fn get_tokens_connected_to_eth(
+pub async fn get_tokens_priced_in_eth(
 ) -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error>> {
-    let tokens_connected_to_eth_hash = Arc::clone(&TOKENS_WITH_PRICE_CONNECTED_TO_ETH);
-    let tokens = tokens_connected_to_eth_hash.lock().await;
+    let tokens_priced_in_eth_hash = Arc::clone(&TOKENS_PRICED_IN_ETH);
+    let tokens = tokens_priced_in_eth_hash.lock().await;
+
+    Ok(tokens.clone())
+}
+
+static TOKENS_PRICED_IN_BTC: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
+    Lazy::new(|| Arc::new(Mutex::new(HashMap::<String, Erc20Token>::new())));
+
+pub async fn set_token_priced_in_btc(token_symbol: String, token: &Erc20Token) {
+    let tokens_priced_in_btc_hash = Arc::clone(&TOKENS_PRICED_IN_BTC);
+    let mut tokens = tokens_priced_in_btc_hash.lock().await;
+
+    tokens.entry(token_symbol).or_insert(token.clone());
+}
+
+pub async fn get_tokens_priced_in_btc(
+) -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error>> {
+    let tokens_priced_in_btc_hash = Arc::clone(&TOKENS_PRICED_IN_BTC);
+    let tokens = tokens_priced_in_btc_hash.lock().await;
 
     Ok(tokens.clone())
 }

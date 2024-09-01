@@ -1,11 +1,12 @@
 use super::chainlink_data::{get_chainlink_price_feeds_by_chain, ChainlinkPriceFeed};
 use super::erc20::Erc20Token;
-use super::token_data_hash::set_token_connected_to_eth;
+use super::token_data_hash::{set_token_priced_in_btc, set_token_priced_in_eth};
 use crate::utils::type_conversion::address_to_string;
 use ethers::contract::abigen;
 use ethers::providers::{Provider, Ws};
 use ethers::types::Address;
 use futures::lock::Mutex;
+use log::debug;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -31,8 +32,11 @@ static CHAINLINK_FEED_MAP: Lazy<HashMap<String, ChainlinkPriceFeed>> = Lazy::new
             } else {
                 price_feed_hash.insert(feed.token_symbol.to_lowercase() + "/USD", feed);
             }
-        } else if feed.base_currency == "ETH" {
-            price_feed_hash.insert(feed.token_symbol.to_lowercase() + "/ETH", feed);
+        } else if feed.base_currency == "ETH" || feed.base_currency == "BTC" {
+            price_feed_hash.insert(
+                feed.token_symbol.to_lowercase() + "/" + feed.base_currency,
+                feed,
+            );
         }
     }
 
@@ -60,15 +64,15 @@ pub async fn get_chainlink_aggregator(
 pub async fn get_chainlink_price_feed_for_token_(token_symbol: &str, token: &Erc20Token) -> String {
     let usd_feed_symbol = token_symbol.to_lowercase() + "/USD";
     let eth_feed_symbol = token_symbol.to_lowercase() + "/ETH";
+    let btc_feed_symbol = token_symbol.to_lowercase() + "/BTC";
 
-    // check for BTC TOKEN
-    if token_symbol.to_string().contains("BTC") {
-        return CHAINLINK_FEED_MAP
-            .get("btc/USD")
-            .unwrap()
-            .address
-            .to_string();
-    }
+    // if token_symbol.to_string().contains("BTC") {
+    //     return CHAINLINK_FEED_MAP
+    //         .get("btc/USD")
+    //         .unwrap()
+    //         .address
+    //         .to_string();
+    // }
 
     // check for stable coin
     if STABLE_COINS.contains(&token_symbol.to_uppercase().as_str()) {
@@ -79,7 +83,7 @@ pub async fn get_chainlink_price_feed_for_token_(token_symbol: &str, token: &Erc
     // and return , if neither exists then just retrun ""
     if CHAINLINK_FEED_MAP.contains_key(&usd_feed_symbol) {
         if token_symbol.to_lowercase().contains("eth") {
-            set_token_connected_to_eth(token_symbol.to_string(), token).await;
+            set_token_priced_in_eth(token_symbol.to_string(), token).await;
         }
         CHAINLINK_FEED_MAP
             .get(&usd_feed_symbol)
@@ -87,14 +91,27 @@ pub async fn get_chainlink_price_feed_for_token_(token_symbol: &str, token: &Erc
             .address
             .to_string()
     } else if CHAINLINK_FEED_MAP.contains_key(&eth_feed_symbol) {
-        set_token_connected_to_eth(token_symbol.to_string(), token).await;
+        set_token_priced_in_eth(token_symbol.to_string(), token).await;
         CHAINLINK_FEED_MAP
             .get(&eth_feed_symbol)
             .unwrap()
             .address
             .to_string()
+    } else if CHAINLINK_FEED_MAP.contains_key(&btc_feed_symbol) {
+        set_token_priced_in_btc(token_symbol.to_string(), token).await;
+        debug!("adding btc priced token => {}", token_symbol);
+        CHAINLINK_FEED_MAP
+            .get(&btc_feed_symbol)
+            .unwrap()
+            .address
+            .to_string()
     } else {
-        set_token_connected_to_eth(token_symbol.to_string(), token).await;
+        if token_symbol == "wstETH" {
+            set_token_priced_in_eth(token_symbol.to_string(), token).await;
+            debug!("added wstETH to priced in ETH list");
+        } else {
+            debug!("no feed for {}", token_symbol);
+        }
         "".to_string()
     }
 }

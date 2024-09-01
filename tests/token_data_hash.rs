@@ -1,5 +1,5 @@
 use eth_liquadation::data::token_data_hash::{
-    get_and_save_erc20_by_token_address, get_tokens_connected_to_eth,
+    get_and_save_erc20_by_token_address, get_tokens_priced_in_eth,
     save_erc20_tokens_from_static_data,
 };
 use eth_liquadation::data::{erc20::Erc20Token, token_data_hash::get_token_data};
@@ -218,17 +218,16 @@ async fn test_that_connect_eth_tokens_are_valid() -> Result<(), Box<dyn std::err
     let client = Arc::new(provider);
     // populate token state
     save_erc20_tokens_from_static_data(&client).await?;
-    let token_map = get_tokens_connected_to_eth().await?;
+    let token_map = get_tokens_priced_in_eth().await?;
 
-    let token_symbols_connected_to_eth = vec![
-        "WETH", "wstETH", "osETH", "rETH", "cbETH", "LDO", "weETH", "ETHx",
-    ];
+    let token_symbols_priced_in_eth =
+        vec!["WETH", "wstETH", "rETH", "cbETH", "LDO", "weETH", "ETHx"];
 
     // for token in token_map.keys() {
     //     println!("contains token {}", token);
     // }
 
-    for token in token_symbols_connected_to_eth {
+    for token in token_symbols_priced_in_eth {
         println!("checking if contains token {}", token);
         assert!(token_map.contains_key(token));
     }
