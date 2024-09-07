@@ -147,9 +147,6 @@ pub async fn calculate_user_liquidation_usd_profit(
         CONTRACT.get_address().aave_v3_data_provider.parse()?;
     let unique_token_data = get_unique_token_data().await?;
 
-    // update token hash prices to aave oracle values
-    generate_token_price_hash(client).await?;
-
     let mut liquidation_args = LiquidationArgs {
         collateral: Address::zero(),
         debt: Address::zero(),
@@ -194,7 +191,10 @@ pub async fn calculate_user_liquidation_usd_profit(
                 .await
             {
                 Ok(result) => result,
-                Err(_) => panic!("could not retrieve user data using aave v3 pool"),
+                Err(_) => {
+                    debug!("could not retrieve user data using aave v3 pool");
+                    return Ok((liquidation_args, U256::from(0)));
+                }
             };
 
         let total_debt = stable_debt + variable_debt;

@@ -52,14 +52,12 @@ pub trait UpdateUsers {
     async fn update_token_to_user_mapping_for_all_users_with_token_(
         &mut self,
         token: &Erc20Token,
-        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>>;
     fn intialize_token_user_mapping(&mut self) -> Result<(), Box<dyn std::error::Error>>;
     // check user health factor and if its in the right token => user id mapping, move if necessary
     async fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
-        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>>;
     fn remove_user_from_token_user_mapping(
         &mut self,
@@ -167,7 +165,6 @@ impl UpdateUsers for AaveUsersHash {
     async fn update_token_to_user_mapping_for_all_users_with_token_(
         &mut self,
         token: &Erc20Token,
-        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         if token.symbol == "BTC" {
             return Ok(());
@@ -176,13 +173,13 @@ impl UpdateUsers for AaveUsersHash {
             self.get_users_owning_token_by_user_type(token, UserType::LowHealth)?;
 
         for user_id in low_health_users {
-            self.update_token_user_mapping_for_(user_id, client).await?;
+            self.update_token_user_mapping_for_(user_id).await?;
         }
 
         let standard_users = self.get_users_owning_token_by_user_type(token, UserType::Standard)?;
 
         for user_id in standard_users {
-            self.update_token_user_mapping_for_(user_id, client).await?;
+            self.update_token_user_mapping_for_(user_id).await?;
         }
 
         Ok(())
@@ -191,7 +188,6 @@ impl UpdateUsers for AaveUsersHash {
     async fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
-        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // get user health factor
 
@@ -199,9 +195,8 @@ impl UpdateUsers for AaveUsersHash {
         // then user belongs in  low health factor hash map
         let user = self.user_data.get(&user_id).expect("Invalid user id");
         let health_factor = &user.health_factor;
-        let (user_profit_potential, _, _) = user
-            .get_user_liquidation_usd_profit(health_factor, client)
-            .await?;
+        let (user_profit_potential, _, _) =
+            user.get_user_liquidation_usd_profit(health_factor).await?;
 
         let low_health_factor =
             health_factor <= &BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
@@ -395,9 +390,8 @@ impl UpdateUsers for AaveUsersHash {
             {
                 // now check for user profitability
                 let (profitability, debt_token, collateral_token) = user
-                    .get_user_liquidation_usd_profit(&user.health_factor, client)
+                    .get_user_liquidation_usd_profit(&user.health_factor)
                     .await?;
-                // debug!("user {} profit => {}", user.id, profitability.with_scale(3));
 
                 if profitability > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).unwrap() {
                     liquidation_candidates.push(LiquidationCandidate {
@@ -430,7 +424,6 @@ impl UpdateUsers for AaveUsersHash {
         };
 
         for token in token_price_type_tokens.values() {
-            // debug!("checking which users have {}", token.symbol);
             match user_type {
                 UserType::LowHealth => {
                     let low_health_users =
@@ -475,7 +468,6 @@ impl UpdateUsers for AaveUsersHash {
         let token_price_priced_in_eth = get_tokens_priced_in_eth().await?;
 
         for token in token_price_priced_in_eth.values() {
-            // debug!("checking which users have {}", token.symbol);
             match user_type {
                 UserType::LowHealth => {
                     let low_health_users =
@@ -518,10 +510,6 @@ impl UpdateUsers for AaveUsersHash {
         user_type: UserType,
     ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
         let token_address: Address = token.address.parse()?;
-
-        if token.symbol.to_lowercase().contains("btc") {
-            debug!("btc is showing up here => {}", token.symbol);
-        }
 
         match user_type {
             UserType::LowHealth => {

@@ -117,11 +117,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     info!("NEW BLOCK ===> {}", block.timestamp);
 
                     // FOR TESTING ONLY
-                    debug!("using these prices to find health factor in new block");
-                    let _ = generate_token_price_hash(&client).await;
-                    if let Err(_) = print_saved_token_prices().await {
-                        error!("could not print out prices");
-                    };
+                    // debug!("using these prices to find health factor in new block");
+                    // let _ = generate_token_price_hash(&client).await;
+                    // if let Err(_) = print_saved_token_prices().await {
+                    //     error!("could not print out prices");
+                    // };
 
                     if let Err(error) = aave_users::validate_liquidation_candidates(&client).await {
                         error!("error looking up liquidation candidates => {}", error);

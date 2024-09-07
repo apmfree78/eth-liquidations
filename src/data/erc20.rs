@@ -39,6 +39,9 @@ pub struct Erc20TokenStatic {
     pub liquidation_threshold: u16,
     pub chain_link_price_feed: &'static str,
     pub chainlink_aggregator: &'static str,
+    pub stable_borrow_rate: f64,
+    pub variable_borrow_rate: f64,
+    pub liquidity_rate: f64,
 }
 
 #[async_trait]
@@ -206,13 +209,13 @@ impl Convert for Erc20Token {
     }
 }
 
-fn convert_uniswap_to_bigdecimal(
-    uniswap_bd: uniswap_sdk_core::prelude::BigDecimal,
-) -> bigdecimal::BigDecimal {
-    let as_string = uniswap_bd.to_string(); // Convert Uniswap BigDecimal to String
-    bigdecimal::BigDecimal::from_str(&as_string).expect("Invalid BigDecimal format")
-    // Convert String to bigdecimal BigDecimal
-}
+// fn convert_uniswap_to_bigdecimal(
+//     uniswap_bd: uniswap_sdk_core::prelude::BigDecimal,
+// ) -> bigdecimal::BigDecimal {
+//     let as_string = uniswap_bd.to_string(); // Convert Uniswap BigDecimal to String
+//     bigdecimal::BigDecimal::from_str(&as_string).expect("Invalid BigDecimal format")
+//     // Convert String to bigdecimal BigDecimal
+// }
 //
 // pub static token_data: Lazy<HashMap<String, Erc20TokenStatic>> = Lazy::new(|| {
 //     let mut token_hash = HashMap::new();

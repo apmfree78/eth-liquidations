@@ -40,7 +40,6 @@ pub trait GetUserData {
     async fn get_user_liquidation_usd_profit(
         &self,
         health_factor: &BigDecimal,
-        client: &Arc<Provider<Ws>>,
     ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error>>;
 }
 
@@ -106,9 +105,9 @@ impl GenerateUsers for AaveUserData {
             let (
                 total_collateral_base,
                 total_debt_base,
-                _available_borrows_base,
+                _,
                 current_liquidation_threshold,
-                _ltv,
+                _,
                 health_factor,
             ) = aave_v3_pool.get_user_account_data(user_id).call().await?;
 
@@ -273,12 +272,8 @@ impl GetUserData for AaveUserData {
     async fn get_user_liquidation_usd_profit(
         &self,
         health_factor: &BigDecimal,
-        client: &Arc<Provider<Ws>>,
     ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error>> {
         let bps_factor = BigDecimal::from(BPS_FACTOR);
-
-        // update token hash prices to aave oracle values
-        generate_token_price_hash(client).await?;
 
         // should be health factor threshold and not liquidation threshold because
         // looking at profit POTENTIAL

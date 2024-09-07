@@ -27,8 +27,6 @@ pub async fn find_users_and_liquidate(
     let wsteth_token = token_data.get("wstETH").unwrap();
     // 1. update low health user health factor (that own or borrow token)
     // 2. check if liquidation candidates found
-    debug!("using these prices to find health factor");
-    print_saved_token_prices().await?;
 
     let mut user_accounts_to_liquidate =
         update_and_get_accounts_to_liquidate(user_data, token, UserType::LowHealth, client).await?;
@@ -62,11 +60,11 @@ pub async fn find_users_and_liquidate(
     // 5. clean up - update token ==> user mapping for all users with updated health factors
     let mut users = user_data.lock().await;
     users
-        .update_token_to_user_mapping_for_all_users_with_token_(token, client)
+        .update_token_to_user_mapping_for_all_users_with_token_(token)
         .await?;
     if token.symbol == "stETH" {
         users
-            .update_token_to_user_mapping_for_all_users_with_token_(wsteth_token, client)
+            .update_token_to_user_mapping_for_all_users_with_token_(wsteth_token)
             .await?;
     }
     Ok(())
@@ -90,12 +88,16 @@ async fn update_and_get_accounts_to_liquidate(
     {
         match liquidations {
             UsersToLiquidate::Users(users_to_liquidate) => {
-                info!("FOUND {} USERS TO LIQUIDATE", users_to_liquidate.len());
+                info!(
+                    "FOUND {} USERS TO LIQUIDATE AMONG STANDARD USERS",
+                    users_to_liquidate.len()
+                );
                 add_tracked_users(users_to_liquidate.clone()).await?;
 
                 return Ok(users_to_liquidate);
             }
             UsersToLiquidate::None => {
+                info!("NO USER TO LIQUIDATE AMONG STNADARD USERS");
                 return Ok(empty_vec_to_return_if_no_qualifed_accounts);
             }
         }

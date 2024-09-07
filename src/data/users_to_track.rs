@@ -1,5 +1,6 @@
 use crate::exchanges::aave_v3::user_structs::LiquidationCandidate;
 use futures::lock::Mutex;
+use log::debug;
 use once_cell::sync::Lazy;
 use std::sync::Arc;
 
@@ -18,6 +19,7 @@ pub async fn add_tracked_users(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let users_hashset = Arc::clone(&USERS_TO_TRACK);
     let mut users = users_hashset.lock().await;
+    debug!("tracking these users");
     users.extend(users_to_add);
     Ok(())
 }
