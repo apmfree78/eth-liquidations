@@ -1,8 +1,8 @@
-use super::user_structs::SampleSize;
+use super::user_structs::{SampleSize, BPS_FACTOR};
 use crate::data::{erc20::Erc20Token, token_data_hash::save_erc20_token};
 use crate::exchanges::aave_v3::user_structs::AaveToken;
 use async_trait::async_trait;
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::providers::{Provider, Ws};
 use log::{debug, error, info, warn};
 use reqwest::{header, Client};
@@ -24,7 +24,7 @@ pub trait UserAccountData {
     async fn get_list_of_user_tokens(
         &self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>>;
+    ) -> Result<(Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal), Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -32,8 +32,13 @@ impl UserAccountData for AaveUser {
     async fn get_list_of_user_tokens(
         &self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<Vec<AaveToken>, Box<dyn std::error::Error>> {
+    ) -> Result<(Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal), Box<dyn std::error::Error>>
+    {
+        let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
         let mut user_token_list: Vec<AaveToken> = Vec::new();
+
+        let mut total_debt = BigDecimal::from(0);
+        let mut collateral_times_liquidation_factor = BigDecimal::from(0);
 
         for r in &self.reserves {
             let Reserve {
@@ -65,6 +70,8 @@ impl UserAccountData for AaveUser {
             save_erc20_token(&token, client).await?;
 
             //*******************************************************************************
+
+            let decimal_factor = BigDecimal::from_u64(10_u64.pow(decimals.into())).unwrap();
             let current_total_debt = BigDecimal::from_str(&r.current_total_debt)?;
             let current_atoken_balance = BigDecimal::from_str(&r.current_atoken_balance).unwrap();
             let reserve_liquidation_threshold =
@@ -72,6 +79,14 @@ impl UserAccountData for AaveUser {
             let reserve_liquidation_bonus =
                 BigDecimal::from_str(&r.reserve.reserve_liquidation_bonus).unwrap();
             // let usage_as_collateral_enabled = r.reserve.usage_as_collateral_enabled;
+
+            // update meta data
+            total_debt += &current_total_debt / &decimal_factor;
+            if usage_as_collateral_enabled && current_atoken_balance > BigDecimal::from(0) {
+                collateral_times_liquidation_factor += &current_atoken_balance / &bps_factor
+                    * &reserve_liquidation_threshold
+                    / &decimal_factor;
+            }
 
             // get debt, colladeral, liquidation threshold, bonus, and usage colladeral boolean
             user_token_list.push(AaveToken {
@@ -83,7 +98,14 @@ impl UserAccountData for AaveUser {
                 reserve_liquidation_bonus,
             })
         }
-        Ok(user_token_list)
+        // calculate health factor
+        let health_factor = &collateral_times_liquidation_factor / &total_debt;
+        Ok((
+            user_token_list,
+            total_debt,
+            collateral_times_liquidation_factor,
+            health_factor,
+        ))
     }
 }
 
@@ -258,7 +280,7 @@ pub fn get_graphql_url_and_query(sample_size: SampleSize) -> (String, String) {
         SampleSize::SmallBatch => {
             r#"
     { 
-     users(first: 300, where: {borrowedReservesCount_gt: 0}) {
+     users(first: 1000, where: {borrowedReservesCount_gt: 0}) {
         id
         borrowedReservesCount
         reserves {

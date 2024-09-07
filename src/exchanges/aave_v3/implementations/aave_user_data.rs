@@ -102,24 +102,14 @@ impl GenerateUsers for AaveUserData {
         let mut valid_users_from_contract: u16 = 0;
         for user in &aave_users {
             let user_id: Address = user.id.parse()?;
-            let (
-                total_collateral_base,
-                total_debt_base,
-                _,
-                current_liquidation_threshold,
-                _,
-                health_factor,
-            ) = aave_v3_pool.get_user_account_data(user_id).call().await?;
+            let (_, _, _, _, _, real_health_factor) =
+                aave_v3_pool.get_user_account_data(user_id).call().await?;
 
-            let total_debt = u256_to_big_decimal(&total_debt_base);
-            let total_collateral = u256_to_big_decimal(&total_collateral_base);
-            let liquidation_threshold = u256_to_big_decimal(&current_liquidation_threshold);
-            let collateral_times_liquidation_factor =
-                &liquidation_threshold * &total_collateral / &bps_factor;
-            let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
+            let real_health_factor = u256_to_big_decimal(&real_health_factor) / &standard_scale;
 
             // this is list of tokens that user is either using as colladeral or borrowing
-            let user_tokens = user.get_list_of_user_tokens(client).await?;
+            let (user_tokens, total_debt, collateral_times_liquidation_factor, health_factor) =
+                user.get_list_of_user_tokens(client).await?;
 
             let has_forbidden_token = user_tokens
                 .iter()
@@ -145,22 +135,18 @@ impl GenerateUsers for AaveUserData {
                 .await?;
 
             // validate user data
-            let aave_user_health_factor = aave_user.health_factor.clone();
-            let aave_user_calculated_health_factor = aave_user
-                .get_health_factor_from_(PricingSource::AaveOracle, client)
-                .await?;
+            let graphql_health_factor = aave_user.health_factor.clone();
 
-            let lower_bound = BigDecimal::from_str("0.95")? * &aave_user_health_factor;
-            let upper_bound = BigDecimal::from_str("1.05")? * &aave_user_health_factor;
+            let lower_bound = BigDecimal::from_str("0.995")? * &real_health_factor;
+            let upper_bound = BigDecimal::from_str("1.005")? * &real_health_factor;
 
-            if aave_user_calculated_health_factor > lower_bound
-                && aave_user_calculated_health_factor < upper_bound
-            {
+            // make sure health factor is with 0.5% of actual otherwise pull user data directly from pool contract
+            if graphql_health_factor > lower_bound && graphql_health_factor < upper_bound {
                 // save data to AvveUserData
                 valid_users_from_graphql += 1;
 
                 // set user health factor to more current calculated one
-                aave_user.health_factor = aave_user_calculated_health_factor;
+                aave_user.health_factor = health_factor;
                 aave_user_data.push(aave_user);
             } else {
                 // get user data from pool contract
