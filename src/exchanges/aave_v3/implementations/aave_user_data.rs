@@ -27,7 +27,7 @@ pub trait GenerateUsers {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
-    ) -> Result<AaveUsersHash, Box<dyn std::error::Error>>;
+    ) -> Result<AaveUsersHash, Box<dyn std::error::Error + Send + Sync>>;
 }
 
 #[async_trait]
@@ -36,11 +36,12 @@ pub trait GetUserData {
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>>;
+    ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error + Send + Sync>>;
     async fn get_user_liquidation_usd_profit(
         &self,
         health_factor: &BigDecimal,
-    ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error>>;
+    ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error + Send + Sync>>;
+    async fn is_user_whale(&self) -> Result<bool, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -49,7 +50,7 @@ pub trait UpdateUserData {
         &mut self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error>>;
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 }
 
 #[async_trait]
@@ -58,12 +59,12 @@ pub trait HealthFactor {
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+    ) -> Result<BigDecimal, Box<dyn std::error::Error + Send + Sync>>;
 
     async fn is_user_valid_when_checking_against_official_health_factor(
         &mut self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<bool, Box<dyn std::error::Error>>;
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>>;
 }
 
 #[async_trait]
@@ -71,7 +72,7 @@ impl GenerateUsers for AaveUserData {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
-    ) -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
+    ) -> Result<AaveUsersHash, Box<dyn std::error::Error + Send + Sync>> {
         let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
         let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
 
@@ -81,7 +82,7 @@ impl GenerateUsers for AaveUserData {
         }
 
         // store all data that we need for user
-        let mut aave_user_data: Vec<AaveUserData> = Vec::new();
+        let mut user_data: Vec<AaveUserData> = Vec::new();
 
         // let aave_users = get_aave_v3_users().await?;
         let aave_users = match sample_size {
@@ -90,7 +91,6 @@ impl GenerateUsers for AaveUserData {
         };
 
         info!("got aave_v3 users");
-        let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
         if aave_users.is_empty() {
             panic!("zero users found from graphql");
@@ -140,23 +140,24 @@ impl GenerateUsers for AaveUserData {
             let lower_bound = BigDecimal::from_str("0.995")? * &real_health_factor;
             let upper_bound = BigDecimal::from_str("1.005")? * &real_health_factor;
 
+            // for estimating user profit
+            let fake_health_factor = BigDecimal::from_str("0.95").expect("invalid str");
             // make sure health factor is with 0.5% of actual otherwise pull user data directly from pool contract
             if graphql_health_factor > lower_bound && graphql_health_factor < upper_bound {
                 // save data to AvveUserData
                 valid_users_from_graphql += 1;
 
-                // set user health factor to more current calculated one
-                aave_user.health_factor = health_factor;
-                aave_user_data.push(aave_user);
+                user_data.push(aave_user);
             } else {
                 // get user data from pool contract
                 let aave_user_data_result =
                     get_aave_v3_user_from_data_provider(aave_user.id, client).await;
 
                 match aave_user_data_result {
-                    Ok(aave_user) => {
+                    Ok(user_from_aave_contract) => {
                         valid_users_from_contract += 1;
-                        aave_user_data.push(aave_user);
+
+                        user_data.push(user_from_aave_contract);
                     }
                     Err(_) => {
                         // error!("user did not fit criteria => {}", error);
@@ -165,7 +166,7 @@ impl GenerateUsers for AaveUserData {
             }
         }
 
-        info!("{} valid users saved", aave_user_data.len());
+        info!("{} users saved", user_data.len());
         info!(
             "{} valid users saved from graphQL",
             valid_users_from_graphql
@@ -177,7 +178,7 @@ impl GenerateUsers for AaveUserData {
 
         let mut user_data_hash = HashMap::new();
 
-        for user in &aave_user_data {
+        for user in &user_data {
             user_data_hash.insert(user.id, user.clone());
         }
 
@@ -195,11 +196,15 @@ impl GenerateUsers for AaveUserData {
 
 #[async_trait]
 impl GetUserData for AaveUserData {
+    async fn is_user_whale(&self) -> Result<bool, Box<dyn std::error::Error>> {
+        Ok(true)
+    }
+
     async fn get_collateral_times_liquidation_factor_and_total_debt(
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error>> {
+    ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error + Send + Sync>> {
         let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
         let token_data = get_token_data().await?;
 
@@ -258,7 +263,7 @@ impl GetUserData for AaveUserData {
     async fn get_user_liquidation_usd_profit(
         &self,
         health_factor: &BigDecimal,
-    ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error>> {
+    ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error + Send + Sync>> {
         let bps_factor = BigDecimal::from(BPS_FACTOR);
 
         // should be health factor threshold and not liquidation threshold because
@@ -343,7 +348,7 @@ impl UpdateUserData for AaveUserData {
         &mut self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let (collateral_times_liquidation_factor, total_debt) = self
             .get_collateral_times_liquidation_factor_and_total_debt(source_for_pricing, client)
             .await?;
@@ -371,7 +376,7 @@ impl HealthFactor for AaveUserData {
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+    ) -> Result<BigDecimal, Box<dyn std::error::Error + Send + Sync>> {
         let (liquidation_threshold_collateral_sum, current_total_debt) = self
             .get_collateral_times_liquidation_factor_and_total_debt(source_for_pricing, client)
             .await?;
@@ -388,7 +393,7 @@ impl HealthFactor for AaveUserData {
     async fn is_user_valid_when_checking_against_official_health_factor(
         &mut self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<bool, Box<dyn std::error::Error>> {
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
         let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
 

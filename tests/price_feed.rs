@@ -10,7 +10,7 @@ use std::{ops::Deref, sync::Arc};
 use uniswap_sdk_core::entities::base_currency;
 
 // #[tokio::test]
-// async fn verify_price_oarcles_are_valid() -> Result<(), Box<dyn std::error::Error>> {
+// async fn verify_price_oarcles_are_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 //     const WS_URL: &str = "ws://localhost:8546";
 //     let provider = Provider::<Ws>::connect(WS_URL).await?;
 //     let client = Arc::new(provider);
@@ -44,7 +44,7 @@ use uniswap_sdk_core::entities::base_currency;
 // }
 
 #[tokio::test]
-async fn check_chainlink_data_is_valid() -> Result<(), Box<dyn std::error::Error>> {
+async fn check_chainlink_data_is_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
@@ -81,7 +81,8 @@ async fn check_chainlink_data_is_valid() -> Result<(), Box<dyn std::error::Error
     Ok(())
 }
 #[tokio::test]
-async fn find_price_aggregators_are_valid() -> Result<(), Box<dyn std::error::Error>> {
+async fn find_price_aggregators_are_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+{
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);

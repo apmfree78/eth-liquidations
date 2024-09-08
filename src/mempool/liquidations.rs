@@ -21,7 +21,7 @@ pub async fn find_users_and_liquidate(
     token: &Erc20Token,
     mempool_tx: Transaction,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // edge CASE
     let token_data = get_token_data().await?;
     let wsteth_token = token_data.get("wstETH").unwrap();
@@ -75,7 +75,7 @@ async fn update_and_get_accounts_to_liquidate(
     token: &Erc20Token,
     user_type: UserType,
     client: &Arc<Provider<Ws>>,
-) -> Result<Vec<LiquidationCandidate>, Box<dyn std::error::Error>> {
+) -> Result<Vec<LiquidationCandidate>, Box<dyn std::error::Error + Send + Sync>> {
     let mut users = user_data.lock().await;
     let empty_vec_to_return_if_no_qualifed_accounts = Vec::<LiquidationCandidate>::new();
     // 1. update low health user health factor (that own or borrow token)

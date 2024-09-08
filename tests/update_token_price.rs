@@ -13,7 +13,8 @@ use std::sync::Arc;
 
 #[tokio::test]
 #[serial]
-async fn test_decoding_token_price_for_uni_token() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_decoding_token_price_for_uni_token(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
@@ -49,7 +50,8 @@ async fn test_decoding_token_price_for_uni_token() -> Result<(), Box<dyn std::er
 
 #[tokio::test]
 #[serial]
-async fn test_decoding_token_price_for_weth_token() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_decoding_token_price_for_weth_token(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
@@ -84,7 +86,8 @@ async fn test_decoding_token_price_for_weth_token() -> Result<(), Box<dyn std::e
 
 #[tokio::test]
 #[serial]
-async fn test_decoding_token_price_for_btc_token() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_decoding_token_price_for_btc_token(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;

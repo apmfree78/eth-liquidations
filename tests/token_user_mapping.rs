@@ -16,7 +16,8 @@ use std::sync::Arc;
 const WS_URL: &str = "ws://localhost:8546";
 
 #[tokio::test]
-async fn test_user_is_placed_in_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_is_placed_in_correct_mapping(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -45,7 +46,8 @@ async fn test_user_is_placed_in_correct_mapping() -> Result<(), Box<dyn std::err
 }
 
 #[tokio::test]
-async fn test_users_are_placed_in_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_users_are_placed_in_correct_mapping(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -74,7 +76,8 @@ async fn test_users_are_placed_in_correct_mapping() -> Result<(), Box<dyn std::e
 }
 
 #[tokio::test]
-async fn test_both_users_are_moved_to_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_both_users_are_moved_to_correct_mapping(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
@@ -130,7 +133,8 @@ async fn test_both_users_are_moved_to_correct_mapping() -> Result<(), Box<dyn st
 }
 
 #[tokio::test]
-async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_both_users_mappings_update_by_token(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     let token_data = get_token_data().await?;
@@ -293,7 +297,8 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
 }
 
 #[tokio::test]
-async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_moving_user_to_correct_mapping(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -359,7 +364,8 @@ async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error:
 }
 
 #[tokio::test]
-async fn test_user_is_removed_from_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_is_removed_from_mapping() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+{
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -408,7 +414,7 @@ async fn test_user_is_removed_from_mapping() -> Result<(), Box<dyn std::error::E
 
 #[tokio::test]
 async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -454,7 +460,7 @@ async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
 
 #[tokio::test]
 async fn test_correct_users_to_liquidate_are_found_for_standard_users(
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state

@@ -7,7 +7,8 @@ use ethers::providers::{Provider, Ws};
 use std::sync::Arc;
 
 #[tokio::test]
-async fn get_and_save_weth_token_is_valid() -> Result<(), Box<dyn std::error::Error>> {
+async fn get_and_save_weth_token_is_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+{
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
@@ -109,7 +110,8 @@ async fn get_and_save_weth_token_is_valid() -> Result<(), Box<dyn std::error::Er
 }
 
 #[tokio::test]
-async fn get_and_save_link_token_is_valid() -> Result<(), Box<dyn std::error::Error>> {
+async fn get_and_save_link_token_is_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+{
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
@@ -211,7 +213,8 @@ async fn get_and_save_link_token_is_valid() -> Result<(), Box<dyn std::error::Er
 }
 
 #[tokio::test]
-async fn test_that_connect_eth_tokens_are_valid() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_that_connect_eth_tokens_are_valid(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;

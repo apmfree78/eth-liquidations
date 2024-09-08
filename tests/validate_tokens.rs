@@ -12,7 +12,8 @@ use std::sync::Arc;
 // pub static SKIP_AGGREGATOR_CHECK: &[&str] = &["KNC"];
 
 #[tokio::test]
-async fn test_token_data_matches_token_contract() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_token_data_matches_token_contract(
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
@@ -115,7 +116,7 @@ async fn test_token_data_matches_token_contract() -> Result<(), Box<dyn std::err
 async fn get_aggregator(
     token: Address,
     client: &Arc<Provider<Ws>>,
-) -> Result<Option<Address>, Box<dyn std::error::Error>> {
+) -> Result<Option<Address>, Box<dyn std::error::Error + Send + Sync>> {
     let chainlink_registry_address: Address =
         CONTRACT.get_address().chain_link_feed_registry.parse()?;
     let usd_address: Address = USD.parse()?;

@@ -15,7 +15,7 @@ pub async fn update_token_price_for_(
     token_to_update: &Erc20Token,
     new_token_price: BigDecimal,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if token_to_update.symbol == "WETH" {
         let tokens_with_price_priced_in_eth = get_tokens_priced_in_eth().await?;
         let current_eth_price = get_saved_token_price(token_to_update.address.clone()).await?;

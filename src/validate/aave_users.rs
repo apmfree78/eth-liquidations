@@ -26,7 +26,7 @@ use std::sync::Arc;
 
 pub async fn validate_liquidation_candidates(
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut validation_count: u16 = 0;
     let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
     let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
@@ -140,7 +140,7 @@ pub async fn calculate_user_liquidation_usd_profit(
     user_id: &Address,
     health_factor: &BigDecimal,
     client: &Arc<Provider<Ws>>,
-) -> Result<(LiquidationArgs, U256), Box<dyn std::error::Error>> {
+) -> Result<(LiquidationArgs, U256), Box<dyn std::error::Error + Send + Sync>> {
     let bps_factor = U256::from(BPS_FACTOR);
     let standard_scale = U256::exp10(18);
     let aave_v3_data_provider_address: Address =
@@ -308,7 +308,7 @@ pub async fn calculate_user_liquidation_usd_profit(
 
 pub async fn calculate_gas_cost(
     client: &Arc<Provider<Ws>>,
-) -> Result<U256, Box<dyn std::error::Error>> {
+) -> Result<U256, Box<dyn std::error::Error + Send + Sync>> {
     // ESTIMATING GAS FOR BELOW CALC
     // match aave_v3_pool
     //     .liquidation_call(

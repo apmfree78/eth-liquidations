@@ -24,7 +24,10 @@ pub trait UserAccountData {
     async fn get_list_of_user_tokens(
         &self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal), Box<dyn std::error::Error>>;
+    ) -> Result<
+        (Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal),
+        Box<dyn std::error::Error + Send + Sync>,
+    >;
 }
 
 #[async_trait]
@@ -32,8 +35,10 @@ impl UserAccountData for AaveUser {
     async fn get_list_of_user_tokens(
         &self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal), Box<dyn std::error::Error>>
-    {
+    ) -> Result<
+        (Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal),
+        Box<dyn std::error::Error + Send + Sync>,
+    > {
         let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
         let mut user_token_list: Vec<AaveToken> = Vec::new();
 
@@ -147,7 +152,8 @@ pub struct Response {
     errors: Option<Vec<serde_json::Value>>,
 }
 
-pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error>> {
+pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error + Send + Sync>>
+{
     let (thegraph_url, query) = get_graphql_url_and_query(SampleSize::SmallBatch);
 
     let client = Client::new();
@@ -186,7 +192,8 @@ pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Er
     }
 }
 
-pub async fn get_all_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error>> {
+pub async fn get_all_aave_v3_users(
+) -> Result<Vec<AaveUser>, Box<dyn std::error::Error + Send + Sync>> {
     let client = Client::new();
     let mut all_users = Vec::<AaveUser>::new();
     let mut id_cursor = "0".to_string();

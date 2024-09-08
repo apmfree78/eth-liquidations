@@ -20,7 +20,7 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
     user_data: &Arc<Mutex<AaveUsersHash>>,
     pending_tx: TxHash,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let transmit_signature = "transmit(bytes,bytes32[],bytes32[],bytes32)";
 
     let chain_aggregator_map = get_chainlink_aggregator_map().await?;

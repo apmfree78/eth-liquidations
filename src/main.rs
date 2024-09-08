@@ -1,7 +1,7 @@
 use dotenv::dotenv;
 use eth_liquadation::{
     data::{
-        token_data_hash::save_btc_as_token,
+        token_data_hash::{save_btc_as_token, save_erc20_tokens_from_static_data},
         token_price_hash::{generate_token_price_hash, print_saved_token_prices},
     },
     events::aave_events::{set_aave_event_signature_filter, update_users_with_event_from_log},
@@ -31,7 +31,7 @@ enum Event {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // initiate logger and environment variables
     dotenv().ok();
     setup_logger().expect("Failed to initialize logger.");

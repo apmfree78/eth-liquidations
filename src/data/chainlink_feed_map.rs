@@ -46,7 +46,7 @@ static CHAINLINK_FEED_MAP: Lazy<HashMap<String, ChainlinkPriceFeed>> = Lazy::new
 pub async fn get_chainlink_aggregator(
     price_feed: &str,
     client: &Arc<Provider<Ws>>,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     abigen!(
         AGGREGATOR,
         r#"[function aggregator() external view returns (address)]"#
@@ -117,7 +117,7 @@ pub async fn get_chainlink_price_feed_for_token_(token_symbol: &str, token: &Erc
 }
 
 pub async fn get_chainlink_aggregator_map(
-) -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error + Send + Sync>> {
     let chainlink_aggregator_hash = Arc::clone(&CHAINLINK_AGGREGATOR_HASH);
     let aggregators = chainlink_aggregator_hash.lock().await;
 

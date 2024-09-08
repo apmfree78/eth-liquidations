@@ -12,7 +12,7 @@ use std::sync::Arc;
 pub async fn get_aave_v3_user_from_data_provider(
     user_address: Address,
     client: &Arc<Provider<Ws>>,
-) -> Result<AaveUserData, Box<dyn std::error::Error>> {
+) -> Result<AaveUserData, Box<dyn std::error::Error + Send + Sync>> {
     let aave_v3_data_pool_address: Address =
         CONTRACT.get_address().aave_v3_data_provider.parse()?;
     let aave_v3_data_pool = AAVE_V3_DATA_PROVIDER::new(aave_v3_data_pool_address, client.clone());

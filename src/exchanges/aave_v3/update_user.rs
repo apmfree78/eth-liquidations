@@ -17,7 +17,7 @@ pub enum TokenToRemove {
 pub async fn get_user_action_from_event(
     event: Box<dyn AaveEvent>,
     client: &Arc<Provider<Ws>>,
-) -> Result<AaveUserAction, Box<dyn std::error::Error>> {
+) -> Result<AaveUserAction, Box<dyn std::error::Error + Send + Sync>> {
     let token_address = event.get_reserve();
     let token_address = address_to_string(token_address);
     let token_data = get_token_data().await?;
@@ -49,14 +49,20 @@ pub trait Update {
         &mut self,
         aave_action: &AaveUserAction,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<TokenToRemove, Box<dyn std::error::Error>>;
+    ) -> Result<TokenToRemove, Box<dyn std::error::Error + Send + Sync>>;
 
-    fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>>;
+    fn liquidate(
+        &mut self,
+        event: LiquidationEvent,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 }
 
 #[async_trait]
 impl Update for AaveUserData {
-    fn liquidate(&mut self, event: LiquidationEvent) -> Result<(), Box<dyn std::error::Error>> {
+    fn liquidate(
+        &mut self,
+        event: LiquidationEvent,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         for token in self.tokens.iter_mut() {
             debug!("checking token {}", token.token.symbol);
             if token.token.address.to_lowercase() == event.get_collateral_token_address() {
@@ -80,7 +86,7 @@ impl Update for AaveUserData {
         &mut self,
         aave_action: &AaveUserAction,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<TokenToRemove, Box<dyn std::error::Error>> {
+    ) -> Result<TokenToRemove, Box<dyn std::error::Error + Send + Sync>> {
         let token_address = aave_action.token.address.to_lowercase();
         let token_data = get_token_data().await?;
         let mut token_index: Option<usize> = None;

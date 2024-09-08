@@ -13,7 +13,7 @@ use std::error::Error;
 pub async fn get_chainlink_price_from_transmit_tx(
     data: &Bytes,
     token: &Erc20Token,
-) -> Result<BigDecimal, Box<dyn Error>> {
+) -> Result<BigDecimal, Box<dyn Error + Send + Sync>> {
     let token_priced_in_eth = get_tokens_priced_in_eth().await?;
     let token_priced_in_btc = get_tokens_priced_in_btc().await?;
     // 1. get observations
@@ -53,7 +53,7 @@ pub async fn get_chainlink_price_from_transmit_tx(
     Ok(chainlink_price)
 }
 
-fn decode_transmit_tx(data: &Bytes) -> Result<Vec<U256>, Box<dyn Error>> {
+fn decode_transmit_tx(data: &Bytes) -> Result<Vec<U256>, Box<dyn Error + Send + Sync>> {
     let transmit_abi = r#"
     [
         {
@@ -93,7 +93,7 @@ fn decode_transmit_tx(data: &Bytes) -> Result<Vec<U256>, Box<dyn Error>> {
     }
 }
 
-fn decode_transmit_report(data: Vec<u8>) -> Result<Vec<U256>, Box<dyn Error>> {
+fn decode_transmit_report(data: Vec<u8>) -> Result<Vec<U256>, Box<dyn Error + Send + Sync>> {
     // Correctly formatted ABI JSON
     let decode_json = r#"
         [{
