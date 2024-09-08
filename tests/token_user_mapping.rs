@@ -113,7 +113,9 @@ async fn test_both_users_are_moved_to_correct_mapping(
         .expect("invalid user id");
     user.health_factor = BigDecimal::from_f32(2.0).unwrap();
 
-    users_hash.update_token_user_mapping_for_(user_id).await?;
+    users_hash
+        .update_token_user_mapping_for_(user_id, &client)
+        .await?;
 
     println!(
         "low health users {:?}",
@@ -167,7 +169,7 @@ async fn test_both_users_mappings_update_by_token(
     }
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
     println!(
@@ -194,7 +196,7 @@ async fn test_both_users_mappings_update_by_token(
     user.health_factor = BigDecimal::from_f32(2.0).unwrap();
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
     println!(
@@ -221,7 +223,7 @@ async fn test_both_users_mappings_update_by_token(
     user_2.health_factor = BigDecimal::from_f32(4.0).unwrap();
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
     println!(
@@ -248,7 +250,7 @@ async fn test_both_users_mappings_update_by_token(
     user.health_factor = BigDecimal::from_f32(1.0).unwrap();
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
     println!(
@@ -275,7 +277,7 @@ async fn test_both_users_mappings_update_by_token(
     user_2.health_factor = BigDecimal::from_f32(1.04).unwrap();
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
     println!(
@@ -327,7 +329,9 @@ async fn test_moving_user_to_correct_mapping(
     user.health_factor = BigDecimal::from_f32(2.0).unwrap();
 
     // update token user mapping
-    users_hash.update_token_user_mapping_for_(user_id).await?;
+    users_hash
+        .update_token_user_mapping_for_(user_id, &client)
+        .await?;
 
     // test that both values are in standard mapping since
     // initial health factor is 2.0
@@ -348,7 +352,9 @@ async fn test_moving_user_to_correct_mapping(
     user.health_factor = BigDecimal::from_f32(1.04).unwrap();
 
     // update token user mapping
-    users_hash.update_token_user_mapping_for_(user_id).await?;
+    users_hash
+        .update_token_user_mapping_for_(user_id, &client)
+        .await?;
 
     // test that both values are in low health mapping since
     // initial health factor is 1.05

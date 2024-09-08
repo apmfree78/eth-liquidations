@@ -60,11 +60,11 @@ pub async fn find_users_and_liquidate(
     // 5. clean up - update token ==> user mapping for all users with updated health factors
     let mut users = user_data.lock().await;
     users
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, client)
         .await?;
     if token.symbol == "stETH" {
         users
-            .update_token_to_user_mapping_for_all_users_with_token_(wsteth_token)
+            .update_token_to_user_mapping_for_all_users_with_token_(wsteth_token, client)
             .await?;
     }
     Ok(())
@@ -89,15 +89,16 @@ async fn update_and_get_accounts_to_liquidate(
         match liquidations {
             UsersToLiquidate::Users(users_to_liquidate) => {
                 info!(
-                    "FOUND {} USERS TO LIQUIDATE AMONG STANDARD USERS",
-                    users_to_liquidate.len()
+                    "FOUND {} USERS TO LIQUIDATE AMONG {:?} USERS",
+                    users_to_liquidate.len(),
+                    user_type
                 );
                 add_tracked_users(users_to_liquidate.clone()).await?;
 
                 return Ok(users_to_liquidate);
             }
             UsersToLiquidate::None => {
-                info!("NO USER TO LIQUIDATE AMONG STNADARD USERS");
+                info!("NO USER TO LIQUIDATE AMONG {:?} USERS", user_type);
                 return Ok(empty_vec_to_return_if_no_qualifed_accounts);
             }
         }

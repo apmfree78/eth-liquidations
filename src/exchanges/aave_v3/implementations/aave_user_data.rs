@@ -41,7 +41,6 @@ pub trait GetUserData {
         &self,
         health_factor: &BigDecimal,
     ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error + Send + Sync>>;
-    async fn is_user_whale(&self) -> Result<bool, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -196,10 +195,6 @@ impl GenerateUsers for AaveUserData {
 
 #[async_trait]
 impl GetUserData for AaveUserData {
-    async fn is_user_whale(&self) -> Result<bool, Box<dyn std::error::Error>> {
-        Ok(true)
-    }
-
     async fn get_collateral_times_liquidation_factor_and_total_debt(
         &self,
         source_for_pricing: PricingSource,

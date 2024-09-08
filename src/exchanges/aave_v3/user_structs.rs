@@ -21,6 +21,7 @@ pub const MAX_LIQUIDATION_CLOSE_FACTOR: f32 = 1.0;
 pub const CLOSE_FACTOR_HF_THRESHOLD: f32 = 0.95;
 pub const LIQUIDATION_THRESHOLD: f32 = 1.00;
 // pub const LIQUIDATION_THRESHOLD: f32 = 1.05; // user value slightly highet than 1 to account for health factor estimation error
+pub const LIQUIDATION_THRESHOLD_LOWER_BOUND: f32 = 0.10;
 pub const BPS_FACTOR: u64 = 10_u64.pow(4);
 
 #[derive(Clone, Copy, Debug)]

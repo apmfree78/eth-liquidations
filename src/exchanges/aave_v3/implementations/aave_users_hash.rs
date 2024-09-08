@@ -1,7 +1,8 @@
 use crate::data::erc20::Erc20Token;
 use crate::data::token_data_hash::{get_tokens_priced_in_btc, get_tokens_priced_in_eth};
 use crate::exchanges::aave_v3::user_structs::{
-    LiquidationCandidate, LIQUIDATION_THRESHOLD, PROFIT_THRESHOLD_MAINNET,
+    LiquidationCandidate, LIQUIDATION_THRESHOLD, LIQUIDATION_THRESHOLD_LOWER_BOUND,
+    PROFIT_THRESHOLD_MAINNET,
 };
 
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
@@ -52,6 +53,7 @@ pub trait UpdateUsers {
     async fn update_token_to_user_mapping_for_all_users_with_token_(
         &mut self,
         token: &Erc20Token,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
     fn intialize_token_user_mapping(
         &mut self,
@@ -60,16 +62,18 @@ pub trait UpdateUsers {
     async fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
     fn remove_user_from_token_user_mapping(
         &mut self,
         user_id: Address,
         token: Address,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
-    fn move_user_from_standard_to_low_health_token_user_mapping(
+    async fn move_user_from_standard_to_low_health_token_user_mapping(
         &mut self,
         user_id: Address,
-    ) -> Result<(), Box<dyn std::error::Error>>;
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
     fn move_user_from_low_health_to_standard_token_user_mapping(
         &mut self,
         user_id: Address,
@@ -169,6 +173,7 @@ impl UpdateUsers for AaveUsersHash {
     async fn update_token_to_user_mapping_for_all_users_with_token_(
         &mut self,
         token: &Erc20Token,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if token.symbol == "BTC" {
             return Ok(());
@@ -177,13 +182,13 @@ impl UpdateUsers for AaveUsersHash {
             self.get_users_owning_token_by_user_type(token, UserType::LowHealth)?;
 
         for user_id in low_health_users {
-            self.update_token_user_mapping_for_(user_id).await?;
+            self.update_token_user_mapping_for_(user_id, client).await?;
         }
 
         let standard_users = self.get_users_owning_token_by_user_type(token, UserType::Standard)?;
 
         for user_id in standard_users {
-            self.update_token_user_mapping_for_(user_id).await?;
+            self.update_token_user_mapping_for_(user_id, client).await?;
         }
 
         Ok(())
@@ -192,6 +197,7 @@ impl UpdateUsers for AaveUsersHash {
     async fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
+        client: &Arc<Provider<Ws>>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // get user health factor
 
@@ -208,8 +214,8 @@ impl UpdateUsers for AaveUsersHash {
             > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).expect("invalid f32");
 
         if low_health_factor && profitable {
-            self.move_user_from_standard_to_low_health_token_user_mapping(user_id)
-                .unwrap_or_else(|err| error!("could not move user to new mapping => {}", err));
+            self.move_user_from_standard_to_low_health_token_user_mapping(user_id, client)
+                .await?;
         } else {
             self.move_user_from_low_health_to_standard_token_user_mapping(user_id)
                 .unwrap_or_else(|err| error!("could not move user to new mapping => {}", err));
@@ -219,11 +225,13 @@ impl UpdateUsers for AaveUsersHash {
     }
 
     // standard mapping ===> low health factor mapping
-    fn move_user_from_standard_to_low_health_token_user_mapping(
+    async fn move_user_from_standard_to_low_health_token_user_mapping(
         &mut self,
         user_id: Address,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let user = self.user_data.get(&user_id).expect("Invalid user id");
+        let mut user_transfered_to_low_health = false;
 
         for token in &user.tokens {
             let token_address: Address = token.token.address.parse()?;
@@ -251,8 +259,16 @@ impl UpdateUsers for AaveUsersHash {
                 if low_health_users.insert(user_id) {
                     self.low_health_user_ids_by_token
                         .insert(token_address, low_health_users);
+
+                    user_transfered_to_low_health = true;
                 }
             }
+        }
+
+        // if user has been transfered to low health hash then we need to update their data
+        if user_transfered_to_low_health {
+            let updated_user = get_aave_v3_user_from_data_provider(user.id, client).await?;
+            self.user_data.insert(user_id, updated_user);
         }
         Ok(())
     }
@@ -370,16 +386,6 @@ impl UpdateUsers for AaveUsersHash {
             _ => self.get_users_owning_token_by_user_type(main_token, user_type)?,
         };
 
-        // let user_ids_array = if main_token.symbol == "WETH" {
-        //     // must update full list of tokens if WETH
-        //     let users_with_tokens_priced_in_eth = self
-        //         .generate_hashset_of_user_by_user_type_for_tokens_priced_in_eth(user_type)
-        //         .await?;
-        //     users_with_tokens_priced_in_eth.into_iter().collect()
-        // } else {
-        //     self.get_users_owning_token_by_user_type(main_token, user_type)?
-        // };
-
         for user_id in user_ids_array {
             let user = self
                 .user_data
@@ -390,7 +396,8 @@ impl UpdateUsers for AaveUsersHash {
                 .await?;
 
             if user.health_factor < BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap()
-                && user.health_factor > BigDecimal::from(0)
+                && user.health_factor
+                    > BigDecimal::from_f32(LIQUIDATION_THRESHOLD_LOWER_BOUND).unwrap()
             {
                 // now check for user profitability
                 let (profitability, debt_token, collateral_token) = user

@@ -180,7 +180,9 @@ pub async fn update_aave_user(
         // );
 
         // update token => user mappings , includes adding new tokens
-        users.update_token_user_mapping_for_(user_id).await?;
+        users
+            .update_token_user_mapping_for_(user_id, client)
+            .await?;
 
         // check if there is token to remove, if so removie it
         if let Some(token_address) = token_to_remove {
@@ -232,7 +234,9 @@ pub async fn update_aave_liquidated_user(
         debug!("updated user health factor...{:?}", user.health_factor);
 
         // update token => user mappings , includes adding new tokens
-        users.update_token_user_mapping_for_(user_id).await?;
+        users
+            .update_token_user_mapping_for_(user_id, client)
+            .await?;
 
         return Ok(());
     } else {
