@@ -25,9 +25,7 @@ pub enum TokenPriceType {
 
 #[async_trait]
 pub trait UpdateUsers {
-    fn get_hashset_of_whales(
-        &self,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>>;
+    fn get_hashset_of_whales(&self) -> HashSet<Address>;
     async fn update_users_health_factor_by_token_and_return_liquidation_candidates(
         &mut self,
         token: &Erc20Token,
@@ -558,15 +556,13 @@ impl UpdateUsers for AaveUsersHash {
         }
     }
 
-    fn get_hashset_of_whales(
-        &self,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>> {
+    fn get_hashset_of_whales(&self) -> HashSet<Address> {
         let mut whales = HashSet::<Address>::new();
 
         for user_hashset in self.low_health_user_ids_by_token.values() {
             whales.extend(user_hashset.iter());
         }
 
-        Ok(whales)
+        whales
     }
 }

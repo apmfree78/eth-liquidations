@@ -7,6 +7,7 @@ use eth_liquadation::{
     events::aave_events::{set_aave_event_signature_filter, update_users_with_event_from_log},
     exchanges::aave_v3::{
         implementations::aave_user_data::GenerateUsers,
+        implementations::aave_users_hash::UpdateUsers,
         user_structs::{AaveUserData, SampleSize},
     },
     mempool::detect_price_update::detect_price_update_and_find_users_to_liquidate,
@@ -18,7 +19,7 @@ use ethers::{
     providers::{Middleware, Provider, Ws},
 };
 use futures::{lock::Mutex, stream, StreamExt};
-use log::{error, info};
+use log::{debug, error, info};
 use std::sync::Arc;
 
 // SET ws url and CHAIN we are using
@@ -33,7 +34,7 @@ enum Event {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // initiate logger and environment variables
-    dotenv(). ok();
+    dotenv().ok();
     setup_logger().expect("Failed to initialize logger.");
 
     // setup provider
@@ -120,6 +121,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 Ok(Event::Block(block)) => {
                     info!("NEW BLOCK ===> {}", block.timestamp);
 
+                    let mut users = aave_users_data.lock().await;
+                    let whales = users.get_hashset_of_whales();
+                    debug!("{} whales found!", whales.len());
                     // FOR TESTING ONLY
                     // debug!("using these prices to find health factor in new block");
                     // let _ = generate_token_price_hash(&client).await;
