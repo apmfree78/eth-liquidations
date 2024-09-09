@@ -4,7 +4,7 @@ use crate::{
         address::CONTRACT,
         erc20::u256_to_big_decimal,
         token_data_hash::{get_token_data, get_unique_token_data},
-        token_price_hash::{generate_token_price_hash, get_saved_token_price},
+        token_price_hash::get_saved_token_price,
         users_to_track::{get_tracked_users, reset_tracked_users},
     },
     exchanges::aave_v3::user_structs::{

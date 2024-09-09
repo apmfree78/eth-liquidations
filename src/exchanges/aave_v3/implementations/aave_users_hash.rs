@@ -25,6 +25,9 @@ pub enum TokenPriceType {
 
 #[async_trait]
 pub trait UpdateUsers {
+    fn get_hashset_of_whales(
+        &self,
+    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>>;
     async fn update_users_health_factor_by_token_and_return_liquidation_candidates(
         &mut self,
         token: &Erc20Token,
@@ -267,8 +270,15 @@ impl UpdateUsers for AaveUsersHash {
 
         // if user has been transfered to low health hash then we need to update their data
         if user_transfered_to_low_health {
-            let updated_user = get_aave_v3_user_from_data_provider(user.id, client).await?;
-            self.user_data.insert(user_id, updated_user);
+            match get_aave_v3_user_from_data_provider(user.id, client).await {
+                Ok(user) => {
+                    self.user_data.insert(user_id, user);
+                }
+                Err(error) => debug!(
+                    "could not get updated user from data provider contract => {}",
+                    error
+                ),
+            };
         }
         Ok(())
     }
@@ -546,5 +556,17 @@ impl UpdateUsers for AaveUsersHash {
                 Ok(standard_users.to_owned())
             }
         }
+    }
+
+    fn get_hashset_of_whales(
+        &self,
+    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>> {
+        let mut whales = HashSet::<Address>::new();
+
+        for user_hashset in self.low_health_user_ids_by_token.values() {
+            whales.extend(user_hashset.iter());
+        }
+
+        Ok(whales)
     }
 }

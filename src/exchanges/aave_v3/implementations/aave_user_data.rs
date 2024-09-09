@@ -140,7 +140,6 @@ impl GenerateUsers for AaveUserData {
             let upper_bound = BigDecimal::from_str("1.005")? * &real_health_factor;
 
             // for estimating user profit
-            let fake_health_factor = BigDecimal::from_str("0.95").expect("invalid str");
             // make sure health factor is with 0.5% of actual otherwise pull user data directly from pool contract
             if graphql_health_factor > lower_bound && graphql_health_factor < upper_bound {
                 // save data to AvveUserData
@@ -409,10 +408,10 @@ impl HealthFactor for AaveUserData {
             .await?;
 
         // CHECK that health factor calculated from user data is
-        // within + or - 5% of official health factor we get from
+        // within + or - 1% of official health factor we get from
         // getUserAccount contract call
-        let lower_bound = BigDecimal::from_str("0.95")? * &health_factor;
-        let upper_bound = BigDecimal::from_str("1.05")? * &health_factor;
+        let lower_bound = BigDecimal::from_str("0.99")? * &health_factor;
+        let upper_bound = BigDecimal::from_str("1.01")? * &health_factor;
 
         Ok(aave_user_calculated_health_factor > lower_bound
             && aave_user_calculated_health_factor < upper_bound)

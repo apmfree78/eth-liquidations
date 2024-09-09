@@ -1,8 +1,6 @@
-use crate::abi::wsteth;
 use crate::backrun::flashbots::submit_to_flashbots;
 use crate::data::erc20::Erc20Token;
 use crate::data::token_data_hash::get_token_data;
-use crate::data::token_price_hash::print_saved_token_prices;
 use crate::data::users_to_track::add_tracked_users;
 use crate::exchanges::aave_v3::user_structs::{LiquidationCandidate, UserType, UsersToLiquidate};
 use crate::exchanges::aave_v3::{
@@ -10,7 +8,7 @@ use crate::exchanges::aave_v3::{
 };
 use ethers::types::Transaction;
 use eyre::Result;
-use log::{debug, info};
+use log::info;
 use std::sync::Arc;
 
 use ethers::providers::{Provider, Ws};

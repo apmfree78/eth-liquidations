@@ -18,7 +18,7 @@ use ethers::{
     providers::{Middleware, Provider, Ws},
 };
 use futures::{lock::Mutex, stream, StreamExt};
-use log::{debug, error, info};
+use log::{error, info};
 use std::sync::Arc;
 
 // SET ws url and CHAIN we are using
@@ -33,12 +33,16 @@ enum Event {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // initiate logger and environment variables
-    dotenv().ok();
+    dotenv(). ok();
     setup_logger().expect("Failed to initialize logger.");
 
     // setup provider
+
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+
+    // need this otherwise cannot reconstruct user data from sratch
+    save_erc20_tokens_from_static_data(&client).await?;
 
     let aave_users = AaveUserData::get_users(&client, SampleSize::All).await?;
 
