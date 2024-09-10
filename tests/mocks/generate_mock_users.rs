@@ -27,6 +27,7 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash> {
                     liquidation_threshold: 8300,
                     chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -44,6 +45,7 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash> {
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(USDT_USER_DEBT).unwrap(),
                 usage_as_collateral_enabled: true,
@@ -90,6 +92,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     liquidation_threshold: 8300,
                     chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -107,6 +110,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(5000000000).unwrap(),
                 usage_as_collateral_enabled: true,
@@ -136,6 +140,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     liquidation_threshold: 8300,
                     chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -153,6 +158,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(USDT_USER_DEBT).unwrap(),
                 usage_as_collateral_enabled: true,
@@ -199,6 +205,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x736bF902680e68989886e9807CD7Db4B3E015d3C".to_string(),
                     chainlink_aggregator: "".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -216,6 +223,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(100000000).unwrap(),
                 usage_as_collateral_enabled: true,
@@ -243,6 +251,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x736bF902680e68989886e9807CD7Db4B3E015d3C".to_string(),
                     chainlink_aggregator: "".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -260,6 +269,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(1000000).unwrap(),
                 usage_as_collateral_enabled: true,

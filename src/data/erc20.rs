@@ -28,6 +28,9 @@ pub struct Erc20Token {
     pub liquidation_threshold: u16,
     pub chain_link_price_feed: String,
     pub chainlink_aggregator: String,
+    pub stable_borrow_rate: f64,
+    pub variable_borrow_rate: f64,
+    pub liquidity_rate: f64,
 }
 
 #[derive(Clone, Debug)]

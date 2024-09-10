@@ -56,13 +56,11 @@ impl UserAccountData for AaveUser {
             let token = Erc20Token {
                 name,
                 symbol,
-                // decimals: u8::from_str(&decimals).unwrap(),
                 decimals,
                 address: token_address,
                 liquidation_bonus: u16::from_str(&reserve_liquidation_bonus).unwrap(),
                 liquidation_threshold: u16::from_str(&reserve_liquidation_threshold).unwrap(),
-                chain_link_price_feed: "".to_string(),
-                chainlink_aggregator: "".to_string(),
+                ..Default::default()
             };
 
             //*******************************************************************************
