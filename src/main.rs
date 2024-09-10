@@ -1,3 +1,4 @@
+use anyhow::Result;
 use dotenv::dotenv;
 use eth_liquadation::{
     data::{
@@ -32,7 +33,7 @@ enum Event {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() -> Result<()> {
     // initiate logger and environment variables
     dotenv().ok();
     setup_logger().expect("Failed to initialize logger.");
@@ -59,10 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let aave_event_filter = set_aave_event_signature_filter()?;
     // Create multiple subscription streams.
-    let aave_log_stream: stream::BoxStream<
-        '_,
-        Result<Event, Box<dyn std::error::Error + Send + Sync>>,
-    > = client
+    let aave_log_stream: stream::BoxStream<'_, Result<Event>> = client
         .subscribe_logs(&aave_event_filter)
         .await?
         .map(|log| Ok(Event::AaveV3Log(log)))
@@ -70,17 +68,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     info!("Subscribed to aave v3 logs");
 
-    let tx_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
-        client
-            .subscribe_pending_txs()
-            .await?
-            .map(|tx| Ok(Event::PendingTransactions(tx)))
-            .boxed();
+    let tx_stream: stream::BoxStream<'_, Result<Event>> = client
+        .subscribe_pending_txs()
+        .await?
+        .map(|tx| Ok(Event::PendingTransactions(tx)))
+        .boxed();
 
-    let block_stream: stream::BoxStream<
-        '_,
-        Result<Event, Box<dyn std::error::Error + Send + Sync>>,
-    > = client
+    let block_stream: stream::BoxStream<'_, Result<Event>> = client
         .subscribe_blocks()
         .await?
         .map(|block| Ok(Event::Block(block)))

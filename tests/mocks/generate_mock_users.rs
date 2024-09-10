@@ -1,3 +1,4 @@
+use anyhow::Result;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use eth_liquadation::data::erc20::Erc20Token;
 use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
@@ -9,8 +10,7 @@ pub const USDT_USER_DEBT: u64 = 26000000000;
 pub const USDT_USER_BALANCE: u64 = 30000000000;
 pub const WETH_USER_BALANCE: u128 = 10000000000000000000;
 
-pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error + Send + Sync>>
-{
+pub fn generate_mock_user_hash() -> Result<AaveUsersHash> {
     let user_address: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let user_data = AaveUserData {
         id: user_address,
@@ -73,8 +73,7 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Er
     Ok(aave_users_hash)
 }
 
-pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error + Send + Sync>>
-{
+pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let user_data = AaveUserData {
         id: user_address,
@@ -183,8 +182,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
 }
 
 // first user has liquidation factor of 0.83 while other has 8.3
-pub fn generate_mock_2_user_hash_v2(
-) -> Result<AaveUsersHash, Box<dyn std::error::Error + Send + Sync>> {
+pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let user_data = AaveUserData {
         id: user_address,

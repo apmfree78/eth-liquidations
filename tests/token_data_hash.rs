@@ -1,3 +1,4 @@
+use anyhow::Result;
 use eth_liquadation::data::token_data_hash::{
     get_and_save_erc20_by_token_address, get_tokens_priced_in_eth,
     save_erc20_tokens_from_static_data,
@@ -7,8 +8,7 @@ use ethers::providers::{Provider, Ws};
 use std::sync::Arc;
 
 #[tokio::test]
-async fn get_and_save_weth_token_is_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
-{
+async fn get_and_save_weth_token_is_valid() -> Result<()> {
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
@@ -110,8 +110,7 @@ async fn get_and_save_weth_token_is_valid() -> Result<(), Box<dyn std::error::Er
 }
 
 #[tokio::test]
-async fn get_and_save_link_token_is_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
-{
+async fn get_and_save_link_token_is_valid() -> Result<()> {
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
@@ -213,8 +212,7 @@ async fn get_and_save_link_token_is_valid() -> Result<(), Box<dyn std::error::Er
 }
 
 #[tokio::test]
-async fn test_that_connect_eth_tokens_are_valid(
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn test_that_connect_eth_tokens_are_valid() -> Result<()> {
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;

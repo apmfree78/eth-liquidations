@@ -4,10 +4,10 @@ use crate::data::token_data_hash::{
     get_token_data, get_tokens_priced_in_btc, get_tokens_priced_in_eth,
 };
 use crate::data::token_price_hash::{get_saved_token_price, set_saved_token_price};
+use anyhow::Result;
 use bigdecimal::BigDecimal;
 use ethers::providers::{Provider, Ws};
 use ethers::types::{Address, U256};
-use eyre::Result;
 use log::{debug, info};
 use std::sync::Arc;
 
@@ -15,7 +15,7 @@ pub async fn update_token_price_for_(
     token_to_update: &Erc20Token,
     new_token_price: BigDecimal,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<()> {
     if token_to_update.symbol == "WETH" {
         let tokens_with_price_priced_in_eth = get_tokens_priced_in_eth().await?;
         let current_eth_price = get_saved_token_price(token_to_update.address.clone()).await?;

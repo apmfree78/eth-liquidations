@@ -7,6 +7,7 @@ use super::tokens_by_chain::MAINNET_TOKENS;
 use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::abi::erc20::ERC20;
 use crate::data::address::CONTRACT;
+use anyhow::Result;
 use ethers::providers::{Provider, Ws};
 use ethers::types::{Address, U256};
 use futures::lock::Mutex;
@@ -23,9 +24,7 @@ static TOKEN_DATA_HASH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
 static UNIQUE_TOKEN_DATA_HASH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =
     Lazy::new(|| Arc::new(Mutex::new(HashMap::<String, Erc20Token>::new())));
 
-pub async fn save_btc_as_token(
-    client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn save_btc_as_token(client: &Arc<Provider<Ws>>) -> Result<()> {
     let btc_token = Erc20Token {
         name: "Bitcoin".to_string(),
         symbol: "BTC".to_string(),
@@ -70,10 +69,7 @@ pub async fn save_btc_as_token(
     Ok(())
 }
 
-pub async fn save_erc20_token(
-    token: &Erc20Token,
-    client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn save_erc20_token(token: &Erc20Token, client: &Arc<Provider<Ws>>) -> Result<()> {
     let token_data_hash = Arc::clone(&TOKEN_DATA_HASH);
     let mut tokens = token_data_hash.lock().await;
     let chainlink_aggregator_hash = Arc::clone(&CHAINLINK_AGGREGATOR_HASH);
@@ -110,9 +106,7 @@ pub async fn save_erc20_token(
     Ok(())
 }
 
-pub async fn save_erc20_tokens_from_static_data(
-    client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn save_erc20_tokens_from_static_data(client: &Arc<Provider<Ws>>) -> Result<()> {
     for static_token in MAINNET_TOKENS {
         let token = Erc20Token {
             name: static_token.name.to_string(),
@@ -133,7 +127,7 @@ pub async fn save_erc20_tokens_from_static_data(
 pub async fn get_and_save_erc20_by_token_address(
     token_address_str: &str,
     client: &Arc<Provider<Ws>>,
-) -> Result<Erc20Token, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Erc20Token> {
     let token_data_hash = Arc::clone(&TOKEN_DATA_HASH);
     let mut tokens = token_data_hash.lock().await;
     let chainlink_aggregator_hash = Arc::clone(&CHAINLINK_AGGREGATOR_HASH);
@@ -201,16 +195,14 @@ pub async fn get_and_save_erc20_by_token_address(
     Ok(token)
 }
 
-pub async fn get_token_data(
-) -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn get_token_data() -> Result<HashMap<String, Erc20Token>> {
     let token_data_hash = Arc::clone(&TOKEN_DATA_HASH);
     let tokens = token_data_hash.lock().await;
 
     Ok(tokens.clone())
 }
 
-pub async fn get_unique_token_data(
-) -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn get_unique_token_data() -> Result<HashMap<String, Erc20Token>> {
     let token_data_hash = Arc::clone(&UNIQUE_TOKEN_DATA_HASH);
     let tokens = token_data_hash.lock().await;
 
@@ -229,8 +221,7 @@ pub async fn set_token_priced_in_eth(token_symbol: String, token: &Erc20Token) {
     tokens.entry(token_symbol).or_insert(token.clone());
 }
 
-pub async fn get_tokens_priced_in_eth(
-) -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn get_tokens_priced_in_eth() -> Result<HashMap<String, Erc20Token>> {
     let tokens_priced_in_eth_hash = Arc::clone(&TOKENS_PRICED_IN_ETH);
     let tokens = tokens_priced_in_eth_hash.lock().await;
 
@@ -247,8 +238,7 @@ pub async fn set_token_priced_in_btc(token_symbol: String, token: &Erc20Token) {
     tokens.entry(token_symbol).or_insert(token.clone());
 }
 
-pub async fn get_tokens_priced_in_btc(
-) -> Result<HashMap<String, Erc20Token>, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn get_tokens_priced_in_btc() -> Result<HashMap<String, Erc20Token>> {
     let tokens_priced_in_btc_hash = Arc::clone(&TOKENS_PRICED_IN_BTC);
     let tokens = tokens_priced_in_btc_hash.lock().await;
 

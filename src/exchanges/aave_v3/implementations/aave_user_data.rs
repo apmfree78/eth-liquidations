@@ -10,6 +10,7 @@ use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use crate::exchanges::aave_v3::user_structs::{
     LiquidationCloseFactor, BPS_FACTOR, CLOSE_FACTOR_HF_THRESHOLD, HEALTH_FACTOR_THRESHOLD,
 };
+use anyhow::Result;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive, Zero};
 use ethers::{
@@ -27,7 +28,7 @@ pub trait GenerateUsers {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
-    ) -> Result<AaveUsersHash, Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<AaveUsersHash>;
 }
 
 #[async_trait]
@@ -36,11 +37,11 @@ pub trait GetUserData {
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<(BigDecimal, BigDecimal)>;
     async fn get_user_liquidation_usd_profit(
         &self,
         health_factor: &BigDecimal,
-    ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<(BigDecimal, Address, Address)>;
 }
 
 #[async_trait]
@@ -49,7 +50,7 @@ pub trait UpdateUserData {
         &mut self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<()>;
 }
 
 #[async_trait]
@@ -58,12 +59,12 @@ pub trait HealthFactor {
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<BigDecimal>;
 
     async fn is_user_valid_when_checking_against_official_health_factor(
         &mut self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<bool>;
 }
 
 #[async_trait]
@@ -71,7 +72,7 @@ impl GenerateUsers for AaveUserData {
     async fn get_users(
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
-    ) -> Result<AaveUsersHash, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<AaveUsersHash> {
         let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
         let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
 
@@ -198,7 +199,7 @@ impl GetUserData for AaveUserData {
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(BigDecimal, BigDecimal), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<(BigDecimal, BigDecimal)> {
         let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
         let token_data = get_token_data().await?;
 
@@ -257,7 +258,7 @@ impl GetUserData for AaveUserData {
     async fn get_user_liquidation_usd_profit(
         &self,
         health_factor: &BigDecimal,
-    ) -> Result<(BigDecimal, Address, Address), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<(BigDecimal, Address, Address)> {
         let bps_factor = BigDecimal::from(BPS_FACTOR);
 
         // should be health factor threshold and not liquidation threshold because
@@ -342,7 +343,7 @@ impl UpdateUserData for AaveUserData {
         &mut self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<()> {
         let (collateral_times_liquidation_factor, total_debt) = self
             .get_collateral_times_liquidation_factor_and_total_debt(source_for_pricing, client)
             .await?;
@@ -370,7 +371,7 @@ impl HealthFactor for AaveUserData {
         &self,
         source_for_pricing: PricingSource,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<BigDecimal> {
         let (liquidation_threshold_collateral_sum, current_total_debt) = self
             .get_collateral_times_liquidation_factor_and_total_debt(source_for_pricing, client)
             .await?;
@@ -387,7 +388,7 @@ impl HealthFactor for AaveUserData {
     async fn is_user_valid_when_checking_against_official_health_factor(
         &mut self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<bool> {
         let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
         let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
 

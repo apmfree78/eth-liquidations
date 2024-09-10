@@ -10,6 +10,7 @@ use super::super::user_structs::{
     AaveUsersHash, PricingSource, UserType, UsersToLiquidate, HEALTH_FACTOR_THRESHOLD,
 };
 use super::aave_user_data::{GetUserData, UpdateUserData};
+use anyhow::Result;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
@@ -31,50 +32,48 @@ pub trait UpdateUsers {
         token: &Erc20Token,
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<UsersToLiquidate, Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<UsersToLiquidate>;
     async fn generate_hashset_of_user_by_user_type_for_(
         &mut self,
         token_price_type: TokenPriceType,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<HashSet<Address>>;
     async fn generate_hashset_of_user_by_user_type_for_tokens_priced_in_eth(
         &mut self,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<HashSet<Address>>;
     fn get_users_owning_token_by_user_type(
         &mut self,
         token: &Erc20Token,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>>; // get clone of user ids , NOT a mutable reference
+    ) -> Result<HashSet<Address>>; // get clone of user ids , NOT a mutable reference
     async fn add_new_user(
         &mut self,
         user_to_add: Address,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<()>;
     async fn update_token_to_user_mapping_for_all_users_with_token_(
         &mut self,
         token: &Erc20Token,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
-    fn intialize_token_user_mapping(
-        &mut self,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<()>;
+    fn intialize_token_user_mapping(&mut self) -> Result<()>;
     // check user health factor and if its in the right token => user id mapping, move if necessary
     async fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<()>;
     fn remove_user_from_token_user_mapping(
         &mut self,
         user_id: Address,
         token: Address,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<()>;
     async fn move_user_from_standard_to_low_health_token_user_mapping(
         &mut self,
         user_id: Address,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<()>;
     fn move_user_from_low_health_to_standard_token_user_mapping(
         &mut self,
         user_id: Address,
@@ -87,7 +86,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         user_to_add: Address,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<()> {
         match get_aave_v3_user_from_data_provider(user_to_add, client).await {
             Ok(user) => {
                 if user.health_factor
@@ -133,9 +132,7 @@ impl UpdateUsers for AaveUsersHash {
         Ok(())
     }
 
-    fn intialize_token_user_mapping(
-        &mut self,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    fn intialize_token_user_mapping(&mut self) -> Result<()> {
         for user in self.user_data.values() {
             // NOTE =====> THIS ASSUMES user health factor is VALID
             let has_low_health_factor = user.health_factor
@@ -175,7 +172,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         token: &Erc20Token,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<()> {
         if token.symbol == "BTC" {
             return Ok(());
         }
@@ -199,7 +196,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         user_id: Address,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<()> {
         // get user health factor
 
         // if health factor is less than HEALTH_FACTOR_THRESHOLD and profit potential is greater than PROFIT_THRESHOLD then
@@ -230,7 +227,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         user_id: Address,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<()> {
         let user = self.user_data.get(&user_id).expect("Invalid user id");
         let mut user_transfered_to_low_health = false;
 
@@ -327,7 +324,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         user_id: Address,
         token_address: Address,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<()> {
         // CHECK STANDARD MAPPING
         if self.standard_user_ids_by_token.contains_key(&token_address) {
             let mut users = self
@@ -368,7 +365,7 @@ impl UpdateUsers for AaveUsersHash {
         main_token: &Erc20Token,
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<UsersToLiquidate, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<UsersToLiquidate> {
         // track already updated users and liquidation candidates
         let mut liquidation_candidates = Vec::<LiquidationCandidate>::new();
 
@@ -434,7 +431,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         token_price_type: TokenPriceType,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<HashSet<Address>> {
         let mut users_that_own_token_price_type_tokens = HashSet::<Address>::new();
 
         let token_price_type_tokens = match token_price_type {
@@ -482,7 +479,7 @@ impl UpdateUsers for AaveUsersHash {
     async fn generate_hashset_of_user_by_user_type_for_tokens_priced_in_eth(
         &mut self,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<HashSet<Address>> {
         let mut users_with_tokens_priced_in_eth = HashSet::<Address>::new();
         let token_price_priced_in_eth = get_tokens_priced_in_eth().await?;
 
@@ -527,7 +524,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         token: &Erc20Token,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<HashSet<Address>> {
         let token_address: Address = token.address.parse()?;
 
         match user_type {

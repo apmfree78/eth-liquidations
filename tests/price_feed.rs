@@ -1,5 +1,6 @@
 // create function to get price feed data  using aave_oracle getSourceOfAsset method
 
+use anyhow::Result;
 use eth_liquadation::data::chainlink_data::get_chainlink_price_feeds_by_chain;
 use eth_liquadation::data::token_data_hash::{get_token_data, save_erc20_tokens_from_static_data};
 use eth_liquadation::utils::type_conversion::address_to_string;
@@ -10,7 +11,7 @@ use std::{ops::Deref, sync::Arc};
 use uniswap_sdk_core::entities::base_currency;
 
 // #[tokio::test]
-// async fn verify_price_oarcles_are_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+// async fn verify_price_oarcles_are_valid() -> Result<()> {
 //     const WS_URL: &str = "ws://localhost:8546";
 //     let provider = Provider::<Ws>::connect(WS_URL).await?;
 //     let client = Arc::new(provider);
@@ -44,7 +45,7 @@ use uniswap_sdk_core::entities::base_currency;
 // }
 
 #[tokio::test]
-async fn check_chainlink_data_is_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn check_chainlink_data_is_valid() -> Result<()> {
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
@@ -81,8 +82,7 @@ async fn check_chainlink_data_is_valid() -> Result<(), Box<dyn std::error::Error
     Ok(())
 }
 #[tokio::test]
-async fn find_price_aggregators_are_valid() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
-{
+async fn find_price_aggregators_are_valid() -> Result<()> {
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);

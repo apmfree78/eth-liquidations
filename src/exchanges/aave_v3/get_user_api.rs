@@ -1,6 +1,7 @@
 use super::user_structs::{SampleSize, BPS_FACTOR};
 use crate::data::{erc20::Erc20Token, token_data_hash::save_erc20_token};
 use crate::exchanges::aave_v3::user_structs::AaveToken;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::providers::{Provider, Ws};
@@ -24,10 +25,7 @@ pub trait UserAccountData {
     async fn get_list_of_user_tokens(
         &self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<
-        (Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal),
-        Box<dyn std::error::Error + Send + Sync>,
-    >;
+    ) -> Result<(Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal)>;
 }
 
 #[async_trait]
@@ -35,10 +33,7 @@ impl UserAccountData for AaveUser {
     async fn get_list_of_user_tokens(
         &self,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<
-        (Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal),
-        Box<dyn std::error::Error + Send + Sync>,
-    > {
+    ) -> Result<(Vec<AaveToken>, BigDecimal, BigDecimal, BigDecimal)> {
         let bps_factor = BigDecimal::from_u64(BPS_FACTOR).unwrap();
         let mut user_token_list: Vec<AaveToken> = Vec::new();
 
@@ -152,8 +147,7 @@ pub struct Response {
     errors: Option<Vec<serde_json::Value>>,
 }
 
-pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Error + Send + Sync>>
-{
+pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>> {
     let (thegraph_url, query) = get_graphql_url_and_query(SampleSize::SmallBatch);
 
     let client = Client::new();
@@ -172,7 +166,7 @@ pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Er
         for error in errors {
             error!("Error: {:?}", error);
         }
-        return Err("GraphQL errors occurred".into()); // Convert the static string error into a Box<dyn Error>
+        return Err(anyhow!("GraphQL errors occurred"));
     }
 
     match response.data {
@@ -192,8 +186,7 @@ pub async fn get_aave_v3_users() -> Result<Vec<AaveUser>, Box<dyn std::error::Er
     }
 }
 
-pub async fn get_all_aave_v3_users(
-) -> Result<Vec<AaveUser>, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn get_all_aave_v3_users() -> Result<Vec<AaveUser>> {
     let client = Client::new();
     let mut all_users = Vec::<AaveUser>::new();
     let mut id_cursor = "0".to_string();
@@ -221,7 +214,7 @@ pub async fn get_all_aave_v3_users(
             for error in errors {
                 error!("Error: {:?}", error);
             }
-            return Err("GraphQL errors occurred".into());
+            return Err(anyhow!("GraphQL errors occurred"));
         }
 
         match response.data {

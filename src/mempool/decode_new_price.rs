@@ -4,16 +4,15 @@ use crate::data::token_data_hash::{
     get_token_data, get_tokens_priced_in_btc, get_tokens_priced_in_eth,
 };
 use crate::data::token_price_hash::get_saved_token_price;
+use anyhow::{anyhow, Result};
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::{Abi, Bytes, Token};
 use ethers::prelude::*;
-use eyre::Result;
-use std::error::Error;
 
 pub async fn get_chainlink_price_from_transmit_tx(
     data: &Bytes,
     token: &Erc20Token,
-) -> Result<BigDecimal, Box<dyn Error + Send + Sync>> {
+) -> Result<BigDecimal> {
     let token_priced_in_eth = get_tokens_priced_in_eth().await?;
     let token_priced_in_btc = get_tokens_priced_in_btc().await?;
     // 1. get observations
@@ -53,7 +52,7 @@ pub async fn get_chainlink_price_from_transmit_tx(
     Ok(chainlink_price)
 }
 
-fn decode_transmit_tx(data: &Bytes) -> Result<Vec<U256>, Box<dyn Error + Send + Sync>> {
+fn decode_transmit_tx(data: &Bytes) -> Result<Vec<U256>> {
     let transmit_abi = r#"
     [
         {
@@ -83,17 +82,19 @@ fn decode_transmit_tx(data: &Bytes) -> Result<Vec<U256>, Box<dyn Error + Send + 
                     let observations = decode_transmit_report(report.clone())?;
                     Ok(observations)
                 }
-                _ => Err("Failed to match decoded arguments with expected types".into()),
+                _ => Err(anyhow!(
+                    "Failed to match decoded arguments with expected types"
+                )),
             }
         } else {
-            Err("Failed to decode input data for `transmit`".into())
+            Err(anyhow!("Failed to decode input data for `transmit`"))
         }
     } else {
-        Err("Transmit function not found in ABI".into())
+        Err(anyhow!("Transmit function not found in ABI"))
     }
 }
 
-fn decode_transmit_report(data: Vec<u8>) -> Result<Vec<U256>, Box<dyn Error + Send + Sync>> {
+fn decode_transmit_report(data: Vec<u8>) -> Result<Vec<U256>> {
     // Correctly formatted ABI JSON
     let decode_json = r#"
         [{
@@ -126,13 +127,13 @@ fn decode_transmit_report(data: Vec<u8>) -> Result<Vec<U256>, Box<dyn Error + Se
                         }
                     }
                 }
-                _ => return Err("Failed to match decoded data with expected types".into()),
+                _ => return Err(anyhow!("Failed to match decoded data with expected types")),
             }
         } else {
-            return Err("Failed to decode report data".into());
+            return Err(anyhow!("Failed to decode report data"));
         }
     } else {
-        return Err("decodeReport function not found in ABI".into());
+        return Err(anyhow!("decodeReport function not found in ABI"));
     }
 
     Ok(price_observations)

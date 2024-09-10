@@ -7,10 +7,10 @@ use crate::exchanges::aave_v3::{
     implementations::aave_users_hash::UpdateUsers, user_structs::AaveUsersHash,
 };
 use ethers::types::Transaction;
-use eyre::Result;
 use log::info;
 use std::sync::Arc;
 
+use anyhow::Result;
 use ethers::providers::{Provider, Ws};
 use futures::lock::Mutex;
 
@@ -19,7 +19,7 @@ pub async fn find_users_and_liquidate(
     token: &Erc20Token,
     mempool_tx: Transaction,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<()> {
     // edge CASE
     let token_data = get_token_data().await?;
     let wsteth_token = token_data.get("wstETH").unwrap();
@@ -73,7 +73,7 @@ async fn update_and_get_accounts_to_liquidate(
     token: &Erc20Token,
     user_type: UserType,
     client: &Arc<Provider<Ws>>,
-) -> Result<Vec<LiquidationCandidate>, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Vec<LiquidationCandidate>> {
     let mut users = user_data.lock().await;
     let empty_vec_to_return_if_no_qualifed_accounts = Vec::<LiquidationCandidate>::new();
     // 1. update low health user health factor (that own or borrow token)
