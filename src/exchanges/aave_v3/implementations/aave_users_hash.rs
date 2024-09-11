@@ -1,7 +1,8 @@
 use crate::data::erc20::Erc20Token;
 use crate::data::token_data_hash::{get_tokens_priced_in_btc, get_tokens_priced_in_eth};
 use crate::exchanges::aave_v3::user_structs::{
-    LiquidationCandidate, LIQUIDATION_THRESHOLD, PROFIT_THRESHOLD_MAINNET,
+    LiquidationCandidate, LIQUIDATION_THRESHOLD, LIQUIDATION_THRESHOLD_LOWER_BOUND,
+    PROFIT_THRESHOLD_MAINNET,
 };
 
 use super::super::get_user_from_contract::get_aave_v3_user_from_data_provider;
@@ -9,6 +10,7 @@ use super::super::user_structs::{
     AaveUsersHash, PricingSource, UserType, UsersToLiquidate, HEALTH_FACTOR_THRESHOLD,
 };
 use super::aave_user_data::{GetUserData, UpdateUserData};
+use anyhow::Result;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
@@ -24,51 +26,51 @@ pub enum TokenPriceType {
 
 #[async_trait]
 pub trait UpdateUsers {
+    fn get_hashset_of_whales(&self) -> HashSet<Address>;
     async fn update_users_health_factor_by_token_and_return_liquidation_candidates(
         &mut self,
         token: &Erc20Token,
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>>;
+    ) -> Result<UsersToLiquidate>;
     async fn generate_hashset_of_user_by_user_type_for_(
         &mut self,
         token_price_type: TokenPriceType,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>>;
-    async fn generate_hashset_of_user_by_user_type_for_tokens_priced_in_eth(
-        &mut self,
-        user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>>;
+    ) -> Result<HashSet<Address>>;
     fn get_users_owning_token_by_user_type(
         &mut self,
         token: &Erc20Token,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>>; // get clone of user ids , NOT a mutable reference
+    ) -> Result<HashSet<Address>>; // get clone of user ids , NOT a mutable reference
     async fn add_new_user(
         &mut self,
         user_to_add: Address,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error>>;
+    ) -> Result<()>;
     async fn update_token_to_user_mapping_for_all_users_with_token_(
         &mut self,
         token: &Erc20Token,
-    ) -> Result<(), Box<dyn std::error::Error>>;
-    fn intialize_token_user_mapping(&mut self) -> Result<(), Box<dyn std::error::Error>>;
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<()>;
+    async fn intialize_token_user_mapping(&mut self) -> Result<()>;
     // check user health factor and if its in the right token => user id mapping, move if necessary
     async fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
-    ) -> Result<(), Box<dyn std::error::Error>>;
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<()>;
     fn remove_user_from_token_user_mapping(
         &mut self,
         user_id: Address,
         token: Address,
-    ) -> Result<(), Box<dyn std::error::Error>>;
-    fn move_user_from_standard_to_low_health_token_user_mapping(
+    ) -> Result<()>;
+    async fn move_user_from_standard_to_whale_user_mapping(
         &mut self,
         user_id: Address,
-    ) -> Result<(), Box<dyn std::error::Error>>;
-    fn move_user_from_low_health_to_standard_token_user_mapping(
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<()>;
+    fn move_user_from_whale_to_standard_token_user_mapping(
         &mut self,
         user_id: Address,
     ) -> Result<(), Box<dyn std::error::Error>>;
@@ -80,7 +82,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         user_to_add: Address,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<()> {
         match get_aave_v3_user_from_data_provider(user_to_add, client).await {
             Ok(user) => {
                 if user.health_factor
@@ -100,37 +102,41 @@ impl UpdateUsers for AaveUsersHash {
                         self.standard_user_ids_by_token.insert(token_address, users);
                     }
                 } else {
-                    // LOW HEALTH SCORE USERS
+                    // WHALE USERS
                     for token in &user.tokens {
                         let token_address: Address = token.token.address.parse()?;
 
                         let mut users = self
-                            .low_health_user_ids_by_token
+                            .whale_user_ids_by_token
                             .entry(token_address)
                             .or_default()
                             .clone();
 
                         users.insert(user_to_add);
 
-                        self.low_health_user_ids_by_token
-                            .insert(token_address, users);
+                        self.whale_user_ids_by_token.insert(token_address, users);
                     }
                 }
                 self.user_data.insert(user.id, user);
                 debug!("new user successfully added",)
             }
-            Err(error) => {
+            Err(_) => {
                 // warn!("user did not fit criteria ==> {}", error),
             }
         };
         Ok(())
     }
 
-    fn intialize_token_user_mapping(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn intialize_token_user_mapping(&mut self) -> Result<()> {
         for user in self.user_data.values() {
             // NOTE =====> THIS ASSUMES user health factor is VALID
-            let has_low_health_factor = user.health_factor
-                <= BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
+            let (user_profit_potential, _, _) = user
+                .get_user_liquidation_usd_profit(&user.health_factor)
+                .await?;
+            let is_whale_user = user.health_factor
+                <= BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32")
+                && user_profit_potential
+                    >= BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).expect("invalid f32");
 
             for token in &user.tokens {
                 let token_address: Address = token.token.address.parse()?;
@@ -141,16 +147,16 @@ impl UpdateUsers for AaveUsersHash {
                     .or_default()
                     .clone();
 
-                let mut low_health_user_ids = self
-                    .low_health_user_ids_by_token
+                let mut whale_user_ids = self
+                    .whale_user_ids_by_token
                     .entry(token_address)
                     .or_default()
                     .clone();
 
-                if has_low_health_factor {
-                    low_health_user_ids.insert(user.id);
-                    self.low_health_user_ids_by_token
-                        .insert(token_address, low_health_user_ids);
+                if is_whale_user {
+                    whale_user_ids.insert(user.id);
+                    self.whale_user_ids_by_token
+                        .insert(token_address, whale_user_ids);
                 } else {
                     standard_user_ids.insert(user.id);
                     self.standard_user_ids_by_token
@@ -165,21 +171,21 @@ impl UpdateUsers for AaveUsersHash {
     async fn update_token_to_user_mapping_for_all_users_with_token_(
         &mut self,
         token: &Erc20Token,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<()> {
         if token.symbol == "BTC" {
             return Ok(());
         }
-        let low_health_users =
-            self.get_users_owning_token_by_user_type(token, UserType::LowHealth)?;
+        let whale_users = self.get_users_owning_token_by_user_type(token, UserType::Whale)?;
 
-        for user_id in low_health_users {
-            self.update_token_user_mapping_for_(user_id).await?;
+        for user_id in whale_users {
+            self.update_token_user_mapping_for_(user_id, client).await?;
         }
 
         let standard_users = self.get_users_owning_token_by_user_type(token, UserType::Standard)?;
 
         for user_id in standard_users {
-            self.update_token_user_mapping_for_(user_id).await?;
+            self.update_token_user_mapping_for_(user_id, client).await?;
         }
 
         Ok(())
@@ -188,11 +194,12 @@ impl UpdateUsers for AaveUsersHash {
     async fn update_token_user_mapping_for_(
         &mut self,
         user_id: Address,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<()> {
         // get user health factor
 
         // if health factor is less than HEALTH_FACTOR_THRESHOLD and profit potential is greater than PROFIT_THRESHOLD then
-        // then user belongs in  low health factor hash map
+        // then user belongs in wahle hash map
         let user = self.user_data.get(&user_id).expect("Invalid user id");
         let health_factor = &user.health_factor;
         let (user_profit_potential, _, _) =
@@ -204,22 +211,24 @@ impl UpdateUsers for AaveUsersHash {
             > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).expect("invalid f32");
 
         if low_health_factor && profitable {
-            self.move_user_from_standard_to_low_health_token_user_mapping(user_id)
-                .unwrap_or_else(|err| error!("could not move user to new mapping => {}", err));
+            self.move_user_from_standard_to_whale_user_mapping(user_id, client)
+                .await?;
         } else {
-            self.move_user_from_low_health_to_standard_token_user_mapping(user_id)
+            self.move_user_from_whale_to_standard_token_user_mapping(user_id)
                 .unwrap_or_else(|err| error!("could not move user to new mapping => {}", err));
         }
 
         Ok(())
     }
 
-    // standard mapping ===> low health factor mapping
-    fn move_user_from_standard_to_low_health_token_user_mapping(
+    // standard mapping ===> whale factor mapping
+    async fn move_user_from_standard_to_whale_user_mapping(
         &mut self,
         user_id: Address,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+        client: &Arc<Provider<Ws>>,
+    ) -> Result<()> {
         let user = self.user_data.get(&user_id).expect("Invalid user id");
+        let mut user_transfered_to_whale = false;
 
         for token in &user.tokens {
             let token_address: Address = token.token.address.parse()?;
@@ -237,24 +246,39 @@ impl UpdateUsers for AaveUsersHash {
                         .insert(token_address, standard_users);
                 }
 
-                // move OR add user id to low health factor mapping if not already present
-                let mut low_health_users = self
-                    .low_health_user_ids_by_token
+                // move OR add user id to whale mapping if not already present
+                let mut whale_users = self
+                    .whale_user_ids_by_token
                     .entry(token_address)
                     .or_default()
                     .clone();
 
-                if low_health_users.insert(user_id) {
-                    self.low_health_user_ids_by_token
-                        .insert(token_address, low_health_users);
+                if whale_users.insert(user_id) {
+                    self.whale_user_ids_by_token
+                        .insert(token_address, whale_users);
+
+                    user_transfered_to_whale = true;
                 }
             }
+        }
+
+        // if user has been transfered to whale hash then we need to update their data
+        if user_transfered_to_whale {
+            match get_aave_v3_user_from_data_provider(user.id, client).await {
+                Ok(user) => {
+                    self.user_data.insert(user_id, user);
+                }
+                Err(error) => debug!(
+                    "could not get updated user from data provider contract => {}",
+                    error
+                ),
+            };
         }
         Ok(())
     }
 
-    // low health mapping ===> standard mapping
-    fn move_user_from_low_health_to_standard_token_user_mapping(
+    // whale mapping ===> standard mapping
+    fn move_user_from_whale_to_standard_token_user_mapping(
         &mut self,
         user_id: Address,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -263,20 +287,17 @@ impl UpdateUsers for AaveUsersHash {
         for token in &user.tokens {
             let token_address: Address = token.token.address.parse()?;
 
-            if self
-                .low_health_user_ids_by_token
-                .contains_key(&token_address)
-            {
-                let mut low_health_users = self
-                    .low_health_user_ids_by_token
+            if self.whale_user_ids_by_token.contains_key(&token_address) {
+                let mut whale_users = self
+                    .whale_user_ids_by_token
                     .entry(token_address)
                     .or_default()
                     .clone();
 
-                if low_health_users.remove(&user_id) {
+                if whale_users.remove(&user_id) {
                     // update mapping with user id removed
-                    self.low_health_user_ids_by_token
-                        .insert(token_address, low_health_users);
+                    self.whale_user_ids_by_token
+                        .insert(token_address, whale_users);
                 }
 
                 // move OR add user id to standard mapping
@@ -299,7 +320,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         user_id: Address,
         token_address: Address,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<()> {
         // CHECK STANDARD MAPPING
         if self.standard_user_ids_by_token.contains_key(&token_address) {
             let mut users = self
@@ -315,20 +336,16 @@ impl UpdateUsers for AaveUsersHash {
             }
         }
 
-        // CHECK LOW HEALTH MAPPING
-        if self
-            .low_health_user_ids_by_token
-            .contains_key(&token_address)
-        {
+        // CHECK WHALE MAPPING
+        if self.whale_user_ids_by_token.contains_key(&token_address) {
             let mut users = self
-                .low_health_user_ids_by_token
+                .whale_user_ids_by_token
                 .entry(token_address)
                 .or_default()
                 .clone();
 
             if users.remove(&user_id) {
-                self.low_health_user_ids_by_token
-                    .insert(token_address, users);
+                self.whale_user_ids_by_token.insert(token_address, users);
             }
         }
 
@@ -340,7 +357,7 @@ impl UpdateUsers for AaveUsersHash {
         main_token: &Erc20Token,
         user_type: UserType,
         client: &Arc<Provider<Ws>>,
-    ) -> Result<UsersToLiquidate, Box<dyn std::error::Error>> {
+    ) -> Result<UsersToLiquidate> {
         // track already updated users and liquidation candidates
         let mut liquidation_candidates = Vec::<LiquidationCandidate>::new();
 
@@ -366,16 +383,6 @@ impl UpdateUsers for AaveUsersHash {
             _ => self.get_users_owning_token_by_user_type(main_token, user_type)?,
         };
 
-        // let user_ids_array = if main_token.symbol == "WETH" {
-        //     // must update full list of tokens if WETH
-        //     let users_with_tokens_priced_in_eth = self
-        //         .generate_hashset_of_user_by_user_type_for_tokens_priced_in_eth(user_type)
-        //         .await?;
-        //     users_with_tokens_priced_in_eth.into_iter().collect()
-        // } else {
-        //     self.get_users_owning_token_by_user_type(main_token, user_type)?
-        // };
-
         for user_id in user_ids_array {
             let user = self
                 .user_data
@@ -386,7 +393,8 @@ impl UpdateUsers for AaveUsersHash {
                 .await?;
 
             if user.health_factor < BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap()
-                && user.health_factor > BigDecimal::from(0)
+                && user.health_factor
+                    > BigDecimal::from_f32(LIQUIDATION_THRESHOLD_LOWER_BOUND).unwrap()
             {
                 // now check for user profitability
                 let (profitability, debt_token, collateral_token) = user
@@ -415,7 +423,7 @@ impl UpdateUsers for AaveUsersHash {
         &mut self,
         token_price_type: TokenPriceType,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
+    ) -> Result<HashSet<Address>> {
         let mut users_that_own_token_price_type_tokens = HashSet::<Address>::new();
 
         let token_price_type_tokens = match token_price_type {
@@ -425,17 +433,17 @@ impl UpdateUsers for AaveUsersHash {
 
         for token in token_price_type_tokens.values() {
             match user_type {
-                UserType::LowHealth => {
-                    let low_health_users =
-                        self.get_users_owning_token_by_user_type(token, UserType::LowHealth)?;
+                UserType::Whale => {
+                    let whale_users =
+                        self.get_users_owning_token_by_user_type(token, UserType::Whale)?;
                     debug!(
                         "{} user with low health score have {}",
-                        low_health_users.len(),
+                        whale_users.len(),
                         token.symbol
                     );
 
-                    if !low_health_users.is_empty() {
-                        users_that_own_token_price_type_tokens.extend(low_health_users);
+                    if !whale_users.is_empty() {
+                        users_that_own_token_price_type_tokens.extend(whale_users);
                     }
                 }
                 UserType::Standard => {
@@ -460,71 +468,27 @@ impl UpdateUsers for AaveUsersHash {
         Ok(users_that_own_token_price_type_tokens)
     }
 
-    async fn generate_hashset_of_user_by_user_type_for_tokens_priced_in_eth(
-        &mut self,
-        user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
-        let mut users_with_tokens_priced_in_eth = HashSet::<Address>::new();
-        let token_price_priced_in_eth = get_tokens_priced_in_eth().await?;
-
-        for token in token_price_priced_in_eth.values() {
-            match user_type {
-                UserType::LowHealth => {
-                    let low_health_users =
-                        self.get_users_owning_token_by_user_type(token, UserType::LowHealth)?;
-                    debug!(
-                        "{} user with low health score have {}",
-                        low_health_users.len(),
-                        token.symbol
-                    );
-
-                    if !low_health_users.is_empty() {
-                        users_with_tokens_priced_in_eth.extend(low_health_users);
-                    }
-                }
-                UserType::Standard => {
-                    let standard_users =
-                        self.get_users_owning_token_by_user_type(token, UserType::Standard)?;
-
-                    // debug!(
-                    //     "{} standard users have {}",
-                    //     standard_users.len(),
-                    //     token.symbol
-                    // );
-                    if !standard_users.is_empty() {
-                        users_with_tokens_priced_in_eth.extend(standard_users);
-                    }
-                }
-            }
-        }
-        // debug!(
-        //     "hashset of tokens connected to ETH contain {} unique users",
-        //     users_with_tokens_priced_in_eth.len()
-        // );
-        Ok(users_with_tokens_priced_in_eth)
-    }
-
     fn get_users_owning_token_by_user_type(
         &mut self,
         token: &Erc20Token,
         user_type: UserType,
-    ) -> Result<HashSet<Address>, Box<dyn std::error::Error>> {
+    ) -> Result<HashSet<Address>> {
         let token_address: Address = token.address.parse()?;
 
         match user_type {
-            UserType::LowHealth => {
-                let low_health_users = self
-                    .low_health_user_ids_by_token
+            UserType::Whale => {
+                let whale_users = self
+                    .whale_user_ids_by_token
                     .get(&token_address)
                     .unwrap_or_else(|| {
                         // TODO should we really panic here?
                         panic!(
-                            "invalid low_health_user_ids_by_token {} => {}",
+                            "invalid whale_user_ids_by_token {} => {}",
                             token.symbol, token.address
                         )
                     });
 
-                Ok(low_health_users.to_owned())
+                Ok(whale_users.to_owned())
             }
             UserType::Standard => {
                 let standard_users = self
@@ -535,5 +499,15 @@ impl UpdateUsers for AaveUsersHash {
                 Ok(standard_users.to_owned())
             }
         }
+    }
+
+    fn get_hashset_of_whales(&self) -> HashSet<Address> {
+        let mut whales = HashSet::<Address>::new();
+
+        for user_hashset in self.whale_user_ids_by_token.values() {
+            whales.extend(user_hashset.iter());
+        }
+
+        whales
     }
 }

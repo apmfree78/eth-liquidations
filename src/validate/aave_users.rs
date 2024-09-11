@@ -4,7 +4,7 @@ use crate::{
         address::CONTRACT,
         erc20::u256_to_big_decimal,
         token_data_hash::{get_token_data, get_unique_token_data},
-        token_price_hash::{generate_token_price_hash, get_saved_token_price},
+        token_price_hash::get_saved_token_price,
         users_to_track::{get_tracked_users, reset_tracked_users},
     },
     exchanges::aave_v3::user_structs::{
@@ -14,6 +14,7 @@ use crate::{
     utils::type_conversion::address_to_string,
 };
 
+use anyhow::{anyhow, Result};
 use bigdecimal::{BigDecimal, FromPrimitive};
 use colored::*;
 use ethers::{
@@ -24,9 +25,7 @@ use log::{debug, info};
 use num_traits::{ToPrimitive, Zero};
 use std::sync::Arc;
 
-pub async fn validate_liquidation_candidates(
-    client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn validate_liquidation_candidates(client: &Arc<Provider<Ws>>) -> Result<()> {
     let mut validation_count: u16 = 0;
     let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
     let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
@@ -140,7 +139,7 @@ pub async fn calculate_user_liquidation_usd_profit(
     user_id: &Address,
     health_factor: &BigDecimal,
     client: &Arc<Provider<Ws>>,
-) -> Result<(LiquidationArgs, U256), Box<dyn std::error::Error>> {
+) -> Result<(LiquidationArgs, U256)> {
     let bps_factor = U256::from(BPS_FACTOR);
     let standard_scale = U256::exp10(18);
     let aave_v3_data_provider_address: Address =
@@ -224,11 +223,11 @@ pub async fn calculate_user_liquidation_usd_profit(
 
             let debt_to_cover = highest_token_debt
                 .checked_mul(liquidation_close_factor_scaled)
-                .ok_or("overflow!")?;
+                .ok_or_else(|| anyhow!("overflow!"))?;
 
             let debt_to_cover = debt_to_cover
                 .checked_div(standard_scale)
-                .ok_or("overflow or div by zero!")?;
+                .ok_or_else(|| anyhow!("overflow or div by zero!"))?;
 
             // let debt_to_cover = debt_to_cover
             //     .checked_mul(token_price)
@@ -264,31 +263,31 @@ pub async fn calculate_user_liquidation_usd_profit(
         if liquidation_bonus > U256::from(0) && token.usage_as_collateral_enabled {
             let profit_usd_scaled = debt_to_cover_in_usd_scaled
                 .checked_mul(highest_token_price)
-                .ok_or("profit calc overflow")?;
+                .ok_or_else(|| anyhow!("profit calc overflow"))?;
 
             let profit_usd_scaled = profit_usd_scaled
                 .checked_div(highest_token_decimal_factor)
-                .ok_or("profit overflow div by zero")?;
+                .ok_or_else(|| anyhow!("profit overflow div by zero"))?;
 
             let profit_usd_scaled = profit_usd_scaled
                 .checked_mul(liquidation_bonus)
-                .ok_or("profit overflow liquidation bonus")?;
+                .ok_or_else(|| anyhow!("profit overflow liquidation bonus"))?;
 
             let bonus_minus_one = liquidation_bonus
                 .checked_sub(bps_factor)
-                .ok_or("additionl error")?;
+                .ok_or_else(|| anyhow!("additionl error"))?;
 
             let profit_usd_scaled = profit_usd_scaled
                 .checked_mul(bonus_minus_one)
-                .ok_or("profit overflow liquidation bonus minus one")?;
+                .ok_or_else(|| anyhow!("profit overflow liquidation bonus minus one"))?;
 
             let profit_usd_scaled = profit_usd_scaled
                 .checked_div(bps_factor)
-                .ok_or("profit overflow div bps factor 1")?;
+                .ok_or_else(|| anyhow!("profit overflow div bps factor 1"))?;
 
             let profit_usd_scaled = profit_usd_scaled
                 .checked_div(bps_factor)
-                .ok_or("profit overflow div bps factor 2")?;
+                .ok_or_else(|| anyhow!("profit overflow div bps factor 2"))?;
 
             if profit_usd_scaled > maximum_profit {
                 maximum_profit = profit_usd_scaled;
@@ -306,9 +305,7 @@ pub async fn calculate_user_liquidation_usd_profit(
     Ok((liquidation_args, maximum_profit))
 }
 
-pub async fn calculate_gas_cost(
-    client: &Arc<Provider<Ws>>,
-) -> Result<U256, Box<dyn std::error::Error>> {
+pub async fn calculate_gas_cost(client: &Arc<Provider<Ws>>) -> Result<U256> {
     // ESTIMATING GAS FOR BELOW CALC
     // match aave_v3_pool
     //     .liquidation_call(
@@ -338,7 +335,7 @@ pub async fn calculate_gas_cost(
 
     let total_cost = estimated_gas_cost
         .checked_mul(gas_price)
-        .ok_or("overflow calculating total cost")?;
+        .ok_or_else(|| anyhow!("overflow calculating total cost"))?;
 
     // let eth_cost = format_units(total_cost, 18)?;
     // info!("cost in eth of liquidation call is {}", eth_cost);

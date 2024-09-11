@@ -24,6 +24,7 @@ use crate::generate_logs::{
     create_log_for_borrow_event, create_log_for_liquidation_event, create_log_for_repay_event,
     create_log_for_supply_event, create_log_for_withdraw_event,
 };
+use anyhow::Result;
 use ethers::providers::{Provider, Ws};
 use std::sync::Arc;
 
@@ -31,7 +32,7 @@ const WS_URL: &str = "ws://localhost:8546";
 const AAVE_V3_POOL: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
 
 #[tokio::test]
-async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_update_with_repay_event() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
@@ -55,7 +56,7 @@ async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::E
 
     let log = create_log_for_repay_event(&repay_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
     // let mut users = user_hash.user_data.values();
     // println!("users => {:#?}", users);
 
@@ -80,8 +81,7 @@ async fn test_user_update_with_repay_event() -> Result<(), Box<dyn std::error::E
 }
 
 #[tokio::test]
-async fn test_user_update_with_full_repay_then_withdraw_event(
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_update_with_full_repay_then_withdraw_event() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -105,7 +105,7 @@ async fn test_user_update_with_full_repay_then_withdraw_event(
 
     let log = create_log_for_repay_event(&repay_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
     // let mut users = user_hash.user_data.values();
     // println!("users => {:#?}", users);
 
@@ -149,8 +149,7 @@ async fn test_user_update_with_full_repay_then_withdraw_event(
 }
 
 #[tokio::test]
-async fn test_user_update_with_full_withdraw_then_repay_event(
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_update_with_full_withdraw_then_repay_event() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -170,7 +169,7 @@ async fn test_user_update_with_full_withdraw_then_repay_event(
 
     let log = create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
     // let mut users = user_hash.user_data.values();
     // println!("users => {:#?}", users);
 
@@ -218,8 +217,7 @@ async fn test_user_update_with_full_withdraw_then_repay_event(
 }
 
 #[tokio::test]
-async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn std::error::Error>>
-{
+async fn test_user_update_with_repay_with_a_token_event() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -240,7 +238,7 @@ async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn 
 
     let log = create_log_for_repay_event(&repay_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
 
     // now lets repay user debt and see if amount is updated
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
@@ -261,7 +259,7 @@ async fn test_user_update_with_repay_with_a_token_event() -> Result<(), Box<dyn 
 }
 
 #[tokio::test]
-async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_update_with_borrow() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -286,7 +284,7 @@ async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>
 
     let log = create_log_for_borrow_event(&borrow_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
 
     // now lets borrow tokens and take on more debt
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
@@ -305,7 +303,7 @@ async fn test_user_update_with_borrow() -> Result<(), Box<dyn std::error::Error>
 }
 
 #[tokio::test]
-async fn test_user_liquidation() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_liquidation() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -333,7 +331,7 @@ async fn test_user_liquidation() -> Result<(), Box<dyn std::error::Error>> {
 
     let log = create_log_for_liquidation_event(&liquidation_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
 
     // now lets borrow tokens and take on more debt
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
@@ -357,7 +355,7 @@ async fn test_user_liquidation() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
-async fn test_user_update_with_borrow_new_token() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_update_with_borrow_new_token() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -382,7 +380,7 @@ async fn test_user_update_with_borrow_new_token() -> Result<(), Box<dyn std::err
 
     let log = create_log_for_borrow_event(&borrow_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
 
     // now lets borrow tokens and take on more debt
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
@@ -405,7 +403,7 @@ async fn test_user_update_with_borrow_new_token() -> Result<(), Box<dyn std::err
 }
 
 #[tokio::test]
-async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_update_with_supply() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -428,7 +426,7 @@ async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>
 
     let log = create_log_for_supply_event(&supply_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
 
     // now lets supply tokens to exchange
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
@@ -447,7 +445,7 @@ async fn test_user_update_with_supply() -> Result<(), Box<dyn std::error::Error>
 }
 
 #[tokio::test]
-async fn test_user_update_with_supply_to_new_token() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_update_with_supply_to_new_token() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -470,7 +468,7 @@ async fn test_user_update_with_supply_to_new_token() -> Result<(), Box<dyn std::
 
     let log = create_log_for_supply_event(&supply_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
 
     // now lets supply tokens to exchange
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
@@ -493,7 +491,7 @@ async fn test_user_update_with_supply_to_new_token() -> Result<(), Box<dyn std::
 }
 
 #[tokio::test]
-async fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_update_with_withdraw() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -513,7 +511,7 @@ async fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Erro
 
     let log = create_log_for_withdraw_event(&withdraw_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
 
     // now lets withdraw user tokens
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;
@@ -532,8 +530,7 @@ async fn test_user_update_with_withdraw() -> Result<(), Box<dyn std::error::Erro
 }
 
 #[tokio::test]
-async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn std::error::Error>>
-{
+async fn test_user_update_with_collateral_enable_disable() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -551,7 +548,7 @@ async fn test_user_update_with_collateral_enable_disable() -> Result<(), Box<dyn
 
     let log = create_log_for_collateral_disable_event(collateral_disable_event, AAVE_V3_POOL);
 
-    let mut user_hash = generate_mock_user_hash()?;
+    let mut user_hash = generate_mock_user_hash().await?;
 
     // disable token usage as collateral
     update_users_with_event_from_log(log, &mut user_hash, &client).await?;

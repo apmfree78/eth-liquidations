@@ -1,12 +1,14 @@
+use anyhow::Result;
 use dotenv::dotenv;
 use eth_liquadation::{
     data::{
-        token_data_hash::save_btc_as_token,
+        token_data_hash::{save_btc_as_token, save_erc20_tokens_from_static_data},
         token_price_hash::{generate_token_price_hash, print_saved_token_prices},
     },
     events::aave_events::{set_aave_event_signature_filter, update_users_with_event_from_log},
     exchanges::aave_v3::{
         implementations::aave_user_data::GenerateUsers,
+        implementations::aave_users_hash::UpdateUsers,
         user_structs::{AaveUserData, SampleSize},
     },
     mempool::detect_price_update::detect_price_update_and_find_users_to_liquidate,
@@ -31,16 +33,20 @@ enum Event {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     // initiate logger and environment variables
     dotenv().ok();
     setup_logger().expect("Failed to initialize logger.");
 
     // setup provider
+
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
-    let aave_users = AaveUserData::get_users(&client, SampleSize::All).await?;
+    // need this otherwise cannot reconstruct user data from sratch
+    save_erc20_tokens_from_static_data(&client).await?;
+
+    let aave_users = AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
 
     // Initialize TOKEN_PRICE_HASH global hashmap of token prices and save mock BTC TOKEN
     save_btc_as_token(&client).await?;
@@ -54,10 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let aave_event_filter = set_aave_event_signature_filter()?;
     // Create multiple subscription streams.
-    let aave_log_stream: stream::BoxStream<
-        '_,
-        Result<Event, Box<dyn std::error::Error + Send + Sync>>,
-    > = client
+    let aave_log_stream: stream::BoxStream<'_, Result<Event>> = client
         .subscribe_logs(&aave_event_filter)
         .await?
         .map(|log| Ok(Event::AaveV3Log(log)))
@@ -65,17 +68,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Subscribed to aave v3 logs");
 
-    let tx_stream: stream::BoxStream<'_, Result<Event, Box<dyn std::error::Error + Send + Sync>>> =
-        client
-            .subscribe_pending_txs()
-            .await?
-            .map(|tx| Ok(Event::PendingTransactions(tx)))
-            .boxed();
+    let tx_stream: stream::BoxStream<'_, Result<Event>> = client
+        .subscribe_pending_txs()
+        .await?
+        .map(|tx| Ok(Event::PendingTransactions(tx)))
+        .boxed();
 
-    let block_stream: stream::BoxStream<
-        '_,
-        Result<Event, Box<dyn std::error::Error + Send + Sync>>,
-    > = client
+    let block_stream: stream::BoxStream<'_, Result<Event>> = client
         .subscribe_blocks()
         .await?
         .map(|block| Ok(Event::Block(block)))
@@ -116,6 +115,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(Event::Block(block)) => {
                     info!("NEW BLOCK ===> {}", block.timestamp);
 
+                    let mut users = aave_users_data.lock().await;
+                    let whales = users.get_hashset_of_whales();
+                    debug!("{} whales found!", whales.len());
                     // FOR TESTING ONLY
                     // debug!("using these prices to find health factor in new block");
                     // let _ = generate_token_price_hash(&client).await;

@@ -1,3 +1,4 @@
+use anyhow::Result;
 use bigdecimal::BigDecimal;
 use dotenv::dotenv;
 use eth_liquadation::exchanges::aave_v3::{
@@ -9,8 +10,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 #[tokio::test]
-async fn test_that_health_factor_is_self_consistent_in_user_data(
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_that_health_factor_is_self_consistent_in_user_data() -> Result<()> {
     dotenv().ok();
 
     // Set up the Ethereum client connection and wallet
@@ -39,8 +39,7 @@ async fn test_that_health_factor_is_self_consistent_in_user_data(
 }
 
 #[tokio::test]
-async fn test_that_calculated_health_factor_roughly_matches_given_one(
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_that_calculated_health_factor_roughly_matches_given_one() -> Result<()> {
     dotenv().ok();
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";

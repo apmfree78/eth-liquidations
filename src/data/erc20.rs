@@ -4,6 +4,7 @@ use super::token_price_hash::get_saved_token_price;
 use crate::abi::aave_oracle::AAVE_ORACLE;
 use crate::abi::chainlink_aggregator::CHAINLINK_AGGREGATOR;
 // use alloy_primitives;
+use anyhow::Result;
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
@@ -27,6 +28,9 @@ pub struct Erc20Token {
     pub liquidation_threshold: u16,
     pub chain_link_price_feed: String,
     pub chainlink_aggregator: String,
+    pub stable_borrow_rate: f64,
+    pub variable_borrow_rate: f64,
+    pub liquidity_rate: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -54,14 +58,9 @@ pub trait Convert {
     //     client: &Arc<Provider<Ws>>,
     // ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
 
-    async fn get_token_oracle_price(
-        &self,
-        client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+    async fn get_token_oracle_price(&self, client: &Arc<Provider<Ws>>) -> Result<BigDecimal>;
 
-    async fn get_saved_price_from_token_price_hash(
-        &self,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>>;
+    async fn get_saved_price_from_token_price_hash(&self) -> Result<BigDecimal>;
 }
 
 #[async_trait]
@@ -173,10 +172,7 @@ impl Convert for Erc20Token {
     //     Ok(token_price_in_base_token)
     // }
     //
-    async fn get_token_oracle_price(
-        &self,
-        client: &Arc<Provider<Ws>>,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+    async fn get_token_oracle_price(&self, client: &Arc<Provider<Ws>>) -> Result<BigDecimal> {
         if self.symbol == "BTC" {
             let feed_address: Address = self.chain_link_price_feed.parse()?;
             let chainlink_btc_oracle = CHAINLINK_AGGREGATOR::new(feed_address, client.clone());
@@ -200,9 +196,7 @@ impl Convert for Erc20Token {
         Ok(token_price_oracle)
     }
 
-    async fn get_saved_price_from_token_price_hash(
-        &self,
-    ) -> Result<BigDecimal, Box<dyn std::error::Error>> {
+    async fn get_saved_price_from_token_price_hash(&self) -> Result<BigDecimal> {
         let token_price = get_saved_token_price(self.address.to_lowercase()).await?;
 
         Ok(token_price)

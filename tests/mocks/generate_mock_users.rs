@@ -1,3 +1,4 @@
+use anyhow::Result;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use eth_liquadation::data::erc20::Erc20Token;
 use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
@@ -9,7 +10,7 @@ pub const USDT_USER_DEBT: u64 = 26000000000;
 pub const USDT_USER_BALANCE: u64 = 30000000000;
 pub const WETH_USER_BALANCE: u128 = 10000000000000000000;
 
-pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
+pub async fn generate_mock_user_hash() -> Result<AaveUsersHash> {
     let user_address: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let user_data = AaveUserData {
         id: user_address,
@@ -26,6 +27,7 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Er
                     liquidation_threshold: 8300,
                     chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -43,6 +45,7 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Er
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(USDT_USER_DEBT).unwrap(),
                 usage_as_collateral_enabled: true,
@@ -62,17 +65,17 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Er
     let mut aave_users_hash = AaveUsersHash {
         user_data: user_hash,
         standard_user_ids_by_token: HashMap::new(),
-        low_health_user_ids_by_token: HashMap::new(),
+        whale_user_ids_by_token: HashMap::new(),
     };
 
-    aave_users_hash.intialize_token_user_mapping()?;
+    aave_users_hash.intialize_token_user_mapping().await?;
 
     println!("users hash => {:#?}", aave_users_hash);
 
     Ok(aave_users_hash)
 }
 
-pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
+pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let user_data = AaveUserData {
         id: user_address,
@@ -89,6 +92,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
                     liquidation_threshold: 8300,
                     chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -106,6 +110,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(5000000000).unwrap(),
                 usage_as_collateral_enabled: true,
@@ -135,6 +140,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
                     liquidation_threshold: 8300,
                     chain_link_price_feed: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -152,6 +158,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(USDT_USER_DEBT).unwrap(),
                 usage_as_collateral_enabled: true,
@@ -170,10 +177,10 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
     let mut aave_users_hash = AaveUsersHash {
         user_data: user_hash,
         standard_user_ids_by_token: HashMap::new(),
-        low_health_user_ids_by_token: HashMap::new(),
+        whale_user_ids_by_token: HashMap::new(),
     };
 
-    aave_users_hash.intialize_token_user_mapping()?;
+    aave_users_hash.intialize_token_user_mapping().await?;
 
     println!("users hash => {:#?}", aave_users_hash);
 
@@ -181,7 +188,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash, Box<dyn std::error::
 }
 
 // first user has liquidation factor of 0.83 while other has 8.3
-pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::error::Error>> {
+pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let user_data = AaveUserData {
         id: user_address,
@@ -198,6 +205,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::erro
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x736bF902680e68989886e9807CD7Db4B3E015d3C".to_string(),
                     chainlink_aggregator: "".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -215,6 +223,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::erro
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(100000000).unwrap(),
                 usage_as_collateral_enabled: true,
@@ -242,6 +251,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::erro
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x736bF902680e68989886e9807CD7Db4B3E015d3C".to_string(),
                     chainlink_aggregator: "".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from(0),
                 usage_as_collateral_enabled: true,
@@ -259,6 +269,7 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::erro
                     liquidation_threshold: 7800,
                     chain_link_price_feed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D".to_string(),
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
+                    ..Default::default()
                 },
                 current_total_debt: BigDecimal::from_u64(1000000).unwrap(),
                 usage_as_collateral_enabled: true,
@@ -277,10 +288,10 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash, Box<dyn std::erro
     let mut aave_users_hash = AaveUsersHash {
         user_data: user_hash,
         standard_user_ids_by_token: HashMap::new(),
-        low_health_user_ids_by_token: HashMap::new(),
+        whale_user_ids_by_token: HashMap::new(),
     };
 
-    aave_users_hash.intialize_token_user_mapping()?;
+    aave_users_hash.intialize_token_user_mapping().await?;
 
     println!("users hash => {:#?}", aave_users_hash);
 

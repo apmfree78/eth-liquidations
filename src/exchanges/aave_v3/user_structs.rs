@@ -3,9 +3,9 @@ use bigdecimal::BigDecimal;
 use ethers::{abi::Address, types::U256};
 use std::collections::{HashMap, HashSet};
 
-pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.05;
+pub const HEALTH_FACTOR_THRESHOLD: f32 = 1.2;
 pub const DEFAULT_LIQUIDATION_CLOSE_FACTOR: f32 = 0.5;
-pub const PROFIT_THRESHOLD_MAINNET: f32 = 1.0; // raise to $50 for prod
+pub const PROFIT_THRESHOLD_MAINNET: f32 = 100.0; // raise to $50 for prod
 /**
  * @dev Maximum percentage of borrower's debt to be repaid in a liquidation
  * @dev Percentage applied when the users health factor is below `CLOSE_FACTOR_HF_THRESHOLD`
@@ -20,6 +20,8 @@ pub const MAX_LIQUIDATION_CLOSE_FACTOR: f32 = 1.0;
  */
 pub const CLOSE_FACTOR_HF_THRESHOLD: f32 = 0.95;
 pub const LIQUIDATION_THRESHOLD: f32 = 1.00;
+// pub const LIQUIDATION_THRESHOLD: f32 = 1.05; // user value slightly highet than 1 to account for health factor estimation error
+pub const LIQUIDATION_THRESHOLD_LOWER_BOUND: f32 = 0.10;
 pub const BPS_FACTOR: u64 = 10_u64.pow(4);
 
 #[derive(Clone, Copy, Debug)]
@@ -95,7 +97,7 @@ events found in logs and changes in token prices
 pub struct AaveUsersHash {
     pub user_data: HashMap<Address, AaveUserData>,
     pub standard_user_ids_by_token: HashMap<Address, HashSet<Address>>,
-    pub low_health_user_ids_by_token: HashMap<Address, HashSet<Address>>,
+    pub whale_user_ids_by_token: HashMap<Address, HashSet<Address>>,
 }
 
 pub enum UsersToLiquidate {
@@ -106,5 +108,5 @@ pub enum UsersToLiquidate {
 #[derive(Clone, Copy, Debug)]
 pub enum UserType {
     Standard,
-    LowHealth,
+    Whale,
 }

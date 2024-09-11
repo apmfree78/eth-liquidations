@@ -1,4 +1,21 @@
-use super::erc20::Erc20TokenStatic;
+use super::{address::CHAIN, erc20::Erc20TokenStatic};
+use ethers::types::Chain;
+
+pub fn get_static_token_data_by_chain() -> Vec<Erc20TokenStatic> {
+    let price_feed = match CHAIN {
+        Chain::Mainnet => MAINNET_TOKENS,
+        Chain::Polygon => POLYGON_TOKENS,
+        Chain::Arbitrum => ARBITRUM_TOKENS,
+        Chain::Optimism => OPTIMISM_TOKENS,
+        Chain::BinanceSmartChain => BNB_TOKENS,
+        Chain::Avalanche => AVALANCHE_TOKENS,
+        Chain::Metis => METIS_TOKENS,
+        Chain::Scroll => SCROLL_TOKENS,
+        Chain::Gnosis => GNOSIS_TOKENS,
+        _ => MAINNET_TOKENS,
+    };
+    price_feed.to_vec()
+}
 
 pub static MAINNET_TOKENS: &[Erc20TokenStatic] = &[
     Erc20TokenStatic {

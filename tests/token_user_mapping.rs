@@ -1,6 +1,7 @@
 #[path = "./mocks/generate_mock_users.rs"]
 mod generate_mock_users;
 
+use anyhow::Result;
 use bigdecimal::{BigDecimal, FromPrimitive};
 use eth_liquadation::data::token_data_hash::{get_token_data, save_erc20_tokens_from_static_data};
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
@@ -16,24 +17,21 @@ use std::sync::Arc;
 const WS_URL: &str = "ws://localhost:8546";
 
 #[tokio::test]
-async fn test_user_is_placed_in_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_is_placed_in_correct_mapping() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
     save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
 
-    let users_hash = generate_mock_user_hash()?;
+    let users_hash = generate_mock_user_hash().await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // test that both values are in low health mapping since
     // initial health factor is 0.9
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 1);
     }
 
@@ -45,24 +43,21 @@ async fn test_user_is_placed_in_correct_mapping() -> Result<(), Box<dyn std::err
 }
 
 #[tokio::test]
-async fn test_users_are_placed_in_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_users_are_placed_in_correct_mapping() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
     save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
 
-    let users_hash = generate_mock_2_user_hash()?;
+    let users_hash = generate_mock_2_user_hash().await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // test that both values are in low health mapping since
     // initial health factor is 0.9
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 2);
     }
 
@@ -74,7 +69,7 @@ async fn test_users_are_placed_in_correct_mapping() -> Result<(), Box<dyn std::e
 }
 
 #[tokio::test]
-async fn test_both_users_are_moved_to_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_both_users_are_moved_to_correct_mapping() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
 
@@ -84,17 +79,14 @@ async fn test_both_users_are_moved_to_correct_mapping() -> Result<(), Box<dyn st
 
     generate_token_price_hash(&client).await?;
 
-    let mut users_hash = generate_mock_2_user_hash()?;
+    let mut users_hash = generate_mock_2_user_hash().await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // test that both values are in low health mapping since
     // initial health factor is 0.9
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 2);
     }
 
@@ -110,15 +102,14 @@ async fn test_both_users_are_moved_to_correct_mapping() -> Result<(), Box<dyn st
         .expect("invalid user id");
     user.health_factor = BigDecimal::from_f32(2.0).unwrap();
 
-    users_hash.update_token_user_mapping_for_(user_id).await?;
+    users_hash
+        .update_token_user_mapping_for_(user_id, &client)
+        .await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
     // now expect 1 user to be in low health mapping while other is in standard
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 1);
     }
 
@@ -130,7 +121,7 @@ async fn test_both_users_are_moved_to_correct_mapping() -> Result<(), Box<dyn st
 }
 
 #[tokio::test]
-async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_both_users_mappings_update_by_token() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     let token_data = get_token_data().await?;
@@ -144,17 +135,14 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
     save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
 
-    let mut users_hash = generate_mock_2_user_hash()?;
+    let mut users_hash = generate_mock_2_user_hash().await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // test that both values are in low health mapping since
     // initial health factor is 0.9
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 2);
     }
 
@@ -163,17 +151,14 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
     }
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // since nothing should have changed should be unchanged
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 2);
     }
 
@@ -190,17 +175,14 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
     user.health_factor = BigDecimal::from_f32(2.0).unwrap();
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // now expect 1 user to be in low health mapping while other is in standard
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 1);
     }
 
@@ -217,17 +199,14 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
     user_2.health_factor = BigDecimal::from_f32(4.0).unwrap();
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // now both user to be in low health mapping while other is in standard
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 0);
     }
 
@@ -244,17 +223,14 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
     user.health_factor = BigDecimal::from_f32(1.0).unwrap();
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // now expect 1 user to be in low health mapping while other is in standard
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 1);
     }
 
@@ -271,17 +247,14 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
     user_2.health_factor = BigDecimal::from_f32(1.04).unwrap();
 
     users_hash
-        .update_token_to_user_mapping_for_all_users_with_token_(token)
+        .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // now both user to be in low health mapping while other is in standard
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 2);
     }
 
@@ -293,7 +266,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<(), Box<dyn std::e
 }
 
 #[tokio::test]
-async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_moving_user_to_correct_mapping() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -301,11 +274,11 @@ async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error:
     generate_token_price_hash(&client).await?;
     let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
-    let mut users_hash = generate_mock_user_hash()?;
+    let mut users_hash = generate_mock_user_hash().await?;
 
     // test that both values are in low health mapping since
     // initial health factor is 0.9
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 1);
     }
 
@@ -322,11 +295,13 @@ async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error:
     user.health_factor = BigDecimal::from_f32(2.0).unwrap();
 
     // update token user mapping
-    users_hash.update_token_user_mapping_for_(user_id).await?;
+    users_hash
+        .update_token_user_mapping_for_(user_id, &client)
+        .await?;
 
     // test that both values are in standard mapping since
     // initial health factor is 2.0
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 0);
     }
 
@@ -343,11 +318,13 @@ async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error:
     user.health_factor = BigDecimal::from_f32(1.04).unwrap();
 
     // update token user mapping
-    users_hash.update_token_user_mapping_for_(user_id).await?;
+    users_hash
+        .update_token_user_mapping_for_(user_id, &client)
+        .await?;
 
     // test that both values are in low health mapping since
     // initial health factor is 1.05
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 1);
     }
 
@@ -359,7 +336,7 @@ async fn test_moving_user_to_correct_mapping() -> Result<(), Box<dyn std::error:
 }
 
 #[tokio::test]
-async fn test_user_is_removed_from_mapping() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_user_is_removed_from_mapping() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -369,17 +346,14 @@ async fn test_user_is_removed_from_mapping() -> Result<(), Box<dyn std::error::E
     let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let token_address: Address = "0xdac17f958d2ee523a2206206994597c13d831ec7".parse()?;
 
-    let mut users_hash = generate_mock_user_hash()?;
+    let mut users_hash = generate_mock_user_hash().await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     // test that both values are in low health mapping since
     // initial health factor is 0.9
-    for user_id_array in users_hash.low_health_user_ids_by_token.values() {
+    for user_id_array in users_hash.whale_user_ids_by_token.values() {
         assert_eq!(user_id_array.len(), 1);
     }
 
@@ -391,7 +365,7 @@ async fn test_user_is_removed_from_mapping() -> Result<(), Box<dyn std::error::E
 
     // test that both values are in low health mapping since
     // initial health factor is 0.9
-    for (token, user) in users_hash.low_health_user_ids_by_token {
+    for (token, user) in users_hash.whale_user_ids_by_token {
         if token == token_address {
             assert_eq!(user.len(), 0);
         } else {
@@ -407,8 +381,7 @@ async fn test_user_is_removed_from_mapping() -> Result<(), Box<dyn std::error::E
 }
 
 #[tokio::test]
-async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_correct_users_to_liquidate_are_found_for_low_health_users() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -421,18 +394,15 @@ async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
 
     let token = token_data.get(token_address).unwrap();
 
-    let mut users_hash = generate_mock_2_user_hash_v2()?;
+    let mut users_hash = generate_mock_2_user_hash_v2().await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     let users_to_liquidate_enum = users_hash
         .update_users_health_factor_by_token_and_return_liquidation_candidates(
             token,
-            UserType::LowHealth,
+            UserType::Whale,
             &client,
         )
         .await?;
@@ -453,8 +423,7 @@ async fn test_correct_users_to_liquidate_are_found_for_low_health_users(
 }
 
 #[tokio::test]
-async fn test_correct_users_to_liquidate_are_found_for_standard_users(
-) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_correct_users_to_liquidate_are_found_for_standard_users() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
     // populate token state
@@ -465,12 +434,9 @@ async fn test_correct_users_to_liquidate_are_found_for_standard_users(
     let token_address = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 
     let token = token_data.get(token_address).unwrap();
-    let mut users_hash = generate_mock_2_user_hash_v2()?;
+    let mut users_hash = generate_mock_2_user_hash_v2().await?;
 
-    println!(
-        "low health users {:?}",
-        users_hash.low_health_user_ids_by_token
-    );
+    println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
     let users_to_liquidate_enum = users_hash

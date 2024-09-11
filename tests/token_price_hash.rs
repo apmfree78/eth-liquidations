@@ -1,3 +1,4 @@
+use anyhow::Result;
 use bigdecimal::BigDecimal;
 use eth_liquadation::data::erc20::Convert;
 use eth_liquadation::data::token_data_hash::{
@@ -11,7 +12,7 @@ use ethers::prelude::*;
 use std::sync::Arc;
 
 #[tokio::test]
-async fn test_setting_price_with_token_price_hash() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_setting_price_with_token_price_hash() -> Result<()> {
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
@@ -39,7 +40,7 @@ async fn test_setting_price_with_token_price_hash() -> Result<(), Box<dyn std::e
 }
 
 #[tokio::test]
-async fn test_token_price_token_hash_versus_oracle() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_token_price_token_hash_versus_oracle() -> Result<()> {
     // Set up the Ethereum client connection and wallet
     const WS_URL: &str = "ws://localhost:8546";
     let provider = Provider::<Ws>::connect(WS_URL).await?;
@@ -70,7 +71,7 @@ async fn test_token_price_token_hash_versus_oracle() -> Result<(), Box<dyn std::
 }
 
 // #[tokio::test]
-// async fn test_token_hash_price_update() -> Result<(), Box<dyn std::error::Error>> {
+// async fn test_token_hash_price_update() -> Result<()> {
 //     // Set up the Ethereum client connection and wallet
 //     const WS_URL: &str = "ws://localhost:8546";
 //     let provider = Provider::<Ws>::connect(WS_URL).await?;

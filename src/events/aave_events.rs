@@ -7,13 +7,13 @@ use crate::exchanges::aave_v3::{
     update_user::{get_user_action_from_event, TokenToRemove, Update},
     user_structs::{AaveUsersHash, PricingSource},
 };
+use anyhow::Result;
 use ethers::{
     abi::Address,
     core::types::{Filter, Log},
     providers::Ws,
 };
 use ethers::{prelude::*, utils::keccak256};
-use eyre::Result;
 use log::{debug, error};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -30,7 +30,7 @@ pub async fn update_users_with_event_from_log(
     log: Log,
     users: &mut AaveUsersHash,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     let aave_event_map = setup_event_map();
 
     if !log.topics.is_empty() {
@@ -63,7 +63,7 @@ pub async fn update_users_with_event_from_log(
     Ok(())
 }
 
-pub fn set_aave_event_signature_filter() -> Result<Filter, Box<dyn std::error::Error>> {
+pub fn set_aave_event_signature_filter() -> Result<Filter> {
     let aave_v3_pool_address = CONTRACT.get_address().aave_v3_pool.clone();
 
     let filter = Filter::new()
@@ -129,7 +129,7 @@ pub async fn update_aave_user(
     users: &mut AaveUsersHash,
     event: Box<dyn AaveEvent>,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     let user_address = event.get_user();
     let user_action = get_user_action_from_event(event, client).await?;
 
@@ -179,7 +179,9 @@ pub async fn update_aave_user(
         // );
 
         // update token => user mappings , includes adding new tokens
-        users.update_token_user_mapping_for_(user_id).await?;
+        users
+            .update_token_user_mapping_for_(user_id, client)
+            .await?;
 
         // check if there is token to remove, if so removie it
         if let Some(token_address) = token_to_remove {
@@ -202,7 +204,7 @@ pub async fn update_aave_liquidated_user(
     users: &mut AaveUsersHash,
     event: LiquidationEvent,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
     let user_address = event.get_user();
 
     if users.user_data.contains_key(&user_address) {
@@ -231,7 +233,9 @@ pub async fn update_aave_liquidated_user(
         debug!("updated user health factor...{:?}", user.health_factor);
 
         // update token => user mappings , includes adding new tokens
-        users.update_token_user_mapping_for_(user_id).await?;
+        users
+            .update_token_user_mapping_for_(user_id, client)
+            .await?;
 
         return Ok(());
     } else {

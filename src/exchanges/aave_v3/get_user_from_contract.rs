@@ -4,6 +4,7 @@ use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::data::address::CONTRACT;
 use crate::data::erc20::u256_to_big_decimal;
 use crate::data::token_data_hash::get_unique_token_data;
+use anyhow::{anyhow, Result};
 use bigdecimal::BigDecimal;
 use ethers::providers::{Provider, Ws};
 use ethers::types::Address;
@@ -12,7 +13,7 @@ use std::sync::Arc;
 pub async fn get_aave_v3_user_from_data_provider(
     user_address: Address,
     client: &Arc<Provider<Ws>>,
-) -> Result<AaveUserData, Box<dyn std::error::Error>> {
+) -> Result<AaveUserData> {
     let aave_v3_data_pool_address: Address =
         CONTRACT.get_address().aave_v3_data_provider.parse()?;
     let aave_v3_data_pool = AAVE_V3_DATA_PROVIDER::new(aave_v3_data_pool_address, client.clone());
@@ -58,7 +59,7 @@ pub async fn get_aave_v3_user_from_data_provider(
         .await?;
 
     if user_data.total_debt == BigDecimal::from(0) {
-        return Err("user has no debt".into());
+        return Err(anyhow!("user has no debt"));
     }
 
     if user_data
@@ -67,6 +68,8 @@ pub async fn get_aave_v3_user_from_data_provider(
     {
         Ok(user_data)
     } else {
-        Err("user calculated health factor does not match official health factor".into())
+        Err(anyhow!(
+            "user calculated health factor does not match official health factor"
+        ))
     }
 }
