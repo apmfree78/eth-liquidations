@@ -10,7 +10,7 @@ pub const USDT_USER_DEBT: u64 = 26000000000;
 pub const USDT_USER_BALANCE: u64 = 30000000000;
 pub const WETH_USER_BALANCE: u128 = 10000000000000000000;
 
-pub fn generate_mock_user_hash() -> Result<AaveUsersHash> {
+pub async fn generate_mock_user_hash() -> Result<AaveUsersHash> {
     let user_address: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let user_data = AaveUserData {
         id: user_address,
@@ -65,17 +65,17 @@ pub fn generate_mock_user_hash() -> Result<AaveUsersHash> {
     let mut aave_users_hash = AaveUsersHash {
         user_data: user_hash,
         standard_user_ids_by_token: HashMap::new(),
-        low_health_user_ids_by_token: HashMap::new(),
+        whale_user_ids_by_token: HashMap::new(),
     };
 
-    aave_users_hash.intialize_token_user_mapping()?;
+    aave_users_hash.intialize_token_user_mapping().await?;
 
     println!("users hash => {:#?}", aave_users_hash);
 
     Ok(aave_users_hash)
 }
 
-pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
+pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let user_data = AaveUserData {
         id: user_address,
@@ -177,10 +177,10 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
     let mut aave_users_hash = AaveUsersHash {
         user_data: user_hash,
         standard_user_ids_by_token: HashMap::new(),
-        low_health_user_ids_by_token: HashMap::new(),
+        whale_user_ids_by_token: HashMap::new(),
     };
 
-    aave_users_hash.intialize_token_user_mapping()?;
+    aave_users_hash.intialize_token_user_mapping().await?;
 
     println!("users hash => {:#?}", aave_users_hash);
 
@@ -188,7 +188,7 @@ pub fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
 }
 
 // first user has liquidation factor of 0.83 while other has 8.3
-pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
+pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let user_data = AaveUserData {
         id: user_address,
@@ -288,10 +288,10 @@ pub fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
     let mut aave_users_hash = AaveUsersHash {
         user_data: user_hash,
         standard_user_ids_by_token: HashMap::new(),
-        low_health_user_ids_by_token: HashMap::new(),
+        whale_user_ids_by_token: HashMap::new(),
     };
 
-    aave_users_hash.intialize_token_user_mapping()?;
+    aave_users_hash.intialize_token_user_mapping().await?;
 
     println!("users hash => {:#?}", aave_users_hash);
 

@@ -97,7 +97,7 @@ events found in logs and changes in token prices
 pub struct AaveUsersHash {
     pub user_data: HashMap<Address, AaveUserData>,
     pub standard_user_ids_by_token: HashMap<Address, HashSet<Address>>,
-    pub low_health_user_ids_by_token: HashMap<Address, HashSet<Address>>,
+    pub whale_user_ids_by_token: HashMap<Address, HashSet<Address>>,
 }
 
 pub enum UsersToLiquidate {
@@ -108,5 +108,5 @@ pub enum UsersToLiquidate {
 #[derive(Clone, Copy, Debug)]
 pub enum UserType {
     Standard,
-    LowHealth,
+    Whale,
 }

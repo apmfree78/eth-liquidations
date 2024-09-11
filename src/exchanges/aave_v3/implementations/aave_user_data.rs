@@ -184,10 +184,10 @@ impl GenerateUsers for AaveUserData {
         let mut user_hash = AaveUsersHash {
             user_data: user_data_hash,
             standard_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
-            low_health_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
+            whale_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
         };
 
-        user_hash.intialize_token_user_mapping()?;
+        user_hash.intialize_token_user_mapping().await?;
 
         Ok(user_hash)
     }

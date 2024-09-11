@@ -23,24 +23,20 @@ pub async fn find_users_and_liquidate(
     // edge CASE
     let token_data = get_token_data().await?;
     let wsteth_token = token_data.get("wstETH").unwrap();
-    // 1. update low health user health factor (that own or borrow token)
+    // 1. update whale user health factor (that own or borrow token)
     // 2. check if liquidation candidates found
 
     let mut user_accounts_to_liquidate =
-        update_and_get_accounts_to_liquidate(user_data, token, UserType::LowHealth, client).await?;
+        update_and_get_accounts_to_liquidate(user_data, token, UserType::Whale, client).await?;
 
     //EDGE CASE
     if token.symbol == "stETH" {
-        let wsteth_user_accounts_low_health = update_and_get_accounts_to_liquidate(
-            user_data,
-            wsteth_token,
-            UserType::LowHealth,
-            client,
-        )
-        .await?;
+        let wsteth_user_accounts_whale =
+            update_and_get_accounts_to_liquidate(user_data, wsteth_token, UserType::Whale, client)
+                .await?;
 
-        if !wsteth_user_accounts_low_health.is_empty() {
-            user_accounts_to_liquidate.extend(wsteth_user_accounts_low_health);
+        if !wsteth_user_accounts_whale.is_empty() {
+            user_accounts_to_liquidate.extend(wsteth_user_accounts_whale);
         }
     }
 
@@ -76,7 +72,7 @@ async fn update_and_get_accounts_to_liquidate(
 ) -> Result<Vec<LiquidationCandidate>> {
     let mut users = user_data.lock().await;
     let empty_vec_to_return_if_no_qualifed_accounts = Vec::<LiquidationCandidate>::new();
-    // 1. update low health user health factor (that own or borrow token)
+    // 1. update whale user health factor (that own or borrow token)
     // 2. check if liquidation candidates found
     if let Ok(liquidations) = users
         .update_users_health_factor_by_token_and_return_liquidation_candidates(
