@@ -214,3 +214,59 @@ pub fn u256_to_big_decimal(value: &U256) -> BigDecimal {
 //     Ok(token_price_in_base_token)
 // }
 //
+// fn convert_uniswap_to_bigdecimal(
+//     uniswap_bd: uniswap_sdk_core::prelude::BigDecimal,
+// ) -> bigdecimal::BigDecimal {
+//     let as_string = uniswap_bd.to_string(); // Convert Uniswap BigDecimal to String
+//     bigdecimal::BigDecimal::from_str(&as_string).expect("Invalid BigDecimal format")
+//     // Convert String to bigdecimal BigDecimal
+// }
+//
+// pub static token_data: Lazy<HashMap<String, Erc20TokenStatic>> = Lazy::new(|| {
+//     let mut token_hash = HashMap::new();
+//
+//     // create hashmap with token symbol as index
+//     for token in MAINNET_TOKENS {
+//         token_hash.insert(token.symbol.to_string(), token.clone());
+//     }
+//
+//     // copy hashmap with token address as index
+//     for token in MAINNET_TOKENS {
+//         token_hash.insert(token.address.to_lowercase(), token.clone());
+//     }
+//
+//     // copy hashmap with chain link price feed as index
+//     for token in MAINNET_TOKENS {
+//         if !token.chainlink_aggregator.is_empty() {
+//             token_hash.insert(token.chainlink_aggregator.to_lowercase(), token.clone());
+//         }
+//     }
+//
+//     token_hash
+// });
+
+// pub static UNIQUE_token_data: Lazy<HashMap<String, Erc20Token>> = Lazy::new(|| {
+//     let unique_tokens = token_data
+//         .values()
+//         .map(|token| (token.address.to_lowercase(), token.clone()))
+//         .collect();
+//     unique_tokens
+// });
+//
+// pub static TOKENS_WITH_PRICE_CONNECTED_TO_ETH: Lazy<Vec<&Erc20Token>> = Lazy::new(|| {
+//     let token_symbols_connected_to_eth = vec![
+//         "WETH", "wstETH", "osETH", "WBTC", "rETH", "cbETH", "LDO", "weETH", "ETHx",
+//     ];
+//
+//     let mut tokens_with_price_connected_to_eth = Vec::<&Erc20Token>::new();
+//
+//     for token_symbol in token_symbols_connected_to_eth {
+//         let token = token_data
+//             .get(token_symbol)
+//             .unwrap_or_else(|| panic!("invalid token symbol"));
+//
+//         tokens_with_price_connected_to_eth.push(token);
+//     }
+//     tokens_with_price_connected_to_eth
+// });
+//
