@@ -3,7 +3,7 @@ use super::chainlink_feed_map::{
     get_chainlink_aggregator, get_chainlink_price_feed_for_token_, CHAINLINK_AGGREGATOR_HASH,
 };
 use super::erc20::Erc20Token;
-use super::tokens_by_chain::{get_static_token_data_by_chain, MAINNET_TOKENS};
+use super::tokens_by_chain::get_static_token_data_by_chain;
 use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::abi::aave_v3_pool::{ReserveData, AAVE_V3_POOL};
 use crate::abi::erc20::ERC20;

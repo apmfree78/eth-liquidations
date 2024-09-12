@@ -1,5 +1,4 @@
 use anyhow::Result;
-use bigdecimal::BigDecimal;
 use eth_liquadation::data::erc20::Convert;
 use eth_liquadation::data::token_data_hash::{
     get_token_data, get_unique_token_data, save_erc20_tokens_from_static_data,

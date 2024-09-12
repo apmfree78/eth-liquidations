@@ -5,7 +5,7 @@ use crate::data::token_data_hash::{
 };
 use crate::data::token_price_hash::{get_saved_token_price, set_saved_token_price};
 use anyhow::Result;
-use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
+use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::providers::{Provider, Ws};
 use ethers::types::{Address, U256};
 use log::{debug, info};

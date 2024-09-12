@@ -12,7 +12,6 @@ use super::super::user_structs::{
 use super::aave_user_data::{GetUserData, UpdateUserData};
 use anyhow::Result;
 use async_trait::async_trait;
-use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
 use log::{debug, error};

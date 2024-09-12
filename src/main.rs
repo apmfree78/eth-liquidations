@@ -115,7 +115,7 @@ async fn main() -> Result<()> {
                 Ok(Event::Block(block)) => {
                     info!("NEW BLOCK ===> {}", block.timestamp);
 
-                    let mut users = aave_users_data.lock().await;
+                    let users = aave_users_data.lock().await;
                     let whales = users.get_hashset_of_whales();
                     debug!("{} whales found!", whales.len());
                     // FOR TESTING ONLY

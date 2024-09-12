@@ -11,7 +11,7 @@ use crate::{
         AaveTokenU256, LiquidationArgs, LiquidationCandidate, LiquidationCloseFactor, BPS_FACTOR,
         CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
     },
-    utils::type_conversion::{address_to_string, f64_to_u256, u256_to_f64},
+    utils::type_conversion::{address_to_string, f64_to_u256},
 };
 
 use anyhow::{anyhow, Result};

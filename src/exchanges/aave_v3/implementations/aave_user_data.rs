@@ -8,20 +8,18 @@ use crate::data::token_data_hash::{get_token_data, TOKENS_WITH_NO_AGGREGATOR};
 use crate::data::token_price_hash::{generate_token_price_hash, get_saved_token_price};
 use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use crate::exchanges::aave_v3::user_structs::{
-    LiquidationCloseFactor, BPS_FACTOR, CLOSE_FACTOR_HF_THRESHOLD, HEALTH_FACTOR_THRESHOLD,
+    LiquidationCloseFactor, CLOSE_FACTOR_HF_THRESHOLD, HEALTH_FACTOR_THRESHOLD,
 };
 use anyhow::Result;
 use async_trait::async_trait;
 use bigdecimal::ToPrimitive;
-use bigdecimal::{BigDecimal, FromPrimitive, Zero};
+use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::{
     providers::{Provider, Ws},
     types::Address,
 };
 use log::{debug, error, info};
-use num_traits::One;
 use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
 use std::sync::Arc;
 
 #[async_trait]

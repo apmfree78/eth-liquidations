@@ -5,7 +5,7 @@ use crate::abi::chainlink_aggregator::CHAINLINK_AGGREGATOR;
 use crate::utils::type_conversion::{i256_to_f64, u256_to_f64};
 use anyhow::Result;
 use async_trait::async_trait;
-use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
+use bigdecimal::BigDecimal;
 use ethers::abi::Address;
 use ethers::core::types::U256;
 use ethers::providers::{Provider, Ws};
