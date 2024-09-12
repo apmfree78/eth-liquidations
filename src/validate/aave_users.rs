@@ -11,7 +11,7 @@ use crate::{
         AaveTokenU256, LiquidationArgs, LiquidationCandidate, LiquidationCloseFactor, BPS_FACTOR,
         CLOSE_FACTOR_HF_THRESHOLD, LIQUIDATION_THRESHOLD,
     },
-    utils::type_conversion::address_to_string,
+    utils::type_conversion::{address_to_string, f64_to_u256},
 };
 
 use anyhow::{anyhow, Result};
@@ -22,20 +22,21 @@ use ethers::{
     types::{Address, U256},
 };
 use log::{debug, info};
-use num_traits::{ToPrimitive, Zero};
+use num_traits::ToPrimitive;
 use std::sync::Arc;
 
 pub async fn validate_liquidation_candidates(client: &Arc<Provider<Ws>>) -> Result<()> {
     let mut validation_count: u16 = 0;
     let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
     let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
-    let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
+    let standard_scale = &BigDecimal::from_u64(10_u64.pow(18)).unwrap();
     let token_data = get_token_data().await?;
 
     let eth_token = token_data
         .get("WETH")
         .unwrap_or_else(|| panic!("could not find WETH token"));
     let eth_price_usd = get_saved_token_price(eth_token.address.to_lowercase()).await?;
+    let eth_price_usd = &BigDecimal::from_f64(eth_price_usd).unwrap();
 
     let user_liquidation_candidates = get_tracked_users().await?;
     if user_liquidation_candidates.is_empty() {
@@ -61,36 +62,36 @@ pub async fn validate_liquidation_candidates(client: &Arc<Provider<Ws>>) -> Resu
             }
         };
 
-        let health_factor = u256_to_big_decimal(&health_factor) / &standard_scale;
+        let health_factor = u256_to_big_decimal(&health_factor) / standard_scale;
+        let health_factor = health_factor.to_f64().unwrap();
 
-        if health_factor < BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap() {
+        if health_factor < LIQUIDATION_THRESHOLD {
             validation_count += 1;
 
             let (liquidation_args, profit_scaled) =
-                calculate_user_liquidation_usd_profit(&user_id, &health_factor, client).await?;
+                calculate_user_liquidation_usd_profit(&user_id, health_factor, client).await?;
 
             let user_id_string = address_to_string(liquidation_args.user);
             let debt = address_to_string(liquidation_args.debt);
             let collateral = address_to_string(liquidation_args.collateral);
-            let profit = &u256_to_big_decimal(&profit_scaled) / &standard_scale;
+            let profit = u256_to_big_decimal(&profit_scaled) / standard_scale;
+            let profit = profit.to_f64().unwrap();
 
             info!(
                 "user {} liquidation ready /w health score of {}",
                 user_id_string.green().bold(),
-                format!("{:2}", health_factor.with_scale(4)).red()
+                format!("{:2}", health_factor).red()
             );
             info!(
                 "liquidation profit is {}, with debt {} and collateral {}",
-                format!("{:2}", profit.with_scale(2)).green().bold(),
+                format!("{:2}", profit).green().bold(),
                 debt.yellow().bold(),
                 collateral.black().bold(),
             );
 
             info!(
                 "estimated profit for this was {}",
-                format!("{:2}", estimated_profit.with_scale(2))
-                    .green()
-                    .bold(),
+                format!("{:2}", estimated_profit).green().bold(),
             );
 
             // validate that same collateral and debt tokens as
@@ -106,22 +107,21 @@ pub async fn validate_liquidation_candidates(client: &Arc<Provider<Ws>>) -> Resu
                 );
             }
 
-            if profit > BigDecimal::zero() {
+            if profit > 0.0 {
                 let gas_cost = calculate_gas_cost(client).await?;
+                let gas_cost = u256_to_big_decimal(&gas_cost);
 
-                let gas_cost_usd =
-                    &u256_to_big_decimal(&gas_cost) * &eth_price_usd / &standard_scale;
+                let gas_cost_usd = gas_cost * eth_price_usd / standard_scale;
 
                 info!(
                     "gas cost $ is {}",
-                    format!("{:2}", gas_cost_usd.with_scale(2)).red().bold(),
+                    format!("{:2}", gas_cost_usd).red().bold(),
                 );
             }
         } else {
             info!(
                 "user {} is health score is too high => {}",
-                user_id,
-                health_factor.with_scale(2)
+                user_id, health_factor
             );
         }
     }
@@ -137,14 +137,14 @@ pub async fn validate_liquidation_candidates(client: &Arc<Provider<Ws>>) -> Resu
 
 pub async fn calculate_user_liquidation_usd_profit(
     user_id: &Address,
-    health_factor: &BigDecimal,
+    health_factor: f64,
     client: &Arc<Provider<Ws>>,
 ) -> Result<(LiquidationArgs, U256)> {
-    let bps_factor = U256::from(BPS_FACTOR);
     let standard_scale = U256::exp10(18);
     let aave_v3_data_provider_address: Address =
         CONTRACT.get_address().aave_v3_data_provider.parse()?;
     let unique_token_data = get_unique_token_data().await?;
+    let bps_factor = U256::from(BPS_FACTOR as u64);
 
     let mut liquidation_args = LiquidationArgs {
         collateral: Address::zero(),
@@ -154,16 +154,15 @@ pub async fn calculate_user_liquidation_usd_profit(
         _receive_a_token: false,
     };
 
-    if health_factor >= &BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap() {
+    if health_factor >= LIQUIDATION_THRESHOLD {
         return Ok((liquidation_args, U256::from(0)));
     }
 
-    let liquidation_factor =
-        if health_factor < &BigDecimal::from_f32(CLOSE_FACTOR_HF_THRESHOLD).unwrap() {
-            LiquidationCloseFactor::Half
-        } else {
-            LiquidationCloseFactor::Full
-        };
+    let liquidation_factor = if health_factor < CLOSE_FACTOR_HF_THRESHOLD {
+        LiquidationCloseFactor::Half
+    } else {
+        LiquidationCloseFactor::Full
+    };
 
     let aave_v3_data_pool =
         AAVE_V3_DATA_PROVIDER::new(aave_v3_data_provider_address, client.clone());
@@ -213,7 +212,8 @@ pub async fn calculate_user_liquidation_usd_profit(
             highest_token_debt = total_debt;
 
             let token_price = get_saved_token_price(token.address.to_lowercase()).await?;
-            let token_price = big_decimal_to_u256_scaled(&token_price).unwrap(); // price times 10^18
+            // let token_price = big_decimal_to_u256_scaled(&token_price).unwrap(); // price times 10^18
+            let token_price = f64_to_u256(token_price).unwrap();
             highest_token_price = token_price;
             highest_token_decimal_factor = decimal_factor;
 

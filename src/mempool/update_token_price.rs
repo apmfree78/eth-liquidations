@@ -5,7 +5,7 @@ use crate::data::token_data_hash::{
 };
 use crate::data::token_price_hash::{get_saved_token_price, set_saved_token_price};
 use anyhow::Result;
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::providers::{Provider, Ws};
 use ethers::types::{Address, U256};
 use log::{debug, info};
@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 pub async fn update_token_price_for_(
     token_to_update: &Erc20Token,
-    new_token_price: BigDecimal,
+    new_token_price: f64,
     client: &Arc<Provider<Ws>>,
 ) -> Result<()> {
     if token_to_update.symbol == "WETH" {
@@ -29,17 +29,14 @@ pub async fn update_token_price_for_(
             info!("price updated for {} => {}", token.name, token.symbol);
             let original_token_price = token.get_saved_price_from_token_price_hash().await?;
 
-            // use UNISWAP to get real time price for token
             let priced_in_eth_price = get_saved_token_price(token.address.clone()).await?;
-            let new_priced_in_eth_price =
-                &priced_in_eth_price * &new_token_price / &current_eth_price; // adjust price based on new price of ETH
+            let new_priced_in_eth_price = priced_in_eth_price * new_token_price / current_eth_price; // adjust price based on new price of ETH
 
             set_saved_token_price(&token.address, new_priced_in_eth_price).await?;
             let update_token_price = token.get_saved_price_from_token_price_hash().await?;
             info!(
                 "changed from {} => {}",
-                original_token_price.with_scale(3),
-                update_token_price.with_scale(3)
+                original_token_price, update_token_price,
             );
         }
 
@@ -49,11 +46,7 @@ pub async fn update_token_price_for_(
             "price updated for {} => {}",
             token_to_update.name, token_to_update.symbol
         );
-        info!(
-            "changed from {} => {}",
-            current_eth_price.with_scale(3),
-            new_token_price.with_scale(3)
-        );
+        info!("changed from {} => {}", current_eth_price, new_token_price,);
     } else if token_to_update.symbol == "BTC" {
         let tokens_with_price_priced_in_btc = get_tokens_priced_in_btc().await?;
         let current_btc_price = get_saved_token_price(token_to_update.address.clone()).await?;
@@ -65,16 +58,14 @@ pub async fn update_token_price_for_(
 
             // use UNISWAP to get real time price for token
             let priced_inken_price = get_saved_token_price(token.address.clone()).await?;
-            let new_priced_inken_price =
-                &priced_inken_price * &new_token_price / &current_btc_price; // adjust price based on new price of ETH
+            let new_priced_inken_price = priced_inken_price * new_token_price / current_btc_price; // adjust price based on new price of ETH
 
             set_saved_token_price(&token.address, new_priced_inken_price).await?;
             let update_token_price = token.get_saved_price_from_token_price_hash().await?;
             info!("price updated for {} => {}", token.name, token.symbol);
             info!(
                 "changed from {} => {}",
-                original_token_price.with_scale(3),
-                update_token_price.with_scale(3)
+                original_token_price, update_token_price,
             );
         }
 
@@ -84,11 +75,7 @@ pub async fn update_token_price_for_(
             "price updated for {} => {}",
             token_to_update.name, token_to_update.symbol
         );
-        info!(
-            "changed from {} => {}",
-            current_btc_price.with_scale(3),
-            new_token_price.with_scale(3)
-        );
+        info!("changed from {} => {}", current_btc_price, new_token_price,);
     } else {
         let original_token_price = token_to_update
             .get_saved_price_from_token_price_hash()
@@ -105,8 +92,7 @@ pub async fn update_token_price_for_(
 
         info!(
             "changed from {} => {}",
-            original_token_price.with_scale(3),
-            update_token_price.with_scale(3)
+            original_token_price, update_token_price,
         );
 
         // EDGE CASE FOR wstETH price, which is linked to stETH price
@@ -129,20 +115,20 @@ pub async fn update_token_price_for_(
 
             let st_to_wst_exchange_rate =
                 u256_to_big_decimal(&st_to_wst_exchange_rate) / BigDecimal::from(10u64.pow(18));
+            let st_to_wst_exchange_rate = st_to_wst_exchange_rate.to_f64().unwrap();
 
             let original_wsteth_token_price =
                 wsteth_token.get_saved_price_from_token_price_hash().await?;
 
             // wstETH price is stETH price TIMES exchange rate
-            let new_wseth_token_price = &update_token_price * &st_to_wst_exchange_rate;
+            let new_wseth_token_price = update_token_price * st_to_wst_exchange_rate;
 
             // update price !
             set_saved_token_price(&wsteth_token.address, new_wseth_token_price.clone()).await?;
 
             info!(
                 "wsteth price changed from {} => {}",
-                original_wsteth_token_price.with_scale(3),
-                new_wseth_token_price.with_scale(3)
+                original_wsteth_token_price, new_wseth_token_price,
             );
         }
     }

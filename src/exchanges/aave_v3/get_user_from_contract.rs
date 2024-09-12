@@ -1,11 +1,11 @@
 use super::implementations::aave_user_data::{HealthFactor, UpdateUserData};
-use super::user_structs::{AaveToken, AaveUserData, PricingSource};
+use super::user_structs::{AaveToken, AaveUserData, PricingSource, BPS_FACTOR};
 use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::data::address::CONTRACT;
 use crate::data::erc20::u256_to_big_decimal;
 use crate::data::token_data_hash::get_unique_token_data;
 use anyhow::{anyhow, Result};
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::providers::{Provider, Ws};
 use ethers::types::Address;
 use std::sync::Arc;
@@ -23,6 +23,7 @@ pub async fn get_aave_v3_user_from_data_provider(
 
     for token in unique_token_data.values() {
         let token_address = token.address.parse()?;
+        let decimal_factor = BigDecimal::from(10_u64.pow(token.decimals.into()));
 
         let (a_token_balance, stable_debt, variable_debt, _, _, _, _, _, use_as_collateral) =
             aave_v3_data_pool
@@ -31,34 +32,35 @@ pub async fn get_aave_v3_user_from_data_provider(
                 .await?;
 
         let total_debt = stable_debt + variable_debt;
-        let total_debt = u256_to_big_decimal(&total_debt);
-        let a_token_balance = u256_to_big_decimal(&a_token_balance);
+        let total_debt = u256_to_big_decimal(&total_debt) / &decimal_factor;
+        let a_token_balance = u256_to_big_decimal(&a_token_balance) / &decimal_factor;
 
         if total_debt > BigDecimal::from(0) || a_token_balance > BigDecimal::from(0) {
             tokens.push(AaveToken {
                 token: token.clone(),
-                current_total_debt: total_debt,
+                current_total_debt: total_debt.to_f64().unwrap(),
                 usage_as_collateral_enabled: use_as_collateral,
-                current_atoken_balance: a_token_balance,
-                reserve_liquidation_bonus: BigDecimal::from(token.liquidation_bonus),
-                reserve_liquidation_threshold: BigDecimal::from(token.liquidation_threshold),
+                current_atoken_balance: a_token_balance.to_f64().unwrap(),
+                reserve_liquidation_bonus: token.liquidation_bonus as f64 / BPS_FACTOR as f64,
+                reserve_liquidation_threshold: token.liquidation_threshold as f64
+                    / BPS_FACTOR as f64,
             })
         }
     }
 
     let mut user_data = AaveUserData {
         id: user_address,
-        total_debt: BigDecimal::from(0), //placeholder value , will calculate below
-        collateral_times_liquidation_factor: BigDecimal::from(0), //placeholder value , will calculate below
+        total_debt: 0_f64, //placeholder value , will calculate below
+        collateral_times_liquidation_factor: 0_f64, //placeholder value , will calculate below
         tokens,
-        health_factor: BigDecimal::from(0), //placeholder value , will calculate below
+        health_factor: 0_f64, //placeholder value , will calculate below
     };
 
     user_data
         .update_meta_data(PricingSource::AaveOracle, client)
         .await?;
 
-    if user_data.total_debt == BigDecimal::from(0) {
+    if user_data.total_debt == 0.0 {
         return Err(anyhow!("user has no debt"));
     }
 

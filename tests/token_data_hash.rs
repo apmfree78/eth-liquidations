@@ -68,7 +68,9 @@ async fn get_and_save_weth_token_is_valid() -> Result<()> {
 
     // TODO - now test that token that is retreived from global state matches too
     let token_data = get_token_data().await?;
-    let test_token = token_data.get(&control_token.address).unwrap();
+    let test_token = token_data
+        .get(&control_token.address.to_lowercase())
+        .unwrap();
 
     assert_eq!(
         control_token.name, test_token.name,
@@ -171,7 +173,9 @@ async fn get_and_save_link_token_is_valid() -> Result<()> {
 
     // TODO - now test that token that is retreived from global state matches too
     let token_data = get_token_data().await?;
-    let test_token = token_data.get(&control_token.address).unwrap();
+    let test_token = token_data
+        .get(&control_token.address.to_lowercase())
+        .unwrap();
 
     assert_eq!(
         control_token.name, test_token.name,

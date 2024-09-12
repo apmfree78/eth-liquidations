@@ -12,7 +12,6 @@ use super::super::user_structs::{
 use super::aave_user_data::{GetUserData, UpdateUserData};
 use anyhow::Result;
 use async_trait::async_trait;
-use bigdecimal::{BigDecimal, FromPrimitive};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
 use log::{debug, error};
@@ -85,9 +84,7 @@ impl UpdateUsers for AaveUsersHash {
     ) -> Result<()> {
         match get_aave_v3_user_from_data_provider(user_to_add, client).await {
             Ok(user) => {
-                if user.health_factor
-                    > BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32")
-                {
+                if user.health_factor > HEALTH_FACTOR_THRESHOLD {
                     for token in &user.tokens {
                         let token_address: Address = token.token.address.parse()?;
 
@@ -131,12 +128,10 @@ impl UpdateUsers for AaveUsersHash {
         for user in self.user_data.values() {
             // NOTE =====> THIS ASSUMES user health factor is VALID
             let (user_profit_potential, _, _) = user
-                .get_user_liquidation_usd_profit(&user.health_factor)
+                .get_user_liquidation_usd_profit(user.health_factor)
                 .await?;
-            let is_whale_user = user.health_factor
-                <= BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32")
-                && user_profit_potential
-                    >= BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).expect("invalid f32");
+            let is_whale_user = user.health_factor <= HEALTH_FACTOR_THRESHOLD
+                && user_profit_potential >= PROFIT_THRESHOLD_MAINNET;
 
             for token in &user.tokens {
                 let token_address: Address = token.token.address.parse()?;
@@ -201,14 +196,12 @@ impl UpdateUsers for AaveUsersHash {
         // if health factor is less than HEALTH_FACTOR_THRESHOLD and profit potential is greater than PROFIT_THRESHOLD then
         // then user belongs in wahle hash map
         let user = self.user_data.get(&user_id).expect("Invalid user id");
-        let health_factor = &user.health_factor;
+        let health_factor = user.health_factor;
         let (user_profit_potential, _, _) =
             user.get_user_liquidation_usd_profit(health_factor).await?;
 
-        let low_health_factor =
-            health_factor <= &BigDecimal::from_f32(HEALTH_FACTOR_THRESHOLD).expect("invalid f32");
-        let profitable = user_profit_potential
-            > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).expect("invalid f32");
+        let low_health_factor = health_factor <= HEALTH_FACTOR_THRESHOLD;
+        let profitable = user_profit_potential > PROFIT_THRESHOLD_MAINNET;
 
         if low_health_factor && profitable {
             self.move_user_from_standard_to_whale_user_mapping(user_id, client)
@@ -392,16 +385,15 @@ impl UpdateUsers for AaveUsersHash {
             user.update_meta_data(PricingSource::SavedTokenPrice, client)
                 .await?;
 
-            if user.health_factor < BigDecimal::from_f32(LIQUIDATION_THRESHOLD).unwrap()
-                && user.health_factor
-                    > BigDecimal::from_f32(LIQUIDATION_THRESHOLD_LOWER_BOUND).unwrap()
+            if user.health_factor < LIQUIDATION_THRESHOLD
+                && user.health_factor > LIQUIDATION_THRESHOLD_LOWER_BOUND
             {
                 // now check for user profitability
                 let (profitability, debt_token, collateral_token) = user
-                    .get_user_liquidation_usd_profit(&user.health_factor)
+                    .get_user_liquidation_usd_profit(user.health_factor)
                     .await?;
 
-                if profitability > BigDecimal::from_f32(PROFIT_THRESHOLD_MAINNET).unwrap() {
+                if profitability > PROFIT_THRESHOLD_MAINNET {
                     liquidation_candidates.push(LiquidationCandidate {
                         user_id: user.id,
                         estimated_profit: profitability,

@@ -1,5 +1,4 @@
 use anyhow::Result;
-use bigdecimal::BigDecimal;
 use eth_liquadation::data::erc20::Convert;
 use eth_liquadation::data::token_data_hash::{
     get_token_data, get_unique_token_data, save_erc20_tokens_from_static_data,
@@ -26,7 +25,7 @@ async fn test_setting_price_with_token_price_hash() -> Result<()> {
     // get address for WETH
     let weth_token = token_data.get("WETH").unwrap();
     let weth_price = weth_token.get_token_oracle_price(&client).await?;
-    let new_price = BigDecimal::from(2) * &weth_price;
+    let new_price = 2.0 * &weth_price;
 
     set_saved_token_price(weth_token.address.as_str(), new_price.clone()).await?;
 

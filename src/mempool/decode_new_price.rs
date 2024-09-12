@@ -5,14 +5,11 @@ use crate::data::token_data_hash::{
 };
 use crate::data::token_price_hash::get_saved_token_price;
 use anyhow::{anyhow, Result};
-use bigdecimal::{BigDecimal, FromPrimitive};
+use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use ethers::abi::{Abi, Bytes, Token};
 use ethers::prelude::*;
 
-pub async fn get_chainlink_price_from_transmit_tx(
-    data: &Bytes,
-    token: &Erc20Token,
-) -> Result<BigDecimal> {
+pub async fn get_chainlink_price_from_transmit_tx(data: &Bytes, token: &Erc20Token) -> Result<f64> {
     let token_priced_in_eth = get_tokens_priced_in_eth().await?;
     let token_priced_in_btc = get_tokens_priced_in_btc().await?;
     // 1. get observations
@@ -32,7 +29,8 @@ pub async fn get_chainlink_price_from_transmit_tx(
         BigDecimal::from_u64(10_u64.pow(8)).unwrap()
     };
 
-    let mut chainlink_price = u256_to_big_decimal(chainlink_price_unscaled) / scale;
+    let chainlink_price = u256_to_big_decimal(chainlink_price_unscaled) / scale;
+    let mut chainlink_price = chainlink_price.to_f64().unwrap();
 
     // TODO - 4. tackle edge cases where price in ETH, convert to USD price
     if is_priced_in_eth {

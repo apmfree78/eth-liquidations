@@ -5,7 +5,7 @@ use crate::data::token_data_hash::{get_and_save_erc20_by_token_address, get_toke
 use crate::utils::type_conversion::address_to_string;
 use anyhow::Result;
 use async_trait::async_trait;
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use ethers::providers::{Provider, Ws};
 use log::debug;
 use std::sync::Arc;
@@ -64,13 +64,13 @@ impl Update for AaveUserData {
                 // update collateral
                 debug!("collateral token {}", token.token.symbol);
 
-                token.current_atoken_balance =
-                    &token.current_atoken_balance - &event.get_collateral_liquidated();
+                token.current_atoken_balance = &token.current_atoken_balance
+                    - event.get_collateral_liquidated(token.token.decimals.into());
             } else if token.token.address.to_lowercase() == event.get_debt_token_address() {
                 // update debt
                 debug!("debt token {}", token.token.symbol);
-                token.current_total_debt =
-                    &token.current_total_debt - &event.get_amount_debt_reduced();
+                token.current_total_debt = &token.current_total_debt
+                    - event.get_amount_debt_reduced(token.token.decimals.into());
             }
         }
 
@@ -89,13 +89,16 @@ impl Update for AaveUserData {
             AaveUserEvent::WithDraw => {
                 for (index, token) in self.tokens.iter_mut().enumerate() {
                     if token.token.address.to_lowercase() == token_address {
+                        let decimal_factor =
+                            BigDecimal::from_u64(10_u64.pow(token.token.decimals.into())).unwrap();
                         // update
-                        token.current_atoken_balance -= aave_action.amount_transferred.clone();
+
+                        let amount_transferred =
+                            aave_action.amount_transferred.clone() / decimal_factor;
+                        token.current_atoken_balance -= amount_transferred.to_f64().unwrap();
 
                         // if token has no debt or a token balance then remove
-                        if token.current_total_debt == BigDecimal::from(0)
-                            && token.current_atoken_balance == BigDecimal::from(0)
-                        {
+                        if token.current_total_debt == 0.0 && token.current_atoken_balance == 0.0 {
                             token_index = Some(index);
                             break;
                         } else {
@@ -115,8 +118,12 @@ impl Update for AaveUserData {
                 // find token in aave user data
                 for token in &mut self.tokens {
                     if token.token.address.to_lowercase() == token_address {
+                        let decimal_factor =
+                            BigDecimal::from_u64(10_u64.pow(token.token.decimals.into())).unwrap();
                         // update
-                        token.current_total_debt += aave_action.amount_transferred.clone();
+                        let amount_transferred =
+                            aave_action.amount_transferred.clone() / decimal_factor;
+                        token.current_total_debt += amount_transferred.to_f64().unwrap();
                         return Ok(TokenToRemove::None);
                     };
                 }
@@ -131,39 +138,43 @@ impl Update for AaveUserData {
                     }
                 };
 
+                let decimal_factor =
+                    BigDecimal::from_u64(10_u64.pow(new_token.decimals.into())).unwrap();
+                let current_total_debt = &aave_action.amount_transferred / &decimal_factor;
+
                 self.tokens.push(AaveToken {
                     token: new_token.clone(),
-                    current_total_debt: aave_action.amount_transferred.clone(),
+                    current_total_debt: current_total_debt.to_f64().unwrap(),
                     usage_as_collateral_enabled: false,
-                    current_atoken_balance: BigDecimal::from(0),
-                    reserve_liquidation_threshold: BigDecimal::from(
-                        new_token.liquidation_threshold,
-                    ),
-                    reserve_liquidation_bonus: BigDecimal::from(new_token.liquidation_bonus),
+                    current_atoken_balance: 0.0,
+                    reserve_liquidation_threshold: new_token.liquidation_threshold.into(),
+                    reserve_liquidation_bonus: new_token.liquidation_bonus.into(),
                 });
             }
             AaveUserEvent::Repay => {
                 // find token in aave user data
                 for (index, token) in self.tokens.iter_mut().enumerate() {
                     if token.token.address.to_lowercase() == token_address {
+                        let decimal_factor =
+                            BigDecimal::from_u64(10_u64.pow(token.token.decimals.into())).unwrap();
                         // update
-                        token.current_total_debt -= aave_action.amount_transferred.clone();
+                        let amount_transferred =
+                            aave_action.amount_transferred.clone() / decimal_factor;
+                        let amount_transferred = amount_transferred.to_f64().unwrap();
+
+                        token.current_total_debt -= amount_transferred;
 
                         // if using a token to pay back debt , subtract debt from a token balance
                         if aave_action.use_a_tokens {
-                            if token.current_atoken_balance > aave_action.amount_transferred.clone()
-                            {
-                                token.current_atoken_balance -=
-                                    aave_action.amount_transferred.clone();
+                            if token.current_atoken_balance > amount_transferred {
+                                token.current_atoken_balance -= amount_transferred;
                             } else {
-                                token.current_atoken_balance = BigDecimal::from(0)
+                                token.current_atoken_balance = 0.0;
                             }
                         }
 
                         // if token has no debt or a token balance then remove
-                        if token.current_total_debt == BigDecimal::from(0)
-                            && token.current_atoken_balance == BigDecimal::from(0)
-                        {
+                        if token.current_total_debt == 0.0 && token.current_atoken_balance == 0.0 {
                             token_index = Some(index);
                             break;
                         } else {
@@ -182,8 +193,13 @@ impl Update for AaveUserData {
             AaveUserEvent::Supply => {
                 for token in &mut self.tokens {
                     if token.token.address.to_lowercase() == token_address {
+                        let decimal_factor =
+                            BigDecimal::from_u64(10_u64.pow(token.token.decimals.into())).unwrap();
                         // update
-                        token.current_atoken_balance += aave_action.amount_transferred.clone();
+                        let amount_transferred =
+                            aave_action.amount_transferred.clone() / decimal_factor;
+                        // update
+                        token.current_atoken_balance += amount_transferred.to_f64().unwrap();
                         return Ok(TokenToRemove::None);
                     };
                 }
@@ -198,15 +214,18 @@ impl Update for AaveUserData {
                     }
                 };
 
+                let decimal_factor =
+                    BigDecimal::from_u64(10_u64.pow(new_token.decimals.into())).unwrap();
+
+                let amount_transferred = aave_action.amount_transferred.clone() / decimal_factor;
+
                 self.tokens.push(AaveToken {
                     token: new_token.clone(),
-                    current_total_debt: BigDecimal::from(0),
+                    current_total_debt: 0.0,
                     usage_as_collateral_enabled: false,
-                    current_atoken_balance: aave_action.amount_transferred.clone(),
-                    reserve_liquidation_threshold: BigDecimal::from(
-                        new_token.liquidation_threshold,
-                    ),
-                    reserve_liquidation_bonus: BigDecimal::from(new_token.liquidation_bonus),
+                    current_atoken_balance: amount_transferred.to_f64().unwrap(),
+                    reserve_liquidation_threshold: new_token.liquidation_threshold.into(),
+                    reserve_liquidation_bonus: new_token.liquidation_bonus.into(),
                 });
             }
             AaveUserEvent::ReserveUsedAsCollateralEnabled => {
