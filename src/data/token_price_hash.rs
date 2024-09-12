@@ -3,7 +3,6 @@ use crate::data::token_data_hash::get_token_data;
 use super::erc20::Convert;
 use super::token_data_hash::get_unique_token_data;
 use anyhow::Result;
-use bigdecimal::BigDecimal;
 use ethers::providers::{Provider, Ws};
 use futures::lock::Mutex;
 use log::debug;
@@ -11,8 +10,8 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub static TOKEN_PRICE_HASH: Lazy<Arc<Mutex<HashMap<String, BigDecimal>>>> =
-    Lazy::new(|| Arc::new(Mutex::new(HashMap::<String, BigDecimal>::new())));
+pub static TOKEN_PRICE_HASH: Lazy<Arc<Mutex<HashMap<String, f64>>>> =
+    Lazy::new(|| Arc::new(Mutex::new(HashMap::<String, f64>::new())));
 
 pub async fn generate_token_price_hash(client: &Arc<Provider<Ws>>) -> Result<()> {
     let token_price_hash = Arc::clone(&TOKEN_PRICE_HASH);
@@ -34,7 +33,7 @@ pub async fn generate_token_price_hash(client: &Arc<Provider<Ws>>) -> Result<()>
     Ok(())
 }
 
-pub async fn get_saved_token_price(token_address: String) -> Result<BigDecimal> {
+pub async fn get_saved_token_price(token_address: String) -> Result<f64> {
     let token_price_hash = Arc::clone(&TOKEN_PRICE_HASH);
     let token_prices = token_price_hash.lock().await;
 
@@ -42,10 +41,10 @@ pub async fn get_saved_token_price(token_address: String) -> Result<BigDecimal> 
         .get(&token_address)
         .unwrap_or_else(|| panic!("token {} not found in token price hash", token_address));
 
-    Ok(token_price.clone())
+    Ok(*token_price)
 }
 
-pub async fn set_saved_token_price(token_address: &str, new_token_price: BigDecimal) -> Result<()> {
+pub async fn set_saved_token_price(token_address: &str, new_token_price: f64) -> Result<()> {
     let token_price_hash = Arc::clone(&TOKEN_PRICE_HASH);
     let mut token_prices = token_price_hash.lock().await;
 

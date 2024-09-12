@@ -2,7 +2,6 @@
 mod generate_mock_users;
 
 use anyhow::Result;
-use bigdecimal::{BigDecimal, FromPrimitive};
 use eth_liquadation::data::token_data_hash::{get_token_data, save_erc20_tokens_from_static_data};
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
 use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
@@ -100,7 +99,7 @@ async fn test_both_users_are_moved_to_correct_mapping() -> Result<()> {
         .user_data
         .get_mut(&user_id)
         .expect("invalid user id");
-    user.health_factor = BigDecimal::from_f32(2.0).unwrap();
+    user.health_factor = 2.0;
 
     users_hash
         .update_token_user_mapping_for_(user_id, &client)
@@ -172,7 +171,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<()> {
         .user_data
         .get_mut(&user_id)
         .expect("invalid user id");
-    user.health_factor = BigDecimal::from_f32(2.0).unwrap();
+    user.health_factor = 2.0;
 
     users_hash
         .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
@@ -196,7 +195,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<()> {
         .user_data
         .get_mut(&user_id_2)
         .expect("invalid user id");
-    user_2.health_factor = BigDecimal::from_f32(4.0).unwrap();
+    user_2.health_factor = 4.0;
 
     users_hash
         .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
@@ -220,7 +219,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<()> {
         .user_data
         .get_mut(&user_id)
         .expect("invalid user id");
-    user.health_factor = BigDecimal::from_f32(1.0).unwrap();
+    user.health_factor = 1.0;
 
     users_hash
         .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
@@ -244,7 +243,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<()> {
         .user_data
         .get_mut(&user_id_2)
         .expect("invalid user id");
-    user_2.health_factor = BigDecimal::from_f32(1.04).unwrap();
+    user_2.health_factor = 1.04;
 
     users_hash
         .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
@@ -292,7 +291,7 @@ async fn test_moving_user_to_correct_mapping() -> Result<()> {
         .user_data
         .get_mut(&user_id)
         .expect("invalid user id");
-    user.health_factor = BigDecimal::from_f32(2.0).unwrap();
+    user.health_factor = 2.0;
 
     // update token user mapping
     users_hash
@@ -315,7 +314,7 @@ async fn test_moving_user_to_correct_mapping() -> Result<()> {
         .user_data
         .get_mut(&user_id)
         .expect("invalid user id");
-    user.health_factor = BigDecimal::from_f32(1.04).unwrap();
+    user.health_factor = 1.04;
 
     // update token user mapping
     users_hash

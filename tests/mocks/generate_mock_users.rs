@@ -1,21 +1,23 @@
 use anyhow::Result;
-use bigdecimal::{BigDecimal, FromPrimitive};
 use eth_liquadation::data::erc20::Erc20Token;
 use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use eth_liquadation::exchanges::aave_v3::user_structs::{AaveToken, AaveUserData, AaveUsersHash};
 use ethers::abi::Address;
 use std::collections::HashMap;
 
-pub const USDT_USER_DEBT: u64 = 26000000000;
-pub const USDT_USER_BALANCE: u64 = 30000000000;
-pub const WETH_USER_BALANCE: u128 = 10000000000000000000;
+pub const USDT_USER_DEBT: f64 = 26000.000000;
+pub const USDT_USER_BALANCE: f64 = 30000.000000;
+pub const WETH_USER_BALANCE: f64 = 10.000000000000000000;
+pub const USDT_USER_DEBT_UNSCALED: u64 = 26000000000;
+pub const USDT_USER_BALANCE_UNSCALED: u64 = 30000000000;
+pub const WETH_USER_BALANCE_UNSCALED: u64 = 10000000000000000000;
 
 pub async fn generate_mock_user_hash() -> Result<AaveUsersHash> {
     let user_address: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let user_data = AaveUserData {
         id: user_address,
-        total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        total_debt: 2603060364429.0,
+        collateral_times_liquidation_factor: 4023256458369.85,
         tokens: vec![
             AaveToken {
                 token: Erc20Token {
@@ -29,11 +31,11 @@ pub async fn generate_mock_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from(0),
+                current_total_debt: 0.0,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(WETH_USER_BALANCE).unwrap(),
-                reserve_liquidation_threshold: BigDecimal::from(8300),
-                reserve_liquidation_bonus: BigDecimal::from(10500),
+                current_atoken_balance: WETH_USER_BALANCE,
+                reserve_liquidation_threshold: 0.8300,
+                reserve_liquidation_bonus: 1.0500,
             },
             AaveToken {
                 token: Erc20Token {
@@ -47,17 +49,17 @@ pub async fn generate_mock_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from_u64(USDT_USER_DEBT).unwrap(),
+                current_total_debt: USDT_USER_DEBT,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u64(USDT_USER_BALANCE).unwrap(),
-                reserve_liquidation_threshold: BigDecimal::from(7800),
-                reserve_liquidation_bonus: BigDecimal::from(10450),
+                current_atoken_balance: USDT_USER_BALANCE,
+                reserve_liquidation_threshold: 0.7800,
+                reserve_liquidation_bonus: 1.0450,
             },
         ],
-        health_factor: BigDecimal::from_f32(0.900478).unwrap(),
+        health_factor: 0.900478,
     };
 
-    // health factor => (30000000000 * 0.78/10^6 + 15000000000000000000 * 0.83/10^18)/(26000000000/10^6)
+    // health factor => (30000000000 * 0.78/10^18)/(26000000000/10^6)
 
     let mut user_hash = HashMap::new();
     user_hash.insert(user_address, user_data);
@@ -79,8 +81,8 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let user_data = AaveUserData {
         id: user_address,
-        total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        total_debt: 2603060364429.0,
+        collateral_times_liquidation_factor: 4023256458369.85,
         tokens: vec![
             AaveToken {
                 token: Erc20Token {
@@ -94,11 +96,11 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from(0),
+                current_total_debt: 0.0,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(WETH_USER_BALANCE).unwrap(),
-                reserve_liquidation_threshold: BigDecimal::from(8300),
-                reserve_liquidation_bonus: BigDecimal::from(10500),
+                current_atoken_balance: WETH_USER_BALANCE,
+                reserve_liquidation_threshold: 0.8300,
+                reserve_liquidation_bonus: 1.0500,
             },
             AaveToken {
                 token: Erc20Token {
@@ -112,14 +114,14 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from_u64(5000000000).unwrap(),
+                current_total_debt: 5000.000000,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from(0),
-                reserve_liquidation_threshold: BigDecimal::from(7800),
-                reserve_liquidation_bonus: BigDecimal::from(10450),
+                current_atoken_balance: 0.0,
+                reserve_liquidation_threshold: 0.7800,
+                reserve_liquidation_bonus: 1.0450,
             },
         ],
-        health_factor: BigDecimal::from_f32(0.900478).unwrap(),
+        health_factor: 0.900478,
     };
 
     // (20000000000000000000/10^18) / (5000000000/10^6)
@@ -127,8 +129,8 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
     let user_address_2: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let user_data_2 = AaveUserData {
         id: user_address_2,
-        total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        total_debt: 2603060364429.0,
+        collateral_times_liquidation_factor: 4023256458369.85,
         tokens: vec![
             AaveToken {
                 token: Erc20Token {
@@ -142,11 +144,11 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from(0),
+                current_total_debt: 0.0,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(WETH_USER_BALANCE).unwrap(),
-                reserve_liquidation_threshold: BigDecimal::from(8300),
-                reserve_liquidation_bonus: BigDecimal::from(10500),
+                current_atoken_balance: WETH_USER_BALANCE,
+                reserve_liquidation_threshold: 0.8300,
+                reserve_liquidation_bonus: 1.0500,
             },
             AaveToken {
                 token: Erc20Token {
@@ -160,14 +162,14 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from_u64(USDT_USER_DEBT).unwrap(),
+                current_total_debt: USDT_USER_DEBT,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u64(USDT_USER_BALANCE).unwrap(),
-                reserve_liquidation_threshold: BigDecimal::from(7800),
-                reserve_liquidation_bonus: BigDecimal::from(10450),
+                current_atoken_balance: USDT_USER_BALANCE,
+                reserve_liquidation_threshold: 0.7800,
+                reserve_liquidation_bonus: 1.0450,
             },
         ],
-        health_factor: BigDecimal::from_f32(0.900478).unwrap(),
+        health_factor: 0.900478,
     };
 
     let mut user_hash = HashMap::new();
@@ -192,8 +194,8 @@ pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
     let user_address: Address = "0x922389be330d20bfb132faf5c73ee0fd81e9ad21".parse()?;
     let user_data = AaveUserData {
         id: user_address,
-        total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        total_debt: 2603060364429.0,
+        collateral_times_liquidation_factor: 4023256458369.85,
         tokens: vec![
             AaveToken {
                 token: Erc20Token {
@@ -207,11 +209,11 @@ pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from(0),
+                current_total_debt: 0.0,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(100000000).unwrap(),
-                reserve_liquidation_threshold: BigDecimal::from(8300),
-                reserve_liquidation_bonus: BigDecimal::from(10500),
+                current_atoken_balance: 100.0,
+                reserve_liquidation_threshold: 0.8300,
+                reserve_liquidation_bonus: 1.0500,
             },
             AaveToken {
                 token: Erc20Token {
@@ -225,21 +227,21 @@ pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from_u64(100000000).unwrap(),
+                current_total_debt: 100.000000,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from(0),
-                reserve_liquidation_threshold: BigDecimal::from(7800),
-                reserve_liquidation_bonus: BigDecimal::from(10450),
+                current_atoken_balance: 0.0,
+                reserve_liquidation_threshold: 0.7800,
+                reserve_liquidation_bonus: 1.0450,
             },
         ],
-        health_factor: BigDecimal::from_f32(0.83).unwrap(),
+        health_factor: 0.83,
     };
 
     let user_address_2: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     let user_data_2 = AaveUserData {
         id: user_address_2,
-        total_debt: BigDecimal::from_u64(2603060364429).unwrap(),
-        collateral_times_liquidation_factor: BigDecimal::from_f32(4023256458369.85).unwrap(),
+        total_debt: 2603060364429.0,
+        collateral_times_liquidation_factor: 4023256458369.85,
         tokens: vec![
             AaveToken {
                 token: Erc20Token {
@@ -253,11 +255,11 @@ pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from(0),
+                current_total_debt: 0.0,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from_u128(10000000).unwrap(),
-                reserve_liquidation_threshold: BigDecimal::from(8300),
-                reserve_liquidation_bonus: BigDecimal::from(10500),
+                current_atoken_balance: 10.000000,
+                reserve_liquidation_threshold: 0.8300,
+                reserve_liquidation_bonus: 1.0500,
             },
             AaveToken {
                 token: Erc20Token {
@@ -271,14 +273,14 @@ pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: BigDecimal::from_u64(1000000).unwrap(),
+                current_total_debt: 1.000000,
                 usage_as_collateral_enabled: true,
-                current_atoken_balance: BigDecimal::from(0),
-                reserve_liquidation_threshold: BigDecimal::from(7800),
-                reserve_liquidation_bonus: BigDecimal::from(10450),
+                current_atoken_balance: 0.0,
+                reserve_liquidation_threshold: 0.7800,
+                reserve_liquidation_bonus: 1.0450,
             },
         ],
-        health_factor: BigDecimal::from_f32(8.3).unwrap(),
+        health_factor: 8.3,
     };
 
     let mut user_hash = HashMap::new();
