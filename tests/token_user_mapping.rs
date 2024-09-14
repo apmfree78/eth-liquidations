@@ -5,7 +5,9 @@ use anyhow::Result;
 use eth_liquadation::data::token_data_hash::{get_token_data, save_erc20_tokens_from_static_data};
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
 use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
-use eth_liquadation::exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate};
+use eth_liquadation::exchanges::aave_v3::user_structs::{
+    UserType, UsersToLiquidate, HEALTH_FACTOR_THRESHOLD,
+};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
 use generate_mock_users::{
@@ -75,7 +77,6 @@ async fn test_both_users_are_moved_to_correct_mapping() -> Result<()> {
     let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
     // populate token state
     save_erc20_tokens_from_static_data(&client).await?;
-
     generate_token_price_hash(&client).await?;
 
     let mut users_hash = generate_mock_2_user_hash().await?;
@@ -123,6 +124,8 @@ async fn test_both_users_are_moved_to_correct_mapping() -> Result<()> {
 async fn test_both_users_mappings_update_by_token() -> Result<()> {
     let provider = Provider::<Ws>::connect(WS_URL).await?;
     let client = Arc::new(provider);
+    save_erc20_tokens_from_static_data(&client).await?;
+    generate_token_price_hash(&client).await?;
     let token_data = get_token_data().await?;
 
     let user_id: Address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
@@ -225,6 +228,13 @@ async fn test_both_users_mappings_update_by_token() -> Result<()> {
         .update_token_to_user_mapping_for_all_users_with_token_(token, &client)
         .await?;
 
+    let user = users_hash
+        .user_data
+        .get_mut(&user_id)
+        .expect("invalid user id");
+    println!("reset health factor since will be updated automatically from aave contract call");
+    user.health_factor = 1.0;
+
     println!("low health users {:?}", users_hash.whale_user_ids_by_token);
     println!("standard users {:?}", users_hash.standard_user_ids_by_token);
 
@@ -243,7 +253,7 @@ async fn test_both_users_mappings_update_by_token() -> Result<()> {
         .user_data
         .get_mut(&user_id_2)
         .expect("invalid user id");
-    user_2.health_factor = 1.04;
+    user_2.health_factor = 1.1;
 
     users_hash
         .update_token_to_user_mapping_for_all_users_with_token_(token, &client)

@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 pub const HEALTH_FACTOR_THRESHOLD: f64 = 1.2;
 pub const DEFAULT_LIQUIDATION_CLOSE_FACTOR: f64 = 0.5;
-pub const PROFIT_THRESHOLD_MAINNET: f64 = 100.0; // raise to $50 for prod
+pub const PROFIT_THRESHOLD_MAINNET: f64 = 1.0; // raise to $100 for prod
 /**
  * @dev Maximum percentage of borrower's debt to be repaid in a liquidation
  * @dev Percentage applied when the users health factor is below `CLOSE_FACTOR_HF_THRESHOLD`
