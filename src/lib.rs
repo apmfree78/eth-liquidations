@@ -17,6 +17,10 @@ pub mod backrun {
     pub mod flashbots;
 }
 
+pub mod interest {
+    pub mod calculate_interest;
+}
+
 pub mod mempool {
     pub mod decode_new_price;
     pub mod detect_price_update;

@@ -5,9 +5,7 @@ use anyhow::Result;
 use eth_liquadation::data::token_data_hash::{get_token_data, save_erc20_tokens_from_static_data};
 use eth_liquadation::data::token_price_hash::generate_token_price_hash;
 use eth_liquadation::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
-use eth_liquadation::exchanges::aave_v3::user_structs::{
-    UserType, UsersToLiquidate, HEALTH_FACTOR_THRESHOLD,
-};
+use eth_liquadation::exchanges::aave_v3::user_structs::{UserType, UsersToLiquidate};
 use ethers::abi::Address;
 use ethers::providers::{Provider, Ws};
 use generate_mock_users::{

@@ -19,6 +19,7 @@ pub const MAX_LIQUIDATION_CLOSE_FACTOR: f64 = 1.0;
  */
 pub const CLOSE_FACTOR_HF_THRESHOLD: f64 = 0.95;
 pub const LIQUIDATION_THRESHOLD: f64 = 1.00;
+// TODO - restores below threshold
 // pub const LIQUIDATION_THRESHOLD: f32 = 1.05; // user value slightly highet than 1 to account for health factor estimation error
 pub const LIQUIDATION_THRESHOLD_LOWER_BOUND: f64 = 0.10;
 pub const BPS_FACTOR: f64 = 10_u64.pow(4) as f64;
