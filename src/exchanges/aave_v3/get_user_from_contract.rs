@@ -31,14 +31,17 @@ pub async fn get_aave_v3_user_from_data_provider(
                 .call()
                 .await?;
 
-        let total_debt = stable_debt + variable_debt;
-        let total_debt = u256_to_big_decimal(&total_debt) / &decimal_factor;
+        let stable_debt = u256_to_big_decimal(&stable_debt) / &decimal_factor;
+        let variable_debt = u256_to_big_decimal(&variable_debt) / &decimal_factor;
         let a_token_balance = u256_to_big_decimal(&a_token_balance) / &decimal_factor;
 
-        if total_debt > BigDecimal::from(0) || a_token_balance > BigDecimal::from(0) {
+        if &stable_debt + &variable_debt > BigDecimal::from(0)
+            || a_token_balance > BigDecimal::from(0)
+        {
             tokens.push(AaveToken {
                 token: token.clone(),
-                current_total_debt: total_debt.to_f64().unwrap(),
+                current_variable_debt: variable_debt.to_f64().unwrap(),
+                current_stable_debt: stable_debt.to_f64().unwrap(),
                 usage_as_collateral_enabled: use_as_collateral,
                 current_atoken_balance: a_token_balance.to_f64().unwrap(),
                 reserve_liquidation_bonus: token.liquidation_bonus as f64 / BPS_FACTOR as f64,

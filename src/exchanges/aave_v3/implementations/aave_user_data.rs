@@ -224,7 +224,7 @@ impl GetUserData for AaveUserData {
 
             // 2. get get current total debt in USD
             // *************************************
-            let current_total_debt = r.current_total_debt;
+            let current_total_debt = r.current_stable_debt + r.current_variable_debt;
             // *************************************
 
             if current_total_debt > 0.0 {
@@ -281,20 +281,14 @@ impl GetUserData for AaveUserData {
         let mut token_highest_debt: &str = "";
         let mut token_highest_collateral = Address::zero();
         let mut highest_debt_to_cover = 0.0;
-        // let mut highest_decimal_factor = 0.0;
         let mut maximum_profit = 0.0;
 
         for token in &self.tokens {
-            // let decimal_factor = 10_u64.pow(token.token.decimals.into()) as f64;
+            let total_debt = token.current_variable_debt + token.current_variable_debt;
 
-            if token.current_total_debt > highest_token_debt {
-                highest_token_debt = token.current_total_debt;
+            if total_debt > highest_token_debt {
+                highest_token_debt = total_debt;
                 token_highest_debt = &token.token.address;
-                // highest_decimal_factor = decimal_factor;
-
-                // let debt_to_cover =
-                //     highest_token_debt / decimal_factor * liquidation_close_factor_scaled * token_price
-
                 highest_debt_to_cover = highest_token_debt * liquidation_close_factor;
             }
         }

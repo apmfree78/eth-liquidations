@@ -34,6 +34,7 @@ pub struct AaveUserAction {
     pub token: Erc20Token,
     pub amount_transferred: BigDecimal,
     pub use_a_tokens: bool,
+    pub interest_rate_mode: u8,
 }
 
 pub trait ReserveCollateralEvent {
@@ -176,6 +177,9 @@ pub trait AaveEvent {
     fn get_use_a_tokens(&self) -> bool {
         false
     }
+    fn get_interest_rate_mode(&self) -> u8 {
+        2
+    }
 }
 
 impl AaveEvent for BorrowEvent {
@@ -194,6 +198,10 @@ impl AaveEvent for BorrowEvent {
 
     fn get_type(&self) -> AaveUserEvent {
         AaveUserEvent::Borrow
+    }
+
+    fn get_interest_rate_mode(&self) -> u8 {
+        self.interest_rate_mode
     }
 }
 

@@ -73,7 +73,10 @@ async fn test_user_update_with_repay_event() -> Result<()> {
 
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
-            assert_eq!(tokens.current_total_debt, remaining_debt);
+            assert_eq!(
+                tokens.current_stable_debt + tokens.current_variable_debt,
+                remaining_debt
+            );
             assert_eq!(tokens.current_atoken_balance, a_token_balance);
         }
     }
@@ -120,7 +123,10 @@ async fn test_user_update_with_full_repay_then_withdraw_event() -> Result<()> {
 
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
-            assert_eq!(tokens.current_total_debt, remaining_debt);
+            assert_eq!(
+                tokens.current_stable_debt + tokens.current_variable_debt,
+                remaining_debt
+            );
             assert_eq!(tokens.current_atoken_balance, a_token_balance);
         }
     }
@@ -184,7 +190,10 @@ async fn test_user_update_with_full_withdraw_then_repay_event() -> Result<()> {
 
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
-            assert_eq!(tokens.current_total_debt, remaining_debt);
+            assert_eq!(
+                tokens.current_stable_debt + tokens.current_variable_debt,
+                remaining_debt
+            );
             assert_eq!(tokens.current_atoken_balance, a_token_balance);
         }
     }
@@ -253,7 +262,10 @@ async fn test_user_update_with_repay_with_a_token_event() -> Result<()> {
 
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
-            assert_eq!(tokens.current_total_debt, remaining_debt);
+            assert_eq!(
+                tokens.current_stable_debt + tokens.current_variable_debt,
+                remaining_debt
+            );
             assert_eq!(tokens.current_atoken_balance, a_token_balance);
         }
     }
@@ -300,7 +312,10 @@ async fn test_user_update_with_borrow() -> Result<()> {
 
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
-            assert_eq!(tokens.current_total_debt, updated_debt);
+            assert_eq!(
+                tokens.current_stable_debt + tokens.current_variable_debt,
+                updated_debt
+            );
         }
     }
     Ok(())
@@ -350,7 +365,10 @@ async fn test_user_liquidation() -> Result<()> {
 
     for token in &user.tokens {
         if token.token.address == debt_token {
-            assert_eq!(token.current_total_debt, updated_debt);
+            assert_eq!(
+                token.current_variable_debt + token.current_stable_debt,
+                updated_debt
+            );
         } else if token.token.address == reserve_token {
             assert_eq!(token.current_atoken_balance, updated_collateral);
         }
@@ -398,7 +416,10 @@ async fn test_user_update_with_borrow_new_token() -> Result<()> {
     for tokens in &user.tokens {
         if tokens.token.address == reserve_token {
             assert_eq!(tokens.current_atoken_balance, 0.0);
-            assert_eq!(tokens.current_total_debt, amount_to_borrow as f64);
+            assert_eq!(
+                tokens.current_stable_debt + tokens.current_variable_debt,
+                amount_to_borrow as f64
+            );
         }
     }
     Ok(())
@@ -489,7 +510,10 @@ async fn test_user_update_with_supply_to_new_token() -> Result<()> {
                 tokens.current_atoken_balance as u64,
                 scaled_amount_to_supply as u64
             );
-            assert_eq!(tokens.current_total_debt, 0.0);
+            assert_eq!(
+                tokens.current_stable_debt + tokens.current_variable_debt,
+                0.0
+            );
         }
     }
     Ok(())

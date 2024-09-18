@@ -45,7 +45,8 @@ pub enum LiquidationCloseFactor {
 #[derive(Clone, Debug)]
 pub struct AaveToken {
     pub token: Erc20Token,
-    pub current_total_debt: f64,
+    pub current_variable_debt: f64,
+    pub current_stable_debt: f64,
     pub usage_as_collateral_enabled: bool,
     pub current_atoken_balance: f64,
     pub reserve_liquidation_threshold: f64,

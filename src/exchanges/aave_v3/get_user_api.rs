@@ -70,8 +70,10 @@ impl UserAccountData for AaveUser {
             //*******************************************************************************
 
             let decimal_factor = BigDecimal::from_u64(10_u64.pow(decimals.into())).unwrap();
-            let current_total_debt =
-                BigDecimal::from_str(&r.current_total_debt).unwrap() / &decimal_factor;
+            let current_stable_debt =
+                BigDecimal::from_str(&r.current_stable_debt).unwrap() / &decimal_factor;
+            let current_variable_debt =
+                BigDecimal::from_str(&r.current_variable_debt).unwrap() / &decimal_factor;
             let current_atoken_balance =
                 &BigDecimal::from_str(&r.current_atoken_balance).unwrap() / &decimal_factor;
             let reserve_liquidation_threshold =
@@ -81,7 +83,7 @@ impl UserAccountData for AaveUser {
             // let usage_as_collateral_enabled = r.reserve.usage_as_collateral_enabled;
 
             // update meta data
-            total_debt += &current_total_debt;
+            total_debt += &current_stable_debt + &current_variable_debt;
             if usage_as_collateral_enabled && current_atoken_balance > BigDecimal::from(0) {
                 collateral_times_liquidation_factor +=
                     &current_atoken_balance / &bps_factor * &reserve_liquidation_threshold
@@ -90,7 +92,8 @@ impl UserAccountData for AaveUser {
             // get debt, colladeral, liquidation threshold, bonus, and usage colladeral boolean
             user_token_list.push(AaveToken {
                 token,
-                current_total_debt: current_total_debt.to_f64().unwrap(),
+                current_variable_debt: current_variable_debt.to_f64().unwrap(),
+                current_stable_debt: current_stable_debt.to_f64().unwrap(),
                 usage_as_collateral_enabled,
                 current_atoken_balance: current_atoken_balance.to_f64().unwrap(),
                 reserve_liquidation_threshold: reserve_liquidation_threshold.to_f64().unwrap()

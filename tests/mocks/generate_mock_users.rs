@@ -31,7 +31,8 @@ pub async fn generate_mock_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: 0.0,
+                current_variable_debt: 0.0,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: WETH_USER_BALANCE,
                 reserve_liquidation_threshold: 0.8300,
@@ -49,7 +50,8 @@ pub async fn generate_mock_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: USDT_USER_DEBT,
+                current_variable_debt: USDT_USER_DEBT,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: USDT_USER_BALANCE,
                 reserve_liquidation_threshold: 0.7800,
@@ -96,7 +98,8 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: 0.0,
+                current_variable_debt: 0.0,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: WETH_USER_BALANCE,
                 reserve_liquidation_threshold: 0.8300,
@@ -114,7 +117,8 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: 5000.000000,
+                current_variable_debt: 50000.0,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: 0.0,
                 reserve_liquidation_threshold: 0.7800,
@@ -144,7 +148,8 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: 0.0,
+                current_variable_debt: 0.0,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: WETH_USER_BALANCE,
                 reserve_liquidation_threshold: 0.8300,
@@ -162,7 +167,8 @@ pub async fn generate_mock_2_user_hash() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: USDT_USER_DEBT,
+                current_variable_debt: USDT_USER_DEBT,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: USDT_USER_BALANCE,
                 reserve_liquidation_threshold: 0.7800,
@@ -209,7 +215,8 @@ pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: 0.0,
+                current_variable_debt: 0.0,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: 100.0,
                 reserve_liquidation_threshold: 0.8300,
@@ -227,7 +234,8 @@ pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: 100.000000,
+                current_variable_debt: 100.0,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: 0.0,
                 reserve_liquidation_threshold: 0.7800,
@@ -255,7 +263,8 @@ pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: 0.0,
+                current_variable_debt: 0.0,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: 10.000000,
                 reserve_liquidation_threshold: 0.8300,
@@ -273,7 +282,8 @@ pub async fn generate_mock_2_user_hash_v2() -> Result<AaveUsersHash> {
                     chainlink_aggregator: "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419".to_string(),
                     ..Default::default()
                 },
-                current_total_debt: 1.000000,
+                current_variable_debt: 1.0,
+                current_stable_debt: 0.0,
                 usage_as_collateral_enabled: true,
                 current_atoken_balance: 0.0,
                 reserve_liquidation_threshold: 0.7800,

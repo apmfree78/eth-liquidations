@@ -41,6 +41,7 @@ pub async fn get_user_action_from_event(
         token: token.clone(),
         amount_transferred: amount,
         use_a_tokens: event.get_use_a_tokens(),
+        interest_rate_mode: event.get_interest_rate_mode(),
     })
 }
 
@@ -69,8 +70,15 @@ impl Update for AaveUserData {
             } else if token.token.address.to_lowercase() == event.get_debt_token_address() {
                 // update debt
                 debug!("debt token {}", token.token.symbol);
-                token.current_total_debt = &token.current_total_debt
-                    - event.get_amount_debt_reduced(token.token.decimals.into());
+                let debt_reduced = event.get_amount_debt_reduced(token.token.decimals.into());
+
+                if token.current_variable_debt >= debt_reduced {
+                    token.current_variable_debt -= debt_reduced;
+                } else {
+                    let remaining_debt = debt_reduced - token.current_variable_debt;
+                    token.current_variable_debt = 0.0;
+                    token.current_stable_debt -= remaining_debt;
+                }
             }
         }
 
@@ -98,7 +106,10 @@ impl Update for AaveUserData {
                         token.current_atoken_balance -= amount_transferred.to_f64().unwrap();
 
                         // if token has no debt or a token balance then remove
-                        if token.current_total_debt == 0.0 && token.current_atoken_balance == 0.0 {
+                        if token.current_variable_debt == 0.0
+                            && token.current_atoken_balance == 0.0
+                            && token.current_stable_debt == 0.0
+                        {
                             token_index = Some(index);
                             break;
                         } else {
@@ -123,7 +134,12 @@ impl Update for AaveUserData {
                         // update
                         let amount_transferred =
                             aave_action.amount_transferred.clone() / decimal_factor;
-                        token.current_total_debt += amount_transferred.to_f64().unwrap();
+
+                        if aave_action.interest_rate_mode == 2 {
+                            token.current_variable_debt += amount_transferred.to_f64().unwrap();
+                        } else {
+                            token.current_stable_debt += amount_transferred.to_f64().unwrap();
+                        }
                         return Ok(TokenToRemove::None);
                     };
                 }
@@ -140,11 +156,19 @@ impl Update for AaveUserData {
 
                 let decimal_factor =
                     BigDecimal::from_u64(10_u64.pow(new_token.decimals.into())).unwrap();
-                let current_total_debt = &aave_action.amount_transferred / &decimal_factor;
+                let debt = &aave_action.amount_transferred / &decimal_factor;
+                let debt = debt.to_f64().unwrap();
+                let variable_debt = if aave_action.interest_rate_mode == 2 {
+                    debt
+                } else {
+                    0.0
+                };
+                let stable_debt = if variable_debt > 0.0 { 0.0 } else { debt };
 
                 self.tokens.push(AaveToken {
                     token: new_token.clone(),
-                    current_total_debt: current_total_debt.to_f64().unwrap(),
+                    current_variable_debt: variable_debt,
+                    current_stable_debt: stable_debt,
                     usage_as_collateral_enabled: false,
                     current_atoken_balance: 0.0,
                     reserve_liquidation_threshold: new_token.liquidation_threshold.into(),
@@ -162,7 +186,12 @@ impl Update for AaveUserData {
                             aave_action.amount_transferred.clone() / decimal_factor;
                         let amount_transferred = amount_transferred.to_f64().unwrap();
 
-                        token.current_total_debt -= amount_transferred;
+                        // repay, starting with variable or stable debt
+                        if token.current_variable_debt >= amount_transferred {
+                            token.current_variable_debt -= amount_transferred;
+                        } else {
+                            token.current_stable_debt -= amount_transferred;
+                        }
 
                         // if using a token to pay back debt , subtract debt from a token balance
                         if aave_action.use_a_tokens {
@@ -174,13 +203,16 @@ impl Update for AaveUserData {
                         }
 
                         // if token has no debt or a token balance then remove
-                        if token.current_total_debt == 0.0 && token.current_atoken_balance == 0.0 {
+                        if token.current_variable_debt == 0.0
+                            && token.current_stable_debt == 0.0
+                            && token.current_atoken_balance == 0.0
+                        {
                             token_index = Some(index);
                             break;
                         } else {
                             return Ok(TokenToRemove::None);
                         }
-                    };
+                    }
                 }
 
                 // if  no  debt or a token balance then  remove token
@@ -221,7 +253,8 @@ impl Update for AaveUserData {
 
                 self.tokens.push(AaveToken {
                     token: new_token.clone(),
-                    current_total_debt: 0.0,
+                    current_stable_debt: 0.0,
+                    current_variable_debt: 0.0,
                     usage_as_collateral_enabled: false,
                     current_atoken_balance: amount_transferred.to_f64().unwrap(),
                     reserve_liquidation_threshold: new_token.liquidation_threshold.into(),
