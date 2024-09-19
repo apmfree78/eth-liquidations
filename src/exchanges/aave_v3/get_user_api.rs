@@ -1,5 +1,8 @@
 use super::user_structs::{SampleSize, BPS_FACTOR};
-use crate::data::{erc20::Erc20Token, token_data_hash::save_erc20_token};
+use crate::data::{
+    erc20::Erc20Token,
+    token_data_hash::{get_token_data, get_token_interest_rates, save_erc20_token},
+};
 use crate::exchanges::aave_v3::user_structs::AaveToken;
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
@@ -35,6 +38,7 @@ impl UserAccountData for AaveUser {
         client: &Arc<Provider<Ws>>,
     ) -> Result<(Vec<AaveToken>, f64, f64, f64)> {
         let bps_factor = BigDecimal::from_f64(BPS_FACTOR).unwrap();
+        let token_hash = get_token_data().await?;
         let mut user_token_list: Vec<AaveToken> = Vec::new();
 
         let mut total_debt = BigDecimal::from(0);
@@ -53,6 +57,17 @@ impl UserAccountData for AaveUser {
 
             let token_address = extract_first_address(&id).unwrap().to_string();
 
+            // TODO - check if token is already saved and pull it
+            let (liquidity_rate, stable_borrow_rate, variable_borrow_rate) =
+                match token_hash.get(&token_address) {
+                    Some(token) => (
+                        token.liquidity_rate,
+                        token.stable_borrow_rate,
+                        token.variable_borrow_rate,
+                    ),
+                    None => get_token_interest_rates(&token_address, client).await?,
+                };
+
             let token = Erc20Token {
                 name,
                 symbol,
@@ -60,6 +75,9 @@ impl UserAccountData for AaveUser {
                 address: token_address,
                 liquidation_bonus: u16::from_str(&reserve_liquidation_bonus).unwrap(),
                 liquidation_threshold: u16::from_str(&reserve_liquidation_threshold).unwrap(),
+                stable_borrow_rate,
+                variable_borrow_rate,
+                liquidity_rate,
                 ..Default::default()
             };
 

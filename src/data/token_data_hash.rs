@@ -85,9 +85,6 @@ pub async fn save_erc20_token(token: &Erc20Token, client: &Arc<Provider<Ws>>) ->
         return Ok(());
     }
 
-    let (liquidity_rate, stable_borrow_rate, variable_borrow_rate) =
-        get_token_interest_rates(&token.address, client).await?;
-
     let chainlink_price_feed = get_chainlink_price_feed_for_token_(&token.symbol, token).await;
     let aggregator_address = if !chainlink_price_feed.is_empty() {
         get_chainlink_aggregator(&chainlink_price_feed, client).await?
@@ -98,9 +95,6 @@ pub async fn save_erc20_token(token: &Erc20Token, client: &Arc<Provider<Ws>>) ->
     let updated_token = Erc20Token {
         chain_link_price_feed: chainlink_price_feed.to_string(),
         chainlink_aggregator: aggregator_address.clone(),
-        liquidity_rate,
-        stable_borrow_rate,
-        variable_borrow_rate,
         ..token.clone()
     };
 
@@ -141,7 +135,7 @@ pub async fn save_erc20_tokens_from_static_data(client: &Arc<Provider<Ws>>) -> R
     Ok(())
 }
 
-async fn get_token_interest_rates(
+pub async fn get_token_interest_rates(
     token_address: &str,
     client: &Arc<Provider<Ws>>,
 ) -> Result<(f64, f64, f64)> {
@@ -200,6 +194,9 @@ pub async fn get_and_save_erc20_by_token_address(
     let liquidation_bonus = u16::try_from(U256::low_u64(&liquidation_bonus))?;
     let liquidation_threshold = u16::try_from(U256::low_u64(&liquidation_threshold))?;
 
+    let (liquidity_rate, stable_borrow_rate, variable_borrow_rate) =
+        get_token_interest_rates(token_address_str, client).await?;
+
     let mut token = Erc20Token {
         name,
         symbol,
@@ -207,6 +204,9 @@ pub async fn get_and_save_erc20_by_token_address(
         address: token_address_str.to_lowercase(),
         liquidation_bonus,
         liquidation_threshold,
+        liquidity_rate,
+        stable_borrow_rate,
+        variable_borrow_rate,
         ..Default::default()
     };
 
