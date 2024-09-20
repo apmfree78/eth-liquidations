@@ -3,11 +3,10 @@ use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use crate::exchanges::aave_v3::user_structs::AaveUsersHash;
 use anyhow::Result;
 use futures::lock::Mutex;
-use log::debug;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-const SECONDS_PER_YEAR: f64 = 3600.0 * 24.0 * 365.0;
+pub const SECONDS_PER_YEAR: f64 = 3600.0 * 24.0 * 365.0;
 
 pub struct TokenRates {
     pub variable_borrow_rate: f64,
