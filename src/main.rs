@@ -123,10 +123,6 @@ async fn main() -> Result<()> {
                     let mut last_time = last_timestamp.lock().await;
                     let current_block_timestamp = block.timestamp.as_u32();
 
-                    debug!(
-                        "time elapsed since last block ==> {}",
-                        current_block_timestamp - *last_time
-                    );
                     if let Err(error) = update_interest_for_all_whale_users_tokens(
                         *last_time,
                         current_block_timestamp,

@@ -2,7 +2,8 @@ use crate::exchanges::aave_v3::events::ReserveUsedAsCollateralEnabledEvent;
 
 use super::events::{
     AaveEventType, AaveUserEvent, BorrowEvent, LiquidationEvent, RepayEvent,
-    ReserveCollateralEvent, ReserveUsedAsCollateralDisabledEvent, SupplyEvent, WithdrawEvent,
+    ReserveCollateralEvent, ReserveDataUpdatedEvent, ReserveUsedAsCollateralDisabledEvent,
+    SupplyEvent, WithdrawEvent,
 };
 use ethers::abi::Address;
 use ethers::core::abi::RawLog;
@@ -42,6 +43,10 @@ pub fn create_aave_event_from_log(event_type: AaveUserEvent, log: &Log) -> AaveE
         AaveUserEvent::Liquidation => {
             let liquidaiton_event = decode_liquidation_event(log).unwrap();
             AaveEventType::LiquidationEvent(liquidaiton_event)
+        }
+        AaveUserEvent::ReserveDataUpdated => {
+            let reserve_data_updated_event = decode_reserve_data_updated_event(log).unwrap();
+            AaveEventType::ReserveDataUpdated(reserve_data_updated_event)
         }
         _ => AaveEventType::Unknown,
     }
@@ -85,6 +90,39 @@ pub fn decode_borrow_event(log: &Log) -> Result<BorrowEvent, Box<dyn std::error:
     };
 
     Ok(borrow_event)
+}
+
+pub fn decode_reserve_data_updated_event(
+    log: &Log,
+) -> Result<ReserveDataUpdatedEvent, Box<dyn std::error::Error>> {
+    if log.topics.len() < 1 {
+        return Err("Must have 1 topics for Reserve DataUpdated Event".into());
+    }
+
+    let reserve: Address = log.topics[1].into();
+
+    if log.data.len() < 128 {
+        // Check sufficient data length for amount (32 bytes) + bool (1 byte)
+        return Err("Data slice too short".into());
+    }
+
+    let data_slice = log.data.as_ref();
+    let liquidity_rate = U256::from_big_endian(&data_slice[0..32]);
+    let stable_borrow_rate = U256::from_big_endian(&data_slice[32..64]);
+    let variable_borrow_rate = U256::from_big_endian(&data_slice[64..96]);
+    let liquidity_index = U256::from_big_endian(&data_slice[96..128]);
+    let variable_borrow_index = U256::from_big_endian(&data_slice[128..160]);
+
+    let reserve_data_updated_event = ReserveDataUpdatedEvent {
+        reserve,
+        liquidity_rate,
+        stable_borrow_rate,
+        variable_borrow_rate,
+        liquidity_index,
+        variable_borrow_index,
+    };
+
+    Ok(reserve_data_updated_event)
 }
 
 pub fn decode_liquidation_event(log: &Log) -> Result<LiquidationEvent, Box<dyn std::error::Error>> {

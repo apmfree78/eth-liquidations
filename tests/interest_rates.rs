@@ -37,6 +37,6 @@ async fn check_token_rates_hashmap_is_valid() -> Result<()> {
 }
 
 fn round_f64(value: f64, decimal_places: u32) -> f64 {
-    let factor = 10f64.powi(decimal_places as i32);
+    let factor = 10_f64.powi(decimal_places as i32);
     (value * factor).round() / factor
 }

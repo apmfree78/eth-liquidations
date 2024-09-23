@@ -8,11 +8,15 @@ use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::abi::aave_v3_pool::{ReserveData, AAVE_V3_POOL};
 use crate::abi::erc20::ERC20;
 use crate::data::address::CONTRACT;
+use crate::interest::calculate_interest::TokenRates;
+use crate::utils::type_conversion::address_to_string;
 use anyhow::Result;
+use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use ethers::providers::{Provider, Ws};
 use ethers::types::{Address, U256};
 use futures::lock::Mutex;
 use log::debug;
+use num_bigint::BigInt;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -142,6 +146,7 @@ pub async fn get_token_interest_rates(
     let pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
     let pool = AAVE_V3_POOL::new(pool_address, client.clone());
     let token_address: Address = token_address.parse()?;
+    let rate_scale = BigDecimal::new(BigInt::from(1), -27);
 
     let ReserveData {
         current_liquidity_rate,
@@ -150,11 +155,52 @@ pub async fn get_token_interest_rates(
         ..
     } = pool.get_reserve_data(token_address).call().await?;
 
-    let liquidity_rate = current_liquidity_rate as f64 / 1e27_f64;
-    let stable_borrow_rate = current_stable_borrow_rate as f64 / 1e27_f64;
-    let variable_borrow_rate = current_variable_borrow_rate as f64 / 1e27_f64;
+    let liquidity_rate = &BigDecimal::from(BigInt::from(current_liquidity_rate)) / &rate_scale;
+    let stable_borrow_rate =
+        &BigDecimal::from(BigInt::from(current_stable_borrow_rate)) / &rate_scale;
+    let variable_borrow_rate =
+        &BigDecimal::from(BigInt::from(current_variable_borrow_rate)) / &rate_scale;
+
+    let liquidity_rate = liquidity_rate.to_f64().unwrap();
+    let stable_borrow_rate = stable_borrow_rate.to_f64().unwrap();
+    let variable_borrow_rate = variable_borrow_rate.to_f64().unwrap();
 
     Ok((liquidity_rate, stable_borrow_rate, variable_borrow_rate))
+}
+
+pub async fn set_token_interest_rates(
+    token_address: Address,
+    updated_interest_rates: TokenRates,
+) -> Result<()> {
+    let token_data_hash = Arc::clone(&TOKEN_DATA_HASH);
+    let mut tokens = token_data_hash.lock().await;
+    let token_address = address_to_string(token_address);
+
+    let token = tokens.get_mut(&token_address).unwrap();
+
+    debug!("updating token {} interest rates", token.symbol);
+    debug!(
+        "updating variable borrow rate...{:?}",
+        token.variable_borrow_rate
+    );
+    debug!(
+        "updating stable borrow rate...{:?}",
+        token.stable_borrow_rate
+    );
+    debug!("updating liquidity rate...{:?}", token.liquidity_rate);
+
+    token.variable_borrow_rate = updated_interest_rates.variable_borrow_rate;
+    token.stable_borrow_rate = updated_interest_rates.stable_borrow_rate;
+    token.liquidity_rate = updated_interest_rates.liquidity_rate;
+
+    debug!(
+        "new variable borrow rate...{:?}",
+        token.variable_borrow_rate
+    );
+    debug!("new stable borrow rate...{:?}", token.stable_borrow_rate);
+    debug!("new liquidity rate...{:?}", token.liquidity_rate);
+
+    Ok(())
 }
 
 pub async fn get_and_save_erc20_by_token_address(

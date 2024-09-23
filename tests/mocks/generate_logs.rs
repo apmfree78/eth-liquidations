@@ -1,9 +1,9 @@
 use eth_liquadation::{
     exchanges::aave_v3::events::{
-        BorrowEvent, LiquidationEvent, RepayEvent, ReserveCollateralEvent,
+        BorrowEvent, LiquidationEvent, RepayEvent, ReserveCollateralEvent, ReserveDataUpdatedEvent,
         ReserveUsedAsCollateralDisabledEvent, ReserveUsedAsCollateralEnabledEvent, SupplyEvent,
         WithdrawEvent, BORROW_SIGNATURE, LIQUIDATION_SIGNATURE, REPAY_SIGNATURE,
-        RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
+        RESERVE_DATA_SIGNATURE, RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE,
         RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE, SUPPLY_SIGNATURE, WITHDRAW_SIGNATURE,
     },
     utils::type_conversion::str_to_h256_hash,
@@ -56,6 +56,21 @@ pub fn create_log_for_withdraw_event(&event: &WithdrawEvent, address: &str) -> L
 pub fn create_log_for_liquidation_event(&event: &LiquidationEvent, address: &str) -> Log {
     let topics = generate_liquidation_event_topics_field(&event);
     let data = generate_liquidation_event_log_data_field(&event);
+    // create mock log
+    Log {
+        address: address.parse().unwrap(),
+        topics,
+        data,
+        ..Default::default()
+    }
+}
+
+pub fn create_log_for_reserve_data_updated_event(
+    &event: &ReserveDataUpdatedEvent,
+    address: &str,
+) -> Log {
+    let topics = generate_reserve_data_updated_event_topics_field(&event);
+    let data = generate_reserve_data_updated_event_log_data_field(&event);
     // create mock log
     Log {
         address: address.parse().unwrap(),
@@ -119,6 +134,16 @@ pub fn generate_liquidation_event_topics_field(&event: &LiquidationEvent) -> Vec
         event.collateral_asset.into(),
         event.debt_asset.into(),
         event.user.into(),
+    ];
+    topics
+}
+
+pub fn generate_reserve_data_updated_event_topics_field(
+    &event: &ReserveDataUpdatedEvent,
+) -> Vec<H256> {
+    let topics = vec![
+        str_to_h256_hash(RESERVE_DATA_SIGNATURE),
+        event.reserve.into(),
     ];
     topics
 }
@@ -200,6 +225,24 @@ pub fn generate_liquidation_event_log_data_field(&event: &LiquidationEvent) -> B
     data.extend_from_slice(&liquidation_bit_array);
     data.extend_from_slice(&liquidator_bit_array);
     data.extend_from_slice(&received_a_token_bit_array);
+    data.into()
+}
+
+pub fn generate_reserve_data_updated_event_log_data_field(
+    &event: &ReserveDataUpdatedEvent,
+) -> Bytes {
+    let liquidity_rate_bit_array = u256_to_bytes_array(event.liquidity_rate);
+    let stable_borrow_rate_bit_array = u256_to_bytes_array(event.stable_borrow_rate);
+    let variable_borrow_rate_bit_array = u256_to_bytes_array(event.variable_borrow_rate);
+    let liquidity_index_bit_array = u256_to_bytes_array(event.liquidity_index);
+    let variable_borrow_index_bit_array = u256_to_bytes_array(event.variable_borrow_index);
+
+    let mut data = Vec::new();
+    data.extend_from_slice(&liquidity_rate_bit_array);
+    data.extend_from_slice(&stable_borrow_rate_bit_array);
+    data.extend_from_slice(&variable_borrow_rate_bit_array);
+    data.extend_from_slice(&liquidity_index_bit_array);
+    data.extend_from_slice(&variable_borrow_index_bit_array);
     data.into()
 }
 

@@ -2,14 +2,15 @@
 mod generate_logs;
 
 use eth_liquadation::exchanges::aave_v3::decode_events::{
-    decode_borrow_event, decode_repay_event, decode_reserve_used_as_colladeral_event,
-    decode_supply_event, decode_withdraw_event,
+    decode_borrow_event, decode_repay_event, decode_reserve_data_updated_event,
+    decode_reserve_used_as_colladeral_event, decode_supply_event, decode_withdraw_event,
 };
 use eth_liquadation::exchanges::aave_v3::events::{
-    BorrowEvent, RepayEvent, ReserveUsedAsCollateralDisabledEvent,
+    BorrowEvent, RepayEvent, ReserveDataUpdatedEvent, ReserveUsedAsCollateralDisabledEvent,
     ReserveUsedAsCollateralEnabledEvent, SupplyEvent, WithdrawEvent,
 };
 use ethers::core::types::U256;
+use generate_logs::create_log_for_reserve_data_updated_event;
 
 use crate::generate_logs::{
     create_log_for_borrow_event, create_log_for_collateral_disable_event,
@@ -18,6 +19,57 @@ use crate::generate_logs::{
 };
 
 const AAVE_V3_POOL: &str = "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2";
+
+#[test]
+fn test_reserve_data_updated_event_decoding() -> Result<(), Box<dyn std::error::Error>> {
+    let base_5 = U256::from(5);
+    let base_1 = U256::from(1);
+    let base_2 = U256::from(2);
+    let exponent = U256::exp10(16); // 10^16
+    let rate_5 = base_5 * exponent; // 2%
+    let rate_1 = base_1 * exponent; // 1%
+    let rate_2 = base_2 * exponent; // 5%
+
+    let reserve_data_updated_event = ReserveDataUpdatedEvent {
+        reserve: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+            .parse()
+            .unwrap(),
+        liquidity_rate: rate_2,
+        stable_borrow_rate: rate_1,
+        variable_borrow_rate: rate_5,
+        liquidity_index: rate_5,
+        variable_borrow_index: rate_5,
+    };
+
+    let log = create_log_for_reserve_data_updated_event(&reserve_data_updated_event, AAVE_V3_POOL);
+
+    // decode log
+    let decoded_reserve_data_updated_event = decode_reserve_data_updated_event(&log).unwrap();
+
+    // test originala event matches decoded
+    assert_eq!(
+        decoded_reserve_data_updated_event.reserve,
+        reserve_data_updated_event.reserve
+    );
+    assert_eq!(
+        decoded_reserve_data_updated_event.liquidity_rate,
+        reserve_data_updated_event.liquidity_rate
+    );
+    assert_eq!(
+        decoded_reserve_data_updated_event.stable_borrow_rate,
+        reserve_data_updated_event.stable_borrow_rate
+    );
+    assert_eq!(
+        decoded_reserve_data_updated_event.variable_borrow_rate,
+        reserve_data_updated_event.variable_borrow_rate
+    );
+    assert_eq!(
+        decoded_reserve_data_updated_event.liquidity_index,
+        reserve_data_updated_event.liquidity_index
+    );
+
+    Ok(())
+}
 
 #[test]
 fn test_repay_event_decoding() -> Result<(), Box<dyn std::error::Error>> {

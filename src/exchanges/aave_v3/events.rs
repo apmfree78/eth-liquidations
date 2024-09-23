@@ -5,6 +5,8 @@ use ethers::abi::Address;
 use ethers::core::types::U256;
 
 pub const WITHDRAW_SIGNATURE: &str = "Withdraw(address,address,address,uint256)";
+pub const RESERVE_DATA_SIGNATURE: &str =
+    "ReserveDataUpdated(address,uint256,uint256,uint256,uint256,uint256)";
 pub const RESERVE_USED_AS_COLLATERAL_ENABLED_SIGNATURE: &str =
     "ReserveUsedAsCollateralEnabled(address,address)";
 pub const RESERVE_USED_AS_COLLATERAL_DISABLED_SIGNATURE: &str =
@@ -21,6 +23,7 @@ pub enum AaveUserEvent {
     Borrow,
     Repay,
     Supply,
+    ReserveDataUpdated,
     ReserveUsedAsCollateralEnabled,
     ReserveUsedAsCollateralDisabled,
     Liquidation,
@@ -55,6 +58,31 @@ pub struct ReserveUsedAsCollateralEnabledEvent {
 pub struct ReserveUsedAsCollateralDisabledEvent {
     pub reserve: Address,
     pub user: Address,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ReserveDataUpdatedEvent {
+    pub reserve: Address,
+    pub liquidity_rate: U256,
+    pub stable_borrow_rate: U256,
+    pub variable_borrow_rate: U256,
+    pub liquidity_index: U256,
+    pub variable_borrow_index: U256,
+}
+
+impl ReserveDataUpdatedEvent {
+    pub fn get_reserve(&self) -> Address {
+        self.reserve
+    }
+    pub fn get_liquidity_rate(&self) -> U256 {
+        self.liquidity_rate
+    }
+    pub fn get_stable_borrow_rate(&self) -> U256 {
+        self.stable_borrow_rate
+    }
+    pub fn get_variable_borrow_rate(&self) -> U256 {
+        self.variable_borrow_rate
+    }
 }
 
 impl ReserveCollateralEvent for ReserveUsedAsCollateralEnabledEvent {
@@ -161,6 +189,7 @@ pub enum AaveEventType {
     BorrowEvent(BorrowEvent),
     RepayEvent(RepayEvent),
     SupplyEvent(SupplyEvent),
+    ReserveDataUpdated(ReserveDataUpdatedEvent),
     ReserveUsedAsCollateralEnabled(ReserveUsedAsCollateralEnabledEvent),
     ReserveUsedAsCollateralDisabled(ReserveUsedAsCollateralDisabledEvent),
     LiquidationEvent(LiquidationEvent),
