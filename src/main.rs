@@ -7,7 +7,7 @@ use eth_liquadation::{
     },
     events::aave_events::{set_aave_event_signature_filter, update_users_with_event_from_log},
     exchanges::aave_v3::{
-        implementations::{aave_user_data::GenerateUsers, aave_users_hash::UpdateUsers},
+        implementations::aave_user_data::GenerateUsers,
         user_structs::{AaveUserData, SampleSize},
     },
     interest::calculate_interest::update_interest_for_all_whale_users_tokens,
@@ -21,8 +21,8 @@ use ethers::{
     types::BlockNumber,
 };
 use futures::{lock::Mutex, stream, StreamExt};
-use log::{debug, error, info};
-use std::{ops::Deref, sync::Arc};
+use log::{error, info};
+use std::sync::Arc;
 
 // SET ws url and CHAIN we are using
 const WS_URL: &str = "ws://localhost:8546";

@@ -38,8 +38,8 @@ async fn test_user_update_with_repay_event() -> Result<()> {
 
     // populate token state
     save_erc20_tokens_from_static_data(&client).await?;
-
     generate_token_price_hash(&client).await?;
+
     let user_address = "0x024889be330d20bfb132faf5c73ee0fd81e96e71".parse()?;
 
     let amount_to_repay: u64 = USDT_USER_DEBT_UNSCALED / 2;

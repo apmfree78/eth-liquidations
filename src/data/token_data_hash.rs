@@ -174,9 +174,13 @@ pub async fn set_token_interest_rates(
 ) -> Result<()> {
     let token_data_hash = Arc::clone(&TOKEN_DATA_HASH);
     let mut tokens = token_data_hash.lock().await;
+    let unique_data_hash = Arc::clone(&UNIQUE_TOKEN_DATA_HASH);
+    let mut unique_tokens = unique_data_hash.lock().await;
+
     let token_address = address_to_string(token_address);
 
     let token = tokens.get_mut(&token_address).unwrap();
+    let unique_token = unique_tokens.get_mut(&token_address).unwrap();
 
     debug!("updating token {} interest rates", token.symbol);
     debug!(
@@ -192,13 +196,14 @@ pub async fn set_token_interest_rates(
     token.variable_borrow_rate = updated_interest_rates.variable_borrow_rate;
     token.stable_borrow_rate = updated_interest_rates.stable_borrow_rate;
     token.liquidity_rate = updated_interest_rates.liquidity_rate;
+    unique_token.variable_borrow_rate = updated_interest_rates.variable_borrow_rate;
+    unique_token.stable_borrow_rate = updated_interest_rates.stable_borrow_rate;
+    unique_token.liquidity_rate = updated_interest_rates.liquidity_rate;
 
     debug!(
         "new variable borrow rate...{:?}",
         token.variable_borrow_rate
     );
-    debug!("new stable borrow rate...{:?}", token.stable_borrow_rate);
-    debug!("new liquidity rate...{:?}", token.liquidity_rate);
 
     Ok(())
 }
