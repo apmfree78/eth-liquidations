@@ -1,8 +1,12 @@
 use crate::abi::liquidate_user::{User, LIQUIDATE_USER};
 use crate::data::address::CONTRACT;
+use crate::data::erc20::u256_to_big_decimal;
 use crate::exchanges::aave_v3::user_structs::LiquidationCandidate;
+use anyhow::Result;
+use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use ethers::core::rand::thread_rng;
-use ethers::types::{Address, Bytes, Transaction};
+use ethers::types::{Address, BlockNumber, Bytes, Transaction, U256};
+use ethers::utils::{parse_units, ParseUnits};
 use ethers::{
     core::types::{transaction::eip2718::TypedTransaction, Chain},
     middleware::SignerMiddleware,
@@ -11,10 +15,14 @@ use ethers::{
     types::{Eip1559TransactionRequest, NameOrAddress},
 };
 use ethers_flashbots::{BroadcasterMiddleware, BundleRequest, PendingBundleError, SimulatedBundle};
-use log::error;
+use log::{debug, error};
+use std::cmp::min;
 use std::str::FromStr;
 use std::{env, sync::Arc};
 use url::Url;
+
+const TRANSACTION_GAS_USED: u64 = 300_000;
+const TRANSACTION_MAX_COST: f64 = 0.017;
 
 // See https://www.mev.to/builders for up to date builder URLs
 static BUILDER_URLS: &[&str] = &[
@@ -38,7 +46,20 @@ pub async fn submit_to_flashbots(
     user: &[LiquidationCandidate],
     mempool_tx: Transaction,
     client: &Arc<Provider<Ws>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<()> {
+    let minor_tip = U256::from(parse_units("0.003", 18)?);
+
+    // check that tranascation cost is not too high
+    let transaction_cost =
+        get_transaction_cost_in_eth(&mempool_tx, TRANSACTION_GAS_USED, client).await?;
+
+    if transaction_cost > TRANSACTION_MAX_COST {
+        debug!("Cost of Transaction is too high: {}", transaction_cost);
+        return Ok(());
+    } else {
+        debug!("Cost of this transaction in ETH is: {}", transaction_cost);
+    }
+
     let liquidate_user_address: Address = CONTRACT.get_address().liquidate_user.parse()?;
 
     // *******************************************************
@@ -51,6 +72,7 @@ pub async fn submit_to_flashbots(
         max_fee_per_gas: mempool_tx.max_fee_per_gas,
         to: Some(NameOrAddress::Address(liquidate_user_address)),
         data: Some(calldata), // Encoded data for the transaction
+        value: Some(minor_tip),
         ..Default::default()
     });
     // *******************************************************
@@ -134,7 +156,7 @@ pub async fn submit_to_flashbots(
 pub fn get_liquidate_user_calldata(
     client: &Arc<Provider<Ws>>,
     liquidation_users: &[LiquidationCandidate],
-) -> Result<Bytes, Box<dyn std::error::Error>> {
+) -> Result<Bytes> {
     let liquidate_user_address: Address = CONTRACT.get_address().liquidate_user.parse()?;
     // convert user to correct type
     let mut users = Vec::<User>::new();
@@ -172,4 +194,29 @@ fn is_simulation_success(bundle: &SimulatedBundle) -> bool {
         }
     }
     true // All transactions succeeded without errors or reverts
+}
+
+async fn get_transaction_cost_in_eth(
+    tx: &Transaction,
+    gas_cost: u64,
+    client: &Arc<Provider<Ws>>,
+) -> Result<f64> {
+    let current_block = client.get_block(BlockNumber::Latest).await?.unwrap();
+    let base_fee_per_gas = current_block.base_fee_per_gas.unwrap();
+
+    let max_fee_per_gas = tx.max_fee_per_gas.unwrap();
+    let max_priority_fee_per_gas = tx.max_priority_fee_per_gas.unwrap();
+
+    let gas_price = min(max_fee_per_gas, max_priority_fee_per_gas + base_fee_per_gas);
+
+    // convert to U256
+    let gas_cost = U256::from(gas_cost);
+
+    let transaction_cost = gas_cost * gas_price;
+    let transaction_cost_wei = u256_to_big_decimal(&transaction_cost);
+
+    let wei_to_eth = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
+    let transaction_cost_eth = &transaction_cost_wei / &wei_to_eth;
+    let transaction_cost_eth = transaction_cost_eth.to_f64().unwrap();
+    Ok(transaction_cost_eth)
 }
