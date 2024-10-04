@@ -35,7 +35,7 @@ pub async fn validate_liquidation_candidates(client: &Arc<Provider<Ws>>) -> Resu
     let eth_token = token_data
         .get("WETH")
         .unwrap_or_else(|| panic!("could not find WETH token"));
-    let eth_price_usd = get_saved_token_price(eth_token.address.to_lowercase()).await?;
+    let eth_price_usd = get_saved_token_price(&eth_token.address.to_lowercase()).await?;
     let eth_price_usd = &BigDecimal::from_f64(eth_price_usd).unwrap();
 
     let user_liquidation_candidates = get_tracked_users().await?;
@@ -211,7 +211,7 @@ pub async fn calculate_user_liquidation_usd_profit(
         if total_debt > highest_token_debt {
             highest_token_debt = total_debt;
 
-            let token_price = get_saved_token_price(token.address.to_lowercase()).await?;
+            let token_price = get_saved_token_price(&token.address.to_lowercase()).await?;
             // let token_price = big_decimal_to_u256_scaled(&token_price).unwrap(); // price times 10^18
             let token_price = f64_to_u256(token_price).unwrap();
             highest_token_price = token_price;

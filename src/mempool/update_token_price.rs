@@ -18,7 +18,7 @@ pub async fn update_token_price_for_(
 ) -> Result<()> {
     if token_to_update.symbol == "WETH" {
         let tokens_with_price_priced_in_eth = get_tokens_priced_in_eth().await?;
-        let current_eth_price = get_saved_token_price(token_to_update.address.clone()).await?;
+        let current_eth_price = get_saved_token_price(&token_to_update.address).await?;
 
         // when ETH price changes must update prices for all these tokens
         for token in tokens_with_price_priced_in_eth.values() {
@@ -29,7 +29,7 @@ pub async fn update_token_price_for_(
             info!("price updated for {} => {}", token.name, token.symbol);
             let original_token_price = token.get_saved_price_from_token_price_hash().await?;
 
-            let priced_in_eth_price = get_saved_token_price(token.address.clone()).await?;
+            let priced_in_eth_price = get_saved_token_price(&token.address).await?;
             let new_priced_in_eth_price = priced_in_eth_price * new_token_price / current_eth_price; // adjust price based on new price of ETH
 
             set_saved_token_price(&token.address, new_priced_in_eth_price).await?;
@@ -49,7 +49,7 @@ pub async fn update_token_price_for_(
         info!("changed from {} => {}", current_eth_price, new_token_price,);
     } else if token_to_update.symbol == "BTC" {
         let tokens_with_price_priced_in_btc = get_tokens_priced_in_btc().await?;
-        let current_btc_price = get_saved_token_price(token_to_update.address.clone()).await?;
+        let current_btc_price = get_saved_token_price(&token_to_update.address).await?;
 
         // when ETH price changes must update prices for all these tokens
         for token in tokens_with_price_priced_in_btc.values() {
@@ -57,7 +57,7 @@ pub async fn update_token_price_for_(
             let original_token_price = token.get_saved_price_from_token_price_hash().await?;
 
             // use UNISWAP to get real time price for token
-            let priced_inken_price = get_saved_token_price(token.address.clone()).await?;
+            let priced_inken_price = get_saved_token_price(&token.address).await?;
             let new_priced_inken_price = priced_inken_price * new_token_price / current_btc_price; // adjust price based on new price of ETH
 
             set_saved_token_price(&token.address, new_priced_inken_price).await?;

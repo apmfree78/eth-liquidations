@@ -1,12 +1,12 @@
 use crate::abi::liquidate_user::{User, LIQUIDATE_USER};
 use crate::data::address::CONTRACT;
 use crate::data::erc20::u256_to_big_decimal;
-use crate::exchanges::aave_v3::user_structs::LiquidationCandidate;
-use anyhow::Result;
+use crate::exchanges::aave_v3::user_structs::{LiquidationCandidate, PROFIT_THRESHOLD_MAINNET};
+use crate::utils::type_conversion::{f64_to_u256, usd_to_eth};
+use anyhow::{anyhow, Result};
 use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use ethers::core::rand::thread_rng;
-use ethers::types::{Address, BlockNumber, Bytes, Transaction, U256};
-use ethers::utils::{parse_units, ParseUnits};
+use ethers::types::{Address, Block, BlockNumber, Bytes, Transaction, H256, U256};
 use ethers::{
     core::types::{transaction::eip2718::TypedTransaction, Chain},
     middleware::SignerMiddleware,
@@ -15,14 +15,14 @@ use ethers::{
     types::{Eip1559TransactionRequest, NameOrAddress},
 };
 use ethers_flashbots::{BroadcasterMiddleware, BundleRequest, PendingBundleError, SimulatedBundle};
-use log::{debug, error};
+use log::{debug, error, info};
+use rand::Rng;
 use std::cmp::min;
 use std::str::FromStr;
 use std::{env, sync::Arc};
 use url::Url;
 
-const TRANSACTION_GAS_USED: u64 = 300_000;
-const TRANSACTION_MAX_COST: f64 = 0.017;
+const BRIBE_PERCENTAGE: f64 = 0.15;
 
 // See https://www.mev.to/builders for up to date builder URLs
 static BUILDER_URLS: &[&str] = &[
@@ -47,37 +47,32 @@ pub async fn submit_to_flashbots(
     mempool_tx: Transaction,
     client: &Arc<Provider<Ws>>,
 ) -> Result<()> {
-    let minor_tip = U256::from(parse_units("0.003", 18)?);
-
-    // check that tranascation cost is not too high
-    let transaction_cost =
-        get_transaction_cost_in_eth(&mempool_tx, TRANSACTION_GAS_USED, client).await?;
-
-    if transaction_cost > TRANSACTION_MAX_COST {
-        debug!("Cost of Transaction is too high: {}", transaction_cost);
-        return Ok(());
-    } else {
-        debug!("Cost of this transaction in ETH is: {}", transaction_cost);
-    }
-
     let liquidate_user_address: Address = CONTRACT.get_address().liquidate_user.parse()?;
+    // get last block number
+    let block_number = client.get_block_number().await?;
+    let block = client.get_block(BlockNumber::Latest).await?.unwrap();
+
+    let next_base_fee = calculate_next_block_base_fee(&block)?;
+    let buffer = next_base_fee / 20; // Add 5% buffer
+    let adjusted_max_fee = next_base_fee + buffer;
 
     // *******************************************************
     // CREATE BACKRUN Transaction
-    let calldata = get_liquidate_user_calldata(client, user)?;
+    let calldata = get_liquidate_user_calldata(user, client)?;
 
-    let backrun_tx = TypedTransaction::Eip1559(Eip1559TransactionRequest {
+    let backrun_tx = Eip1559TransactionRequest {
         chain_id: Some(Chain::Mainnet.into()), // Mainnet
-        max_priority_fee_per_gas: mempool_tx.max_priority_fee_per_gas,
-        max_fee_per_gas: mempool_tx.max_fee_per_gas,
+        max_priority_fee_per_gas: Some(U256::from(0)),
+        max_fee_per_gas: Some(adjusted_max_fee),
         to: Some(NameOrAddress::Address(liquidate_user_address)),
         data: Some(calldata), // Encoded data for the transaction
-        value: Some(minor_tip),
+        value: None,
         ..Default::default()
-    });
+    };
+
     // *******************************************************
     // CREATE SIGNED CLIENT WITH FLASHBOT MIDDLEWARE SET TO BROADCAST TO FLASHBOT AND BUILDER RELAYS
-    let client = Arc::clone(client); // need this to avoid lifetime not long enough error
+    let client_signed = Arc::clone(client); // need this to avoid lifetime not long enough error
 
     let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY not found in .env file");
     // let private_key_searcher = env::var("PRIVATE_KEY_SEARCHER").expect("PRIVATE_KEY_SEARCHER not found in .env file");
@@ -86,14 +81,13 @@ pub async fn submit_to_flashbots(
     let wallet = LocalWallet::from_str(&private_key)?.with_chain_id(Chain::Mainnet);
 
     // This is your searcher identity
-    let bundle_signer = LocalWallet::new(&mut thread_rng());
-    // for productio deployment
-    // let bundle_signer: LocalWallet = private_key_searcher.parse()?;
+    let bundle_signer = LocalWallet::new(&mut thread_rng()); // for productio deployment
+                                                             // let bundle_signer: LocalWallet = private_key_searcher.parse()?;
 
     // Add signer and Flashbots middleware
-    let client = SignerMiddleware::new(
+    let client_signed = SignerMiddleware::new(
         BroadcasterMiddleware::new(
-            client,
+            client_signed,
             BUILDER_URLS
                 .iter()
                 .map(|url| Url::parse(url).unwrap())
@@ -106,13 +100,15 @@ pub async fn submit_to_flashbots(
 
     // *******************************************************
     // GENERATE Transaction BUNDLE FOR BACKRUN
-    // get last block number
-    let block_number = client.get_block_number().await?;
 
-    let signature = client.signer().sign_transaction(&backrun_tx).await?;
+    let signature = client_signed
+        .signer()
+        .sign_transaction(&TypedTransaction::Eip1559(backrun_tx.clone()))
+        .await?;
+
     let bundle = BundleRequest::new()
-        .push_transaction(backrun_tx.rlp_signed(&signature))
-        .push_transaction(mempool_tx)
+        .push_transaction(mempool_tx.clone())
+        .push_transaction(TypedTransaction::Eip1559(backrun_tx.clone()).rlp_signed(&signature))
         .set_block(block_number + 1)
         .set_simulation_block(block_number)
         .set_simulation_timestamp(0);
@@ -120,42 +116,85 @@ pub async fn submit_to_flashbots(
     // *******************************************************
     // SIMULATE SENDING BUNDLE AND LISTEN FOR RESPONSE
     // Simulate it
-    let simulated_bundle: SimulatedBundle = client.inner().simulate_bundle(&bundle).await?;
+    let simulated_bundle: SimulatedBundle = client_signed.inner().simulate_bundle(&bundle).await?;
     println!("Simulated bundle: {:?}", simulated_bundle);
 
     if is_simulation_success(&simulated_bundle) {
-        println!("Flashbot bundle submission simulated successfully")
+        info!("Flashbot bundle submission simulated successfully")
     } else {
         error!("error submitting flashbots bundle");
+        return Ok(());
     }
+
+    // *******************************************************
+    // FROM SIMULATION GET GAS COST, NET PROFIT, AND MINER BRIBE NEEDED FOR PRODUCTION
+    //  get gas used
+    let gas_used = simulated_bundle.transactions[1].gas_used;
+    let gas_used = gas_used.low_u64();
+
+    // check that tranascation cost is not too high
+    let transaction_cost = get_transaction_cost_in_eth(&backrun_tx, gas_used, adjusted_max_fee)?;
+    let profit_in_eth = get_estimated_transaction_profit_in_eth(user).await?;
+
+    if 2.0 * transaction_cost > profit_in_eth {
+        debug!("Cost of Transaction is too high: {}", transaction_cost);
+        return Ok(());
+    } else {
+        debug!("Estimated profit: {}", profit_in_eth);
+        debug!("Cost of this transaction in ETH is: {}", transaction_cost);
+    }
+
+    let miner_bribe = BRIBE_PERCENTAGE * (profit_in_eth - transaction_cost);
+    let miner_bribe = f64_to_u256(miner_bribe)?;
+    let backrun_tx = Eip1559TransactionRequest {
+        value: Some(miner_bribe),
+        ..backrun_tx
+    };
+
+    // resign transaction
+    let signature = client_signed
+        .signer()
+        .sign_transaction(&TypedTransaction::Eip1559(backrun_tx.clone()))
+        .await?;
+
+    // *******************************************************
+    let production_bundle = BundleRequest::new()
+        .push_transaction(mempool_tx)
+        .push_transaction(TypedTransaction::Eip1559(backrun_tx).rlp_signed(&signature))
+        .set_block(block_number + 1)
+        .set_simulation_block(block_number)
+        .set_simulation_timestamp(0);
 
     // FOR PRODUCTION
     // Send it
-    // let results = client.inner().send_bundle(&bundle).await?;
-    //
-    // // You can also optionally wait to see if the bundle was included
-    // for result in results {
-    //     match result {
-    //         Ok(pending_bundle) => match pending_bundle.await {
-    //             Ok(bundle_hash) => println!(
-    //                 "Bundle with hash {:?} was included in target block",
-    //                 bundle_hash
-    //             ),
-    //             Err(PendingBundleError::BundleNotIncluded) => {
-    //                 println!("Bundle was not included in target block.")
-    //             }
-    //             Err(e) => println!("An error occured: {}", e),
-    //         },
-    //         Err(e) => println!("An error occured: {}", e),
-    //     }
-    // }
+    let results = client_signed
+        .inner()
+        .send_bundle(&production_bundle)
+        .await?;
+
+    // You can also optionally wait to see if the bundle was included
+    for result in results {
+        match result {
+            Ok(pending_bundle) => match pending_bundle.await {
+                Ok(bundle_hash) => println!(
+                    "Bundle with hash {:?} was included in target block",
+                    bundle_hash
+                ),
+                Err(PendingBundleError::BundleNotIncluded) => {
+                    println!("Bundle was not included in target block.")
+                }
+                Err(e) => println!("An error occured: {}", e),
+            },
+            Err(e) => println!("An error occured: {}", e),
+        }
+    }
 
     Ok(())
 }
 
-pub fn get_liquidate_user_calldata(
-    client: &Arc<Provider<Ws>>,
+fn get_liquidate_user_calldata(
     liquidation_users: &[LiquidationCandidate],
+    client: &Arc<Provider<Ws>>,
 ) -> Result<Bytes> {
     let liquidate_user_address: Address = CONTRACT.get_address().liquidate_user.parse()?;
     // convert user to correct type
@@ -180,34 +219,44 @@ pub fn get_liquidate_user_calldata(
     Ok(calldata)
 }
 
+async fn get_estimated_transaction_profit_in_eth(
+    liquidation_users: &[LiquidationCandidate],
+) -> Result<f64> {
+    let mut total_profit = 0_f64;
+
+    for user in liquidation_users {
+        if user.estimated_profit > PROFIT_THRESHOLD_MAINNET {
+            total_profit += user.estimated_profit;
+        }
+    }
+
+    // convert to eth
+    let profit_in_eth = usd_to_eth(total_profit).await?;
+
+    Ok(profit_in_eth)
+}
+
 fn is_simulation_success(bundle: &SimulatedBundle) -> bool {
-    for transaction in &bundle.transactions {
-        if transaction.error.is_some() || transaction.revert.is_some() {
-            // Log the error for debugging or further analysis
-            if let Some(err) = &transaction.error {
-                println!("Transaction failed with error: {}", err);
-            }
-            if let Some(revert) = &transaction.revert {
-                println!("Transaction reverted with message: {}", revert);
-            }
+    for (index, transaction) in bundle.transactions.iter().enumerate() {
+        if let Some(err) = &transaction.error {
+            info!("Transaction {} failed with error: {}", index, err);
+            return false;
+        }
+        if let Some(revert) = &transaction.revert {
+            info!("Transaction {} reverted with message: {}", index, revert);
             return false;
         }
     }
-    true // All transactions succeeded without errors or reverts
+    info!("All transactions in the bundle simulated successfully.");
+    true
 }
 
-async fn get_transaction_cost_in_eth(
-    tx: &Transaction,
+fn get_transaction_cost_in_eth(
+    tx: &Eip1559TransactionRequest,
     gas_cost: u64,
-    client: &Arc<Provider<Ws>>,
+    next_base_fee: U256,
 ) -> Result<f64> {
-    let current_block = client.get_block(BlockNumber::Latest).await?.unwrap();
-    let base_fee_per_gas = current_block.base_fee_per_gas.unwrap();
-
-    let max_fee_per_gas = tx.max_fee_per_gas.unwrap();
-    let max_priority_fee_per_gas = tx.max_priority_fee_per_gas.unwrap();
-
-    let gas_price = min(max_fee_per_gas, max_priority_fee_per_gas + base_fee_per_gas);
+    let gas_price = min(tx.max_fee_per_gas.unwrap(), next_base_fee);
 
     // convert to U256
     let gas_cost = U256::from(gas_cost);
@@ -219,4 +268,38 @@ async fn get_transaction_cost_in_eth(
     let transaction_cost_eth = &transaction_cost_wei / &wei_to_eth;
     let transaction_cost_eth = transaction_cost_eth.to_f64().unwrap();
     Ok(transaction_cost_eth)
+}
+
+/// Calculate the next block base fee
+pub fn calculate_next_block_base_fee(block: &Block<H256>) -> Result<U256> {
+    // Get the block base fee per gas
+    let base_fee = block
+        .base_fee_per_gas
+        .ok_or(anyhow!("Block missing base fee per gas"))?;
+
+    // Get the mount of gas used in the block
+    let gas_used = block.gas_used;
+
+    // Get the target gas used
+    let mut target_gas_used = block.gas_limit / 2;
+    target_gas_used = if target_gas_used == U256::zero() {
+        U256::one()
+    } else {
+        target_gas_used
+    };
+
+    // Calculate the new base fee
+    let new_base_fee = {
+        if gas_used > target_gas_used {
+            base_fee
+                + ((base_fee * (gas_used - target_gas_used)) / target_gas_used) / U256::from(8u64)
+        } else {
+            base_fee
+                - ((base_fee * (target_gas_used - gas_used)) / target_gas_used) / U256::from(8u64)
+        }
+    };
+
+    // Add a random seed so it hashes differently
+    let seed = rand::thread_rng().gen_range(0..9);
+    Ok(new_base_fee + seed)
 }

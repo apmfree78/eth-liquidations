@@ -39,7 +39,7 @@ async fn test_decoding_token_price_for_uni_token() -> Result<()> {
     println!("updating token price");
     update_token_price_for_(uni_token, new_price, &client).await?;
 
-    let new_price = get_saved_token_price(uni_token.address.clone()).await?;
+    let new_price = get_saved_token_price(&uni_token.address).await?;
 
     assert_eq!(round_f64(new_price, 5), round_f64(expected_price, 5));
 
@@ -74,7 +74,7 @@ async fn test_decoding_token_price_for_weth_token() -> Result<()> {
     println!("updating token price");
     update_token_price_for_(weth_token, new_price, &client).await?;
 
-    let new_price = get_saved_token_price(weth_token.address.clone()).await?;
+    let new_price = get_saved_token_price(&weth_token.address).await?;
 
     assert_eq!(round_f64(new_price, 5), round_f64(weth_expected_price, 5));
 
@@ -113,7 +113,7 @@ async fn test_decoding_token_price_for_btc_token() -> Result<()> {
     println!("updating token price");
     update_token_price_for_(btc_token, new_price, &client).await?;
 
-    let new_price = get_saved_token_price(btc_token.address.clone()).await?;
+    let new_price = get_saved_token_price(&btc_token.address).await?;
 
     assert_eq!(round_f64(new_price, 5), round_f64(btc_expected_price, 5));
 

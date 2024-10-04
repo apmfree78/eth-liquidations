@@ -1,8 +1,17 @@
+use crate::data::address::CONTRACT;
+use crate::data::token_price_hash::get_saved_token_price;
+use anyhow::{anyhow, Result};
 use ethers::abi::Address;
 use ethers::core::types::U256;
 use ethers::types::{H256, I256};
 use ethers::utils::keccak256;
 use std::convert::TryInto;
+
+pub async fn usd_to_eth(usd_amount: f64) -> Result<f64> {
+    let weth_address = CONTRACT.get_address().weth.clone();
+    let eth_price = get_saved_token_price(&weth_address).await?;
+    Ok(eth_price * usd_amount)
+}
 
 pub fn str_to_h256_hash(str: &str) -> H256 {
     H256::from(keccak256(str.as_bytes()))
@@ -42,17 +51,17 @@ pub fn address_to_string(address: Address) -> String {
     format!("{:?}", address)
 }
 
-pub fn f64_to_u256(value: f64) -> Result<U256, &'static str> {
+pub fn f64_to_u256(value: f64) -> Result<U256> {
     if value.is_nan() || value.is_infinite() {
-        return Err("Invalid f64 value: NaN or Infinity");
+        return Err(anyhow!("Invalid f64 value: NaN or Infinity"));
     }
 
     // Scale the float by 1e18 to move the decimal point
     let scaled_value = value * 1e18;
 
     // Convert the scaled float to u64, handling potential overflow
-    let integer_value =
-        u64::try_from(scaled_value.round() as i64).map_err(|_| "Overflow in conversion to u64")?;
+    let integer_value = u64::try_from(scaled_value.round() as i64)
+        .map_err(|_| anyhow!("Overflow in conversion to u64"))?;
 
     // Convert u64 to U256
     Ok(U256::from(integer_value))

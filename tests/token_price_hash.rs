@@ -29,7 +29,7 @@ async fn test_setting_price_with_token_price_hash() -> Result<()> {
 
     set_saved_token_price(weth_token.address.as_str(), new_price.clone()).await?;
 
-    let updated_price = get_saved_token_price(weth_token.address.to_lowercase()).await?;
+    let updated_price = get_saved_token_price(&weth_token.address.to_lowercase()).await?;
 
     assert_eq!(new_price, updated_price);
 

@@ -33,12 +33,12 @@ pub async fn generate_token_price_hash(client: &Arc<Provider<Ws>>) -> Result<()>
     Ok(())
 }
 
-pub async fn get_saved_token_price(token_address: String) -> Result<f64> {
+pub async fn get_saved_token_price(token_address: &str) -> Result<f64> {
     let token_price_hash = Arc::clone(&TOKEN_PRICE_HASH);
     let token_prices = token_price_hash.lock().await;
 
     let token_price = token_prices
-        .get(&token_address)
+        .get(token_address)
         .unwrap_or_else(|| panic!("token {} not found in token price hash", token_address));
 
     Ok(*token_price)
