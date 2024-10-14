@@ -15,6 +15,7 @@ pub mod exchanges {
 
 pub mod backrun {
     pub mod flashbots;
+    pub mod simulation;
 }
 
 pub mod interest {

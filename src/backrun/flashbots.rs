@@ -1,4 +1,5 @@
 use crate::abi::liquidate_user::{User, LIQUIDATE_USER};
+use crate::backrun::simulation::convert_transaction_to_typed_transaction;
 use crate::data::address::CONTRACT;
 use crate::data::erc20::u256_to_big_decimal;
 use crate::exchanges::aave_v3::user_structs::{LiquidationCandidate, PROFIT_THRESHOLD_MAINNET};
@@ -6,7 +7,7 @@ use crate::utils::type_conversion::{f64_to_u256, usd_to_eth};
 use anyhow::{anyhow, Result};
 use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use ethers::core::rand::thread_rng;
-use ethers::types::{Address, Block, BlockNumber, Bytes, Transaction, H256, U256};
+use ethers::types::{Address, Block, BlockNumber, Bytes, TraceType, Transaction, H256, U256};
 use ethers::{
     core::types::{transaction::eip2718::TypedTransaction, Chain},
     middleware::SignerMiddleware,
@@ -49,7 +50,6 @@ pub async fn submit_to_flashbots(
 ) -> Result<()> {
     let liquidate_user_address: Address = CONTRACT.get_address().liquidate_user.parse()?;
     // get last block number
-    let block_number = client.get_block_number().await?;
     let block = client.get_block(BlockNumber::Latest).await?.unwrap();
 
     let next_base_fee = calculate_next_block_base_fee(&block)?;
@@ -101,6 +101,9 @@ pub async fn submit_to_flashbots(
     // *******************************************************
     // GENERATE Transaction BUNDLE FOR BACKRUN
 
+    // Specify block number
+    let next_block_number = BlockNumber::Pending.as_number().unwrap();
+
     let signature = client_signed
         .signer()
         .sign_transaction(&TypedTransaction::Eip1559(backrun_tx.clone()))
@@ -109,8 +112,8 @@ pub async fn submit_to_flashbots(
     let bundle = BundleRequest::new()
         .push_transaction(mempool_tx.clone())
         .push_transaction(TypedTransaction::Eip1559(backrun_tx.clone()).rlp_signed(&signature))
-        .set_block(block_number + 1)
-        .set_simulation_block(block_number)
+        .set_block(next_block_number)
+        .set_simulation_block(next_block_number)
         .set_simulation_timestamp(0);
 
     // *******************************************************
@@ -161,8 +164,8 @@ pub async fn submit_to_flashbots(
     let production_bundle = BundleRequest::new()
         .push_transaction(mempool_tx)
         .push_transaction(TypedTransaction::Eip1559(backrun_tx).rlp_signed(&signature))
-        .set_block(block_number + 1)
-        .set_simulation_block(block_number)
+        .set_block(next_block_number)
+        .set_simulation_block(next_block_number)
         .set_simulation_timestamp(0);
 
     // FOR PRODUCTION
