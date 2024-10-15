@@ -91,3 +91,13 @@ pub fn i256_to_f64(value: I256) -> Result<f64, &'static str> {
         Err("Value out of f64 precision range")
     }
 }
+
+pub fn h256_to_address(h: &H256) -> Address {
+    let bytes = h.as_bytes();
+    // Addresses are the last 20 bytes of the H256
+    Address::from_slice(&bytes[12..32])
+}
+
+pub fn h256_to_u256(h: &H256) -> U256 {
+    U256::from_big_endian(h.as_bytes())
+}
