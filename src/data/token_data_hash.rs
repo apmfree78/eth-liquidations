@@ -3,6 +3,7 @@ use super::chainlink_feed_map::{
     get_chainlink_aggregator, get_chainlink_price_feed_for_token_, CHAINLINK_AGGREGATOR_HASH,
 };
 use super::erc20::Erc20Token;
+use super::token_price_hash::add_price_for_new_token;
 use super::tokens_by_chain::get_static_token_data_by_chain;
 use crate::abi::aave_v3_data_provider::AAVE_V3_DATA_PROVIDER;
 use crate::abi::aave_v3_pool::{ReserveData, AAVE_V3_POOL};
@@ -110,6 +111,9 @@ pub async fn save_erc20_token(token: &Erc20Token, client: &Arc<Provider<Ws>>) ->
         aggregators.insert(aggregator_address, updated_token);
     }
 
+    // check if token price is in token_price_hash , if not set it
+    add_price_for_new_token(token, client).await?;
+
     Ok(())
 }
 
@@ -182,16 +186,16 @@ pub async fn set_token_interest_rates(
     let token = tokens.get_mut(&token_address).unwrap();
     let unique_token = unique_tokens.get_mut(&token_address).unwrap();
 
-    debug!("updating token {} interest rates", token.symbol);
-    debug!(
-        "updating variable borrow rate...{:?}",
-        token.variable_borrow_rate
-    );
-    debug!(
-        "updating stable borrow rate...{:?}",
-        token.stable_borrow_rate
-    );
-    debug!("updating liquidity rate...{:?}", token.liquidity_rate);
+    // debug!("updating token {} interest rates", token.symbol);
+    // debug!(
+    //     "updating variable borrow rate...{:?}",
+    //     token.variable_borrow_rate
+    // );
+    // debug!(
+    //     "updating stable borrow rate...{:?}",
+    //     token.stable_borrow_rate
+    // );
+    // debug!("updating liquidity rate...{:?}", token.liquidity_rate);
 
     token.variable_borrow_rate = updated_interest_rates.variable_borrow_rate;
     token.stable_borrow_rate = updated_interest_rates.stable_borrow_rate;
@@ -200,10 +204,10 @@ pub async fn set_token_interest_rates(
     unique_token.stable_borrow_rate = updated_interest_rates.stable_borrow_rate;
     unique_token.liquidity_rate = updated_interest_rates.liquidity_rate;
 
-    debug!(
-        "new variable borrow rate...{:?}",
-        token.variable_borrow_rate
-    );
+    // debug!(
+    //     "new variable borrow rate...{:?}",
+    //     token.variable_borrow_rate
+    // );
 
     Ok(())
 }

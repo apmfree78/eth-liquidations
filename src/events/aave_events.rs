@@ -43,7 +43,7 @@ pub async fn update_users_with_event_from_log(
 
             // extract event data from log
             let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);
-            debug!("event data => {:?}", aave_event_type_with_data);
+            // debug!("event data => {:?}", aave_event_type_with_data);
 
             match *aave_event_enum {
                 AaveUserEvent::Liquidation => {

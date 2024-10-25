@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 static STABLE_COINS: &[&str] = &[
     "USDC", "USDE", "CRVUSD", "SUSDE", "SDAI", "DAI", "USDT", "PYUSD", "USDD", "FRAX", "TUSD",
-    "USDB", "GHO", "GUSD", "USDX", "LUSD", "BUSD", "MIM", "USDM", "CUSD",
+    "USDB", "GHO", "GUSD", "USDX", "LUSD", "BUSD", "MIM", "USDM", "CUSD", "USDS",
 ];
 
 pub static CHAINLINK_AGGREGATOR_HASH: Lazy<Arc<Mutex<HashMap<String, Erc20Token>>>> =

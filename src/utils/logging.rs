@@ -2,7 +2,7 @@ use colored::*;
 use std::fs::File;
 
 pub fn setup_logger() -> Result<(), fern::InitError> {
-    File::create("eth_liquidation.log").expect("Failed to create/log file");
+    // File::create("eth_liquidation.log").expect("Failed to create/log file");
 
     fern::Dispatch::new()
         .format(|out, message, record| {
@@ -23,7 +23,7 @@ pub fn setup_logger() -> Result<(), fern::InitError> {
         })
         .level(log::LevelFilter::Debug)
         .chain(std::io::stdout())
-        .chain(fern::log_file("eth_liquidation.log")?)
+        // .chain(fern::log_file("eth_liquidation.log")?)
         .apply()?;
     Ok(())
 }
