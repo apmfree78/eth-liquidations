@@ -1,5 +1,7 @@
-use crate::abi::liquidate_user::{User, LIQUIDATE_USER};
-use crate::backrun::simulation::convert_transaction_to_typed_transaction;
+use crate::abi::qualifyuser::{User, QUALIFY_USER};
+use crate::backrun::simulation::{
+    get_state_diffs_from_qualify_user_trace, simulate_transaction_bundle,
+};
 use crate::data::address::CONTRACT;
 use crate::data::erc20::u256_to_big_decimal;
 use crate::exchanges::aave_v3::user_structs::{LiquidationCandidate, PROFIT_THRESHOLD_MAINNET};
@@ -43,6 +45,9 @@ static BUILDER_URLS: &[&str] = &[
     "https://rpc.lokibuilder.xyz",
 ];
 
+// ==================>
+// TODO - REDO for LIQUIDATE_QUALIFIED_USERS
+// ==================>
 pub async fn submit_to_flashbots(
     user: &[LiquidationCandidate],
     mempool_tx: Transaction,
@@ -58,7 +63,12 @@ pub async fn submit_to_flashbots(
 
     // *******************************************************
     // CREATE BACKRUN Transaction
-    let calldata = get_liquidate_user_calldata(user, client)?;
+    // ==================>
+    // TODO - REDO for LIQUIDATE_QUALIFIED_USERS
+    // ==================>
+    let calldata = get_qualify_user_calldata(user, client)?;
+
+    // TODO - CREATE SEPARATE TRANSACTION FOR QUALIFY USER CONTRACT , REPLACE backrun_tx
 
     let backrun_tx = Eip1559TransactionRequest {
         chain_id: Some(Chain::Mainnet.into()), // Mainnet
@@ -69,6 +79,16 @@ pub async fn submit_to_flashbots(
         value: None,
         ..Default::default()
     };
+
+    // SIMULATE transaction to find top profit account
+    // TODO - CREATE SEPARATE TRANSACTION FOR QUALIFY USER CONTRACT , REPLACE backrun_tx
+    let simulation_trace = simulate_transaction_bundle(&mempool_tx, &backrun_tx, client).await?;
+
+    if let Some(top_profit_user_account) =
+        get_state_diffs_from_qualify_user_trace(&simulation_trace)
+    {
+        info!("top profit account {:#?}", top_profit_user_account);
+    }
 
     // *******************************************************
     // CREATE SIGNED CLIENT WITH FLASHBOT MIDDLEWARE SET TO BROADCAST TO FLASHBOT AND BUILDER RELAYS
@@ -195,33 +215,6 @@ pub async fn submit_to_flashbots(
     Ok(())
 }
 
-fn get_liquidate_user_calldata(
-    liquidation_users: &[LiquidationCandidate],
-    client: &Arc<Provider<Ws>>,
-) -> Result<Bytes> {
-    let liquidate_user_address: Address = CONTRACT.get_address().liquidate_user.parse()?;
-    // convert user to correct type
-    let mut users = Vec::<User>::new();
-
-    for user in liquidation_users {
-        users.push(User {
-            id: user.user_id,
-            debt_token: user.debt_token,
-            collateral_token: user.collateral_token,
-        })
-    }
-
-    let liquidate_user = LIQUIDATE_USER::new(liquidate_user_address, client.clone());
-
-    // Encode the function with parameters, and get TypedTransaction
-    let calldata = liquidate_user
-        .find_and_liquidate_account(users)
-        .calldata()
-        .expect("Failed to encode");
-
-    Ok(calldata)
-}
-
 async fn get_estimated_transaction_profit_in_eth(
     liquidation_users: &[LiquidationCandidate],
 ) -> Result<f64> {
@@ -305,4 +298,31 @@ pub fn calculate_next_block_base_fee(block: &Block<H256>) -> Result<U256> {
     // Add a random seed so it hashes differently
     let seed = rand::thread_rng().gen_range(0..9);
     Ok(new_base_fee + seed)
+}
+
+fn get_qualify_user_calldata(
+    liquidation_users: &[LiquidationCandidate],
+    client: &Arc<Provider<Ws>>,
+) -> anyhow::Result<Bytes> {
+    let qualify_user_address: Address = CONTRACT.get_address().qualify_user.parse()?;
+    // convert user to correct type
+    let mut users = Vec::<User>::new();
+
+    for user in liquidation_users {
+        users.push(User {
+            id: user.user_id,
+            debt_token: user.debt_token,
+            collateral_token: user.collateral_token,
+        })
+    }
+
+    let qualify_user = QUALIFY_USER::new(qualify_user_address, client.clone());
+
+    // Encode the function with parameters, and get TypedTransaction
+    let calldata = qualify_user
+        .check_user_accounts(users)
+        .calldata()
+        .expect("Failed to encode");
+
+    Ok(calldata)
 }

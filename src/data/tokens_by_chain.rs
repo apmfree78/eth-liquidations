@@ -35,7 +35,7 @@ pub static MAINNET_TOKENS: &[Erc20TokenStatic] = &[
         name: "ETHx",
         symbol: "ETHx",
         decimals: 18,
-        address: "0xa35b1b31ce002fbf2058d22f30f95d405200a15b",
+        address: "0xA35b1B31Ce002FBF2058D22F30f95D405200A15b",
         liquidation_bonus: 10750,
         liquidation_threshold: 7700,
         // track with movement of ETH
@@ -135,7 +135,7 @@ pub static MAINNET_TOKENS: &[Erc20TokenStatic] = &[
         decimals: 18,
         address: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
         liquidation_bonus: 10700,
-        liquidation_threshold: 6800,
+        liquidation_threshold: 7100,
         chain_link_price_feed: "0x2c1d072e956AFFC0D435Cb7AC38EF18d24d9127c",
         chainlink_aggregator: "0x20807cf61ad17c31837776fa39847a2fa1839e81",
         stable_borrow_rate: 0.0,
@@ -189,7 +189,7 @@ pub static MAINNET_TOKENS: &[Erc20TokenStatic] = &[
         decimals: 18,
         address: "0xae78736Cd615f374D3085123A210448E74Fc6393",
         liquidation_bonus: 10750,
-        liquidation_threshold: 7700,
+        liquidation_threshold: 7900,
         // also track with ETH movement
         chain_link_price_feed: "0x536218f9E9Eb48863970252233c8F271f554C2d0", // rETH/ETH
         chainlink_aggregator: "0xc77904cd2ca0806cc3db0819e9630ff3e2f6093d",
@@ -216,7 +216,7 @@ pub static MAINNET_TOKENS: &[Erc20TokenStatic] = &[
         decimals: 18,
         address: "0xBe9895146f7AF43049ca1c1AE358B0541Ea49704",
         liquidation_bonus: 10750,
-        liquidation_threshold: 7700,
+        liquidation_threshold: 7900,
         // track with movement of ETH
         chain_link_price_feed: "0x6243d2F41b4ec944F731f647589E28d9745a2674",
         chainlink_aggregator: "",

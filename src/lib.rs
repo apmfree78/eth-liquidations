@@ -53,6 +53,7 @@ pub mod abi {
     pub mod chainlink_registry;
     pub mod erc20;
     pub mod liquidate_user;
+    pub mod qualifyuser;
     pub mod wsteth;
 }
 

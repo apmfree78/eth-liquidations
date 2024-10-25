@@ -1,4 +1,5 @@
 use crate::backrun::flashbots::submit_to_flashbots;
+use crate::backrun::simulation::find_top_profit_accounts_with_simulation;
 use crate::data::erc20::Erc20Token;
 use crate::data::token_data_hash::get_token_data;
 use crate::data::users_to_track::add_tracked_users;
@@ -40,7 +41,13 @@ pub async fn find_users_and_liquidate(
         }
     }
 
-    // TODO - UNCOMMENT WHEN SEPOLIA IS READY
+    let top_profit_accounts =
+        find_top_profit_accounts_with_simulation(&user_accounts_to_liquidate, &mempool_tx, client)
+            .await?;
+    let top_profit_accounts = top_profit_accounts.unwrap();
+    info!("Top Profit Accounts {:#?}", top_profit_accounts);
+
+    // TODO - UNCOMMENT WHEN MAINNET IS READY
     // submit_to_flashbots(&users_to_liquidate, mempool_tx, client);
 
     // 3.  update standard user health factor (that own or borrow token)

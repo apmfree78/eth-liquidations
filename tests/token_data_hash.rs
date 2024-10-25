@@ -230,9 +230,9 @@ async fn test_that_connect_eth_tokens_are_valid() -> Result<()> {
     let token_symbols_priced_in_eth =
         vec!["WETH", "wstETH", "rETH", "cbETH", "LDO", "weETH", "ETHx"];
 
-    // for token in token_map.keys() {
-    //     println!("contains token {}", token);
-    // }
+    for token in token_map.keys() {
+        println!("contains token {}", token);
+    }
 
     for token in token_symbols_priced_in_eth {
         println!("checking if contains token {}", token);
