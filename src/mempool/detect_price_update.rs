@@ -21,8 +21,7 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
     pending_tx: TxHash,
     client: &Arc<Provider<Ws>>,
 ) -> Result<()> {
-    let transmit_signature = "transmit(bytes,bytes32[],bytes32[],bytes32)";
-
+    let transmit_signature = "transmit(bytes32[3],bytes,bytes32[],bytes32[],bytes32)";
     let chain_aggregator_map = get_chainlink_aggregator_map().await?;
 
     // abigen!(
@@ -39,11 +38,25 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
         // If the transaction involves a contract interaction, `to` will be Some(address)
         if let Some(to) = tx.to {
             // The `data` field contains the input data for contract interactions
-            if !tx.input.0.is_empty() && tx.input.0.len() >= 4 {
-                let data = tx.input.0.clone();
+            if !tx.input.is_empty() && tx.input.len() >= 4 {
+                let data = tx.input.as_ref();
 
+                // let data_sig = hex::encode(&tx.input[0..4]);
+                // let transmit_sig = hex::encode(&transmit_hash[0..4]);
+
+                // debug!("contract hash {:#?}", data_sig);
+                // debug!("transmit hash {:#?}", transmit_sig);
+
+                // if data_sig == transmit_sig {
+                //     debug!("TRANSMIT FOUND!!!!")
+                // }
+
+                // if data.starts_with(&transmit_hash) {
                 if data.starts_with(&transmit_hash) {
+                    debug!("TRANSMIT FOUND!!!!");
+                    // if data[0..4].to_vec() == transmit_hash {
                     let to_address = address_to_string(to).to_lowercase();
+                    debug!("tx ==> {:#?}", tx);
                     if let Some(token) = chain_aggregator_map.get(&*to_address) {
                         debug!("TRANSMIT FOUND!!!");
                         // debug!("data => {:#?}", data);

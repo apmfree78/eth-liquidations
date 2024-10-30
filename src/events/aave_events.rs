@@ -39,7 +39,7 @@ pub async fn update_users_with_event_from_log(
     if !log.topics.is_empty() {
         //determine which aave event was found
         if let Some(aave_event_enum) = aave_event_map.get(&log.topics[0]) {
-            debug!("{:?} event", aave_event_enum);
+            // debug!("{:?} event", aave_event_enum);
 
             // extract event data from log
             let aave_event_type_with_data = create_aave_event_from_log(*aave_event_enum, &log);

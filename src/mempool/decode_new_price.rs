@@ -56,6 +56,7 @@ fn decode_transmit_tx(data: &Bytes) -> Result<Vec<U256>> {
         {
             "constant": false,
             "inputs": [
+                {"name": "reportContext", "type": "bytes32[3]"},
                 {"name": "report", "type": "bytes"},
                 {"name": "rs", "type": "bytes32[]"},
                 {"name": "ss", "type": "bytes32[]"},
@@ -76,7 +77,8 @@ fn decode_transmit_tx(data: &Bytes) -> Result<Vec<U256>> {
         if let Ok(decoded) = function.decode_input(&data[4..]) {
             // Skip selector if included
             match decoded.as_slice() {
-                [Token::Bytes(report), Token::Array(_), Token::Array(_), Token::FixedBytes(_)] => {
+                [Token::FixedArray(_), Token::Bytes(report), Token::Array(_), Token::Array(_), Token::FixedBytes(_)] =>
+                {
                     let observations = decode_transmit_report(report.clone())?;
                     Ok(observations)
                 }
@@ -97,9 +99,10 @@ fn decode_transmit_report(data: Vec<u8>) -> Result<Vec<U256>> {
     let decode_json = r#"
         [{
             "inputs": [
-                {"type": "bytes32", "name": "first"},
+                {"type": "uint32", "name": "first"},
                 {"type": "bytes32", "name": "second"},
                 {"type": "int192[]", "name": "observations"}
+                {"type": "int192", "name": "fourth"},
             ],
             "name": "decodeReport",
             "outputs": [],
@@ -118,7 +121,7 @@ fn decode_transmit_report(data: Vec<u8>) -> Result<Vec<U256>> {
         // Decode the input assuming the correct data is provided
         if let Ok(decoded) = decode_fn.decode_input(&data) {
             match decoded.as_slice() {
-                [Token::FixedBytes(_), Token::FixedBytes(_), Token::Array(observations)] => {
+                [Token::Uint(_), Token::FixedBytes(_), Token::Array(observations), Token::Int(_)] => {
                     for obs in observations {
                         if let Token::Int(value) = obs {
                             price_observations.push(*value);

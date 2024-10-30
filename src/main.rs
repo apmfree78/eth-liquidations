@@ -21,7 +21,7 @@ use ethers::{
     types::BlockNumber,
 };
 use futures::{lock::Mutex, stream, StreamExt};
-use log::{error, info};
+use log::{debug, error, info};
 use std::sync::Arc;
 
 // SET ws url and CHAIN we are using
@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
     // need this otherwise cannot reconstruct user data from sratch
     save_erc20_tokens_from_static_data(&client).await?;
 
-    let aave_users = AaveUserData::get_users(&client, SampleSize::All).await?;
+    let aave_users = AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
 
     // Initialize TOKEN_PRICE_HASH global hashmap of token prices and save mock BTC TOKEN
     save_btc_as_token(&client).await?;
