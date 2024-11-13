@@ -15,7 +15,7 @@ use serde_json;
 use std::sync::Arc;
 use std::{env, str::FromStr};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AaveUser {
     pub id: String,
     #[serde(rename = "borrowedReservesCount")]
@@ -131,7 +131,7 @@ impl UserAccountData for AaveUser {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserReserve {
     #[serde(rename = "currentATokenBalance")]
     current_atoken_balance: String,
