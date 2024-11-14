@@ -8,7 +8,7 @@ use eth_liquadation::{
     events::aave_events::{set_aave_event_signature_filter, update_users_with_event_from_log},
     exchanges::aave_v3::{
         implementations::aave_user_data::GenerateUsers,
-        user_structs::{AaveUserData, SampleSize},
+        user_structs::{AaveUserData, AaveUsersHash, SampleSize},
     },
     interest::calculate_interest::update_interest_for_all_whale_users_tokens,
     mempool::detect_price_update::detect_price_update_and_find_users_to_liquidate,
@@ -18,11 +18,14 @@ use eth_liquadation::{
 use ethers::{
     core::types::{Log, TxHash},
     providers::{Middleware, Provider, Ws},
-    types::BlockNumber,
+    types::{Address, BlockNumber},
 };
 use futures::{lock::Mutex, stream, StreamExt};
 use log::{debug, error, info};
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 // SET ws url and CHAIN we are using
 const WS_URL: &str = "ws://localhost:8546";
@@ -51,7 +54,12 @@ async fn main() -> Result<()> {
     // need this otherwise cannot reconstruct user data from sratch
     save_erc20_tokens_from_static_data(&client).await?;
 
-    let aave_users = AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
+    let aave_users = Arc::new(Mutex::new(AaveUsersHash {
+        user_data: HashMap::<Address, AaveUserData>::new(),
+        standard_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
+        whale_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
+    }));
+    AaveUserData::get_users(&aave_users, &client, SampleSize::SmallBatch).await?;
 
     // Initialize TOKEN_PRICE_HASH global hashmap of token prices and save mock BTC TOKEN
     save_btc_as_token(&client).await?;
@@ -60,8 +68,6 @@ async fn main() -> Result<()> {
     }
 
     print_saved_token_prices().await?;
-
-    let aave_users = Arc::new(Mutex::new(aave_users));
 
     let aave_event_filter = set_aave_event_signature_filter()?;
     // Create multiple subscription streams.

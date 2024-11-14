@@ -29,9 +29,10 @@ use std::sync::Arc;
 #[async_trait]
 pub trait GenerateUsers {
     async fn get_users(
+        users_hash: &Arc<Mutex<AaveUsersHash>>,
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
-    ) -> Result<AaveUsersHash>;
+    ) -> Result<()>;
 }
 
 #[async_trait]
@@ -73,9 +74,10 @@ pub trait HealthFactor {
 #[async_trait]
 impl GenerateUsers for AaveUserData {
     async fn get_users(
+        users_hash: &Arc<Mutex<AaveUsersHash>>,
         client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
-    ) -> Result<AaveUsersHash> {
+    ) -> Result<()> {
         let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
         let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
 
@@ -83,9 +85,6 @@ impl GenerateUsers for AaveUserData {
         if let Err(e) = generate_token_price_hash(client).await {
             error!("Failed to initialize token prices: {}", e);
         }
-
-        // Shared mutable collection for results
-        let user_data = Arc::new(Mutex::new(Vec::<AaveUserData>::new()));
 
         let mut handles = vec![];
 
@@ -109,26 +108,22 @@ impl GenerateUsers for AaveUserData {
         }
         let valid_users_from_graphql = Arc::new(AtomicU16::new(0));
         let valid_users_from_contract = Arc::new(AtomicU16::new(0));
-        // let mut valid_users_from_graphql: u16 = 0;
-        // let mut valid_users_from_contract: u16 = 0;
-        for chunk in user_chunks {
+
+        for (i, chunk) in user_chunks.into_iter().enumerate() {
+            info!("Processing chunk {} with {} users", i, chunk.len());
             let client = client.clone();
             let aave_v3_pool = aave_v3_pool.clone();
             let standard_scale = standard_scale.clone();
-            let user_data = Arc::clone(&user_data);
+            let users_hash = Arc::clone(&users_hash);
+            // let user_data = Arc::clone(&user_data);
             let valid_users_from_graphql = Arc::clone(&valid_users_from_graphql);
             let valid_users_from_contract = Arc::clone(&valid_users_from_contract);
 
             // start thread
             let handle = tokio::spawn(async move {
                 let result: Result<()> = async move {
-                    for (chunk_number, user) in chunk.iter().enumerate() {
-                        info!(
-                            "Processing chunk {} with {} users",
-                            chunk_number,
-                            chunk.len()
-                        );
-
+                    let mut user_data = Vec::<AaveUserData>::new();
+                    for user in chunk {
                         let user_id: Address = user.id.parse()?;
                         let (_, _, _, _, _, real_health_factor) =
                             aave_v3_pool.get_user_account_data(user_id).call().await?;
@@ -174,8 +169,6 @@ impl GenerateUsers for AaveUserData {
                         let lower_bound = 0.995 * real_health_factor;
                         let upper_bound = 1.005 * real_health_factor;
 
-                        let mut user_data_lock = user_data.lock().await;
-
                         // for estimating user profit
                         // make sure health factor is with 0.5% of actual otherwise pull user data directly from pool contract
                         if graphql_health_factor > lower_bound
@@ -183,7 +176,7 @@ impl GenerateUsers for AaveUserData {
                         {
                             // save data to AvveUserData
                             valid_users_from_graphql.fetch_add(1, Ordering::SeqCst);
-                            user_data_lock.push(aave_user);
+                            user_data.push(aave_user);
                         } else {
                             // get user data from pool contract
                             let aave_user_data_result =
@@ -192,7 +185,7 @@ impl GenerateUsers for AaveUserData {
                             match aave_user_data_result {
                                 Ok(user_from_aave_contract) => {
                                     valid_users_from_contract.fetch_add(2, Ordering::SeqCst);
-                                    user_data_lock.push(user_from_aave_contract);
+                                    user_data.push(user_from_aave_contract);
                                 }
                                 Err(_) => {
                                     // error!("user did not fit criteria => {}", error);
@@ -200,6 +193,27 @@ impl GenerateUsers for AaveUserData {
                             }
                         }
                     }
+
+                    // processing chunk complete, save data
+                    let mut user_map = HashMap::new();
+                    for user in user_data {
+                        user_map.insert(user.id, user);
+                    }
+                    let mut user_hash_lock = users_hash.lock().await;
+                    user_hash_lock.user_data.extend(user_map);
+
+                    info!("{} users saved", user_hash_lock.user_data.len());
+                    info!(
+                        "{} valid users saved from graphQL",
+                        valid_users_from_graphql.load(Ordering::SeqCst)
+                    );
+                    info!(
+                        "{} valid users saved from data provider contract",
+                        valid_users_from_contract.load(Ordering::SeqCst)
+                    );
+
+                    user_hash_lock.intialize_token_user_mapping().await?;
+
                     Ok(())
                 }
                 .await;
@@ -218,33 +232,8 @@ impl GenerateUsers for AaveUserData {
         for handle in handles {
             handle.await?; // Will error if task panicked
         }
-
-        let user_data_lock = user_data.lock().await;
-        info!("{} users saved", user_data_lock.len());
-        info!(
-            "{} valid users saved from graphQL",
-            valid_users_from_graphql.load(Ordering::SeqCst)
-        );
-        info!(
-            "{} valid users saved from data provider contract",
-            valid_users_from_contract.load(Ordering::SeqCst)
-        );
-
-        let mut user_data_hash = HashMap::new();
-
-        for user in user_data_lock.deref() {
-            user_data_hash.insert(user.id, user.clone());
-        }
-
-        let mut user_hash = AaveUsersHash {
-            user_data: user_data_hash,
-            standard_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
-            whale_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
-        };
-
-        user_hash.intialize_token_user_mapping().await?;
-
-        Ok(user_hash)
+        //
+        Ok(())
     }
 }
 
