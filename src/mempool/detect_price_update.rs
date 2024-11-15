@@ -1,4 +1,5 @@
 use crate::exchanges::aave_v3::user_structs::AaveUsersHash;
+use crate::mempool::decode_new_price::decode_forward_fn;
 use crate::mempool::liquidations::find_users_and_liquidate;
 use crate::mempool::update_token_price::update_token_price_for_;
 use crate::utils::type_conversion::address_to_string;
@@ -21,7 +22,7 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
     pending_tx: TxHash,
     client: &Arc<Provider<Ws>>,
 ) -> Result<()> {
-    let transmit_signature = "transmit(bytes32[3],bytes,bytes32[],bytes32[],bytes32)";
+    let forward_signature = "forward(address,bytes)";
     let chain_aggregator_map = get_chainlink_aggregator_map().await?;
 
     // abigen!(
@@ -30,39 +31,25 @@ pub async fn detect_price_update_and_find_users_to_liquidate(
     // );
 
     // Compute the Keccak-256 hashes of the event signatures
-    // let transmit_hash = H256::from(keccak256(transmit_signature.as_bytes()));
-    let transmit_hash = keccak256(transmit_signature.as_bytes())[0..4].to_vec();
+    let forward_hash = keccak256(forward_signature.as_bytes())[0..4].to_vec();
 
     // Print out each new transaction hash
     if let Ok(Some(tx)) = client.get_transaction(pending_tx).await {
         // If the transaction involves a contract interaction, `to` will be Some(address)
-        if let Some(to) = tx.to {
+        if let Some(_) = tx.to {
             // The `data` field contains the input data for contract interactions
-            if !tx.input.is_empty() && tx.input.len() >= 4 {
-                let data = tx.input.as_ref();
+            if !tx.input.0.is_empty() && tx.input.0.len() >= 4 {
+                let data = tx.input.0.clone();
 
-                // let data_sig = hex::encode(&tx.input[0..4]);
-                // let transmit_sig = hex::encode(&transmit_hash[0..4]);
-
-                // debug!("contract hash {:#?}", data_sig);
-                // debug!("transmit hash {:#?}", transmit_sig);
-
-                // if data_sig == transmit_sig {
-                //     debug!("TRANSMIT FOUND!!!!")
-                // }
-
-                // if data.starts_with(&transmit_hash) {
-                if data.starts_with(&transmit_hash) {
-                    debug!("TRANSMIT FOUND!!!!");
-                    // if data[0..4].to_vec() == transmit_hash {
-                    let to_address = address_to_string(to).to_lowercase();
-                    debug!("tx ==> {:#?}", tx);
-                    if let Some(token) = chain_aggregator_map.get(&*to_address) {
+                if data.starts_with(&forward_hash) {
+                    // extract address from data ==> forward(address,bytes)
+                    let (aggregator, transmit_data) = decode_forward_fn(&data.into())?;
+                    let aggregator_address = address_to_string(aggregator).to_lowercase();
+                    if let Some(token) = chain_aggregator_map.get(&*aggregator_address) {
                         debug!("TRANSMIT FOUND!!!");
-                        // debug!("data => {:#?}", data);
-
                         let new_token_price =
-                            get_chainlink_price_from_transmit_tx(&data.into(), token).await?;
+                            get_chainlink_price_from_transmit_tx(&transmit_data.into(), token)
+                                .await?;
                         debug!("new price of {} is {}", token.symbol, new_token_price);
 
                         // if tx.transaction_type == Some(2.into()) {
