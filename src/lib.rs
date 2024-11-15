@@ -30,6 +30,7 @@ pub mod mempool {
 }
 
 pub mod utils {
+    pub mod connection_pool;
     pub mod logging;
     pub mod type_conversion;
 }

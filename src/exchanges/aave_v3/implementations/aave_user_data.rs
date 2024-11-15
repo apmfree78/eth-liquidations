@@ -11,6 +11,7 @@ use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use crate::exchanges::aave_v3::user_structs::{
     LiquidationCloseFactor, CLOSE_FACTOR_HF_THRESHOLD, HEALTH_FACTOR_THRESHOLD,
 };
+use crate::utils::connection_pool::WsPool;
 use anyhow::Result;
 use async_trait::async_trait;
 use bigdecimal::ToPrimitive;
@@ -30,7 +31,6 @@ use std::sync::Arc;
 pub trait GenerateUsers {
     async fn get_users(
         users_hash: &Arc<Mutex<AaveUsersHash>>,
-        client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
     ) -> Result<()>;
 }
@@ -75,14 +75,17 @@ pub trait HealthFactor {
 impl GenerateUsers for AaveUserData {
     async fn get_users(
         users_hash: &Arc<Mutex<AaveUsersHash>>,
-        client: &Arc<Provider<Ws>>,
         sample_size: SampleSize,
     ) -> Result<()> {
+        let ws_url = std::env::var("WS_URL").expect("WS_URL not found in .env file");
+        let pool = Arc::new(WsPool::new(&ws_url, 100).await?);
+        let client = pool.get_connection();
+
         let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
         let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
 
         // Initialize TOKEN_PRICE_HASH global hashmap of token prices
-        if let Err(e) = generate_token_price_hash(client).await {
+        if let Err(e) = generate_token_price_hash(&client).await {
             error!("Failed to initialize token prices: {}", e);
         }
 
@@ -111,19 +114,21 @@ impl GenerateUsers for AaveUserData {
 
         for (i, chunk) in user_chunks.into_iter().enumerate() {
             info!("Processing chunk {} with {} users", i, chunk.len());
-            let client = client.clone();
             let aave_v3_pool = aave_v3_pool.clone();
             let standard_scale = standard_scale.clone();
             let users_hash = Arc::clone(&users_hash);
-            // let user_data = Arc::clone(&user_data);
+
             let valid_users_from_graphql = Arc::clone(&valid_users_from_graphql);
             let valid_users_from_contract = Arc::clone(&valid_users_from_contract);
+            let pool = pool.clone();
 
             // start thread
             let handle = tokio::spawn(async move {
                 let result: Result<()> = async move {
                     let mut user_data = Vec::<AaveUserData>::new();
                     for user in chunk {
+                        let client = pool.get_connection();
+
                         let user_id: Address = user.id.parse()?;
                         let (_, _, _, _, _, real_health_factor) =
                             aave_v3_pool.get_user_account_data(user_id).call().await?;

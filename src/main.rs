@@ -61,7 +61,7 @@ async fn main() -> Result<()> {
         whale_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
     }));
 
-    AaveUserData::get_users(&aave_users, &client, SampleSize::All).await?;
+    AaveUserData::get_users(&aave_users, SampleSize::All).await?;
 
     // Initialize TOKEN_PRICE_HASH global hashmap of token prices and save mock BTC TOKEN
     save_btc_as_token(&client).await?;
