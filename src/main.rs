@@ -49,6 +49,7 @@ async fn main() -> Result<()> {
 
     let initial_block = client.get_block(BlockNumber::Latest).await?.unwrap();
     let last_block_timestamp = initial_block.timestamp.as_u32();
+    info!("initial block timestamp => {}", last_block_timestamp);
     let last_block_timestamp = Arc::new(Mutex::new(last_block_timestamp));
 
     // need this otherwise cannot reconstruct user data from sratch
@@ -59,7 +60,8 @@ async fn main() -> Result<()> {
         standard_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
         whale_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
     }));
-    AaveUserData::get_users(&aave_users, &client, SampleSize::SmallBatch).await?;
+
+    AaveUserData::get_users(&aave_users, &client, SampleSize::All).await?;
 
     // Initialize TOKEN_PRICE_HASH global hashmap of token prices and save mock BTC TOKEN
     save_btc_as_token(&client).await?;

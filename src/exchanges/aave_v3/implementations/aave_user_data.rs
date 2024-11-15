@@ -184,7 +184,7 @@ impl GenerateUsers for AaveUserData {
 
                             match aave_user_data_result {
                                 Ok(user_from_aave_contract) => {
-                                    valid_users_from_contract.fetch_add(2, Ordering::SeqCst);
+                                    valid_users_from_contract.fetch_add(1, Ordering::SeqCst);
                                     user_data.push(user_from_aave_contract);
                                 }
                                 Err(_) => {
