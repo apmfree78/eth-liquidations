@@ -4,12 +4,10 @@ use crate::data::token_data_hash::{
     get_token_data, get_tokens_priced_in_btc, get_tokens_priced_in_eth,
 };
 use crate::data::token_price_hash::get_saved_token_price;
-use abi::ParamType;
 use anyhow::{anyhow, Result};
 use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use ethers::abi::{Abi, Bytes, Token};
 use ethers::prelude::*;
-use log::debug;
 
 pub async fn get_chainlink_price_from_transmit_tx(data: &Bytes, token: &Erc20Token) -> Result<f64> {
     let token_priced_in_eth = get_tokens_priced_in_eth().await?;
@@ -82,7 +80,6 @@ fn decode_transmit_tx(data: &Bytes) -> Result<Vec<U256>> {
                 [Token::FixedArray(_), Token::Bytes(report), Token::Array(_), Token::Array(_), Token::FixedBytes(_)] =>
                 {
                     let observations = decode_transmit_report(report.clone())?;
-                    debug!("observations => {:?}", observations);
                     Ok(observations)
                 }
                 _ => Err(anyhow!(
@@ -104,8 +101,8 @@ fn decode_transmit_report(data: Vec<u8>) -> Result<Vec<U256>> {
             "inputs": [
                 {"type": "uint32", "name": "first"},
                 {"type": "bytes32", "name": "second"},
-                {"type": "int192[]", "name": "observations"}
-                {"type": "int192", "name": "fourth"},
+                {"type": "int192[]", "name": "observations"},
+                {"type": "int192", "name": "fourth"}
             ],
             "name": "decodeReport",
             "outputs": [],
@@ -142,30 +139,35 @@ fn decode_transmit_report(data: Vec<u8>) -> Result<Vec<U256>> {
 
     Ok(price_observations)
 }
+pub fn decode_forward_fn(data: &Vec<u8>) -> Result<(Address, Bytes)> {
+    let decode_json = r#"
+        [{
+            "inputs": [
+                {"type": "address", "name": "to"},
+                {"type": "bytes", "name": "data"}
+            ],
+            "name": "forward",
+            "outputs": [],
+            "type": "function"
+        }]
+    "#;
 
-// pub fn decode_transmit_tx_v2(data: &Bytes) -> anyhow::Result<Vec<TokenPriceUpdate>> {
-//     let transmit_params = vec![
-//         ParamType::FixedArray(Box::new(ParamType::FixedBytes(32)), 3),
-//         ParamType::Bytes,
-//         ParamType::Array(Box::new(ParamType::FixedBytes(32))),
-//         ParamType::Array(Box::new(ParamType::FixedBytes(32))),
-//         ParamType::FixedBytes(32),
-//     ];
-//
-//     let decoded = ethers::abi::decode(&transmit_params, &data[4..])?;
-//     match &decoded[..] {
-//         [_, Token::Bytes(report), _, _, _] => {
-//             // println!("Report hex ==> {:#?}", hex::encode(report));
-//             // println!("\nVerifying report encoding:");
-//             let (price_updates, gas_price_updates) = decode_transmit_report(report)?;
-//             println!("gas price updates {:?}", gas_price_updates);
-//             Ok(price_updates)
-//         }
-//         other => {
-//             println!("Unexpected decoded format: {:?}", other);
-//             Err(anyhow!(
-//                 "Failed to match decoded arguments with expected types"
-//             ))
-//         }
-//     }
-// }
+    let abi = Abi::load(decode_json.as_bytes())?;
+
+    if let Ok(decode_fn) = abi.function("forward") {
+        if let Ok(decoded) = decode_fn.decode_input(&data[4..]) {
+            match decoded.as_slice() {
+                [Token::Address(to), Token::Bytes(data)] => {
+                    // Convert &Vec<u8> to Bytes
+                    let bytes_data = Bytes::from(data.clone());
+                    Ok((*to, bytes_data))
+                }
+                _ => Err(anyhow!("Failed to match decoded data with expected types")),
+            }
+        } else {
+            Err(anyhow!("Failed to decode forward data"))
+        }
+    } else {
+        Err(anyhow!("forward function not found in ABI"))
+    }
+}
