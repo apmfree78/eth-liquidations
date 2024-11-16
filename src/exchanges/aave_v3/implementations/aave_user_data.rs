@@ -6,10 +6,12 @@ use crate::data::address::CONTRACT;
 use crate::data::erc20::{u256_to_big_decimal, Convert};
 use crate::data::token_data_hash::{get_token_data, TOKENS_WITH_NO_AGGREGATOR};
 use crate::data::token_price_hash::{generate_token_price_hash, get_saved_token_price};
+use crate::exchanges::aave_v3::get_user_api::AaveUser;
 use crate::exchanges::aave_v3::implementations::aave_users_hash::UpdateUsers;
 use crate::exchanges::aave_v3::user_structs::{
     LiquidationCloseFactor, CLOSE_FACTOR_HF_THRESHOLD, HEALTH_FACTOR_THRESHOLD,
 };
+use crate::utils::connection_pool::WsPool;
 use anyhow::Result;
 use async_trait::async_trait;
 use bigdecimal::ToPrimitive;
@@ -18,16 +20,18 @@ use ethers::{
     providers::{Provider, Ws},
     types::Address,
 };
+use futures::lock::Mutex;
 use log::{debug, error, info};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Arc;
 
 #[async_trait]
 pub trait GenerateUsers {
     async fn get_users(
-        client: &Arc<Provider<Ws>>,
+        users_hash: &Arc<Mutex<AaveUsersHash>>,
         sample_size: SampleSize,
-    ) -> Result<AaveUsersHash>;
+    ) -> Result<()>;
 }
 
 #[async_trait]
@@ -69,25 +73,33 @@ pub trait HealthFactor {
 #[async_trait]
 impl GenerateUsers for AaveUserData {
     async fn get_users(
-        client: &Arc<Provider<Ws>>,
+        users_hash: &Arc<Mutex<AaveUsersHash>>,
         sample_size: SampleSize,
-    ) -> Result<AaveUsersHash> {
+    ) -> Result<()> {
+        let ws_url = std::env::var("WS_URL").expect("WS_URL not found in .env file");
+        let pool = Arc::new(WsPool::new(&ws_url, 100).await?);
+        let client = pool.get_connection();
+
         let aave_v3_pool_address: Address = CONTRACT.get_address().aave_v3_pool.parse()?;
         let aave_v3_pool = AAVE_V3_POOL::new(aave_v3_pool_address, client.clone());
 
         // Initialize TOKEN_PRICE_HASH global hashmap of token prices
-        if let Err(e) = generate_token_price_hash(client).await {
+        if let Err(e) = generate_token_price_hash(&client).await {
             error!("Failed to initialize token prices: {}", e);
         }
 
-        // store all data that we need for user
-        let mut user_data: Vec<AaveUserData> = Vec::new();
+        let mut handles = vec![];
 
         // let aave_users = get_aave_v3_users().await?;
         let aave_users = match sample_size {
             SampleSize::All => get_all_aave_v3_users().await?,
             SampleSize::SmallBatch => get_aave_v3_users().await?,
         };
+
+        let user_chunks: Vec<Vec<AaveUser>> = aave_users
+            .chunks(1000)
+            .map(|chunk| chunk.to_vec())
+            .collect();
 
         info!("got aave_v3 users");
         let standard_scale = BigDecimal::from_u64(10_u64.pow(18)).unwrap();
@@ -96,106 +108,136 @@ impl GenerateUsers for AaveUserData {
         } else {
             info!("found { } users from aave v3 graphql", aave_users.len());
         }
+        let valid_users_from_graphql = Arc::new(AtomicU16::new(0));
+        let valid_users_from_contract = Arc::new(AtomicU16::new(0));
 
-        let mut valid_users_from_graphql: u16 = 0;
-        let mut valid_users_from_contract: u16 = 0;
-        for user in &aave_users {
-            let user_id: Address = user.id.parse()?;
-            let (_, _, _, _, _, real_health_factor) =
-                aave_v3_pool.get_user_account_data(user_id).call().await?;
+        for (i, chunk) in user_chunks.into_iter().enumerate() {
+            info!("Processing chunk {} with {} users", i, chunk.len());
+            let aave_v3_pool = aave_v3_pool.clone();
+            let standard_scale = standard_scale.clone();
+            let users_hash = Arc::clone(&users_hash);
 
-            let real_health_factor = u256_to_big_decimal(&real_health_factor) / &standard_scale;
-            let real_health_factor = real_health_factor.to_f64().unwrap();
+            let valid_users_from_graphql = Arc::clone(&valid_users_from_graphql);
+            let valid_users_from_contract = Arc::clone(&valid_users_from_contract);
+            let pool = pool.clone();
 
-            // this is list of tokens that user is either using as colladeral or borrowing
-            let (user_tokens, total_debt, collateral_times_liquidation_factor, health_factor) =
-                user.get_list_of_user_tokens(client).await?;
+            // start thread
+            let handle = tokio::spawn(async move {
+                let result: Result<()> = async move {
+                    let mut user_data = Vec::<AaveUserData>::new();
+                    for user in chunk {
+                        let client = pool.get_connection();
 
-            let has_forbidden_token = user_tokens
-                .iter()
-                .any(|token| TOKENS_WITH_NO_AGGREGATOR.contains(&token.token.symbol.as_str()));
+                        let user_id: Address = user.id.parse()?;
+                        let (_, _, _, _, _, real_health_factor) =
+                            aave_v3_pool.get_user_account_data(user_id).call().await?;
 
-            // check that user does not have token we cannot track
-            if has_forbidden_token {
-                debug!("excluded use with forbidden token!!");
-                continue;
-            }
+                        let real_health_factor =
+                            u256_to_big_decimal(&real_health_factor) / &standard_scale;
+                        let real_health_factor = real_health_factor.to_f64().unwrap();
 
-            let mut aave_user = AaveUserData {
-                id: user_id,
-                total_debt: total_debt.clone(),
-                collateral_times_liquidation_factor,
-                health_factor: health_factor.clone(),
-                tokens: user_tokens,
-            };
+                        // this is list of tokens that user is either using as colladeral or borrowing
+                        let (
+                            user_tokens,
+                            total_debt,
+                            collateral_times_liquidation_factor,
+                            health_factor,
+                        ) = user.get_list_of_user_tokens(&client).await?;
 
-            // debug!("***************************");
+                        let has_forbidden_token = user_tokens.iter().any(|token| {
+                            TOKENS_WITH_NO_AGGREGATOR.contains(&token.token.symbol.as_str())
+                        });
 
-            // this step is needed to make sure collateral and debt values are scaled properly
-            aave_user
-                .update_meta_data(PricingSource::SavedTokenPrice, client)
-                .await?;
+                        // check that user does not have token we cannot track
+                        if has_forbidden_token {
+                            debug!("excluded use with forbidden token!!");
+                            continue;
+                        }
 
-            // validate user data
-            let graphql_health_factor = aave_user.health_factor;
+                        let mut aave_user = AaveUserData {
+                            id: user_id,
+                            total_debt: total_debt.clone(),
+                            collateral_times_liquidation_factor,
+                            health_factor: health_factor.clone(),
+                            tokens: user_tokens,
+                        };
 
-            let lower_bound = 0.995 * real_health_factor;
-            let upper_bound = 1.005 * real_health_factor;
+                        // this step is needed to make sure collateral and debt values are scaled properly
+                        aave_user
+                            .update_meta_data(PricingSource::SavedTokenPrice, &client)
+                            .await?;
 
-            // debug!("real health factor => {}", real_health_factor);
-            // debug!("graphql health factor => {}", graphql_health_factor);
-            // debug!("***************************");
+                        // validate user data
+                        let graphql_health_factor = aave_user.health_factor;
 
-            // for estimating user profit
-            // make sure health factor is with 0.5% of actual otherwise pull user data directly from pool contract
-            if graphql_health_factor > lower_bound && graphql_health_factor < upper_bound {
-                // save data to AvveUserData
-                valid_users_from_graphql += 1;
+                        let lower_bound = 0.995 * real_health_factor;
+                        let upper_bound = 1.005 * real_health_factor;
 
-                user_data.push(aave_user);
-            } else {
-                // get user data from pool contract
-                let aave_user_data_result =
-                    get_aave_v3_user_from_data_provider(aave_user.id, client).await;
+                        // for estimating user profit
+                        // make sure health factor is with 0.5% of actual otherwise pull user data directly from pool contract
+                        if graphql_health_factor > lower_bound
+                            && graphql_health_factor < upper_bound
+                        {
+                            // save data to AvveUserData
+                            valid_users_from_graphql.fetch_add(1, Ordering::SeqCst);
+                            user_data.push(aave_user);
+                        } else {
+                            // get user data from pool contract
+                            let aave_user_data_result =
+                                get_aave_v3_user_from_data_provider(aave_user.id, &client).await;
 
-                match aave_user_data_result {
-                    Ok(user_from_aave_contract) => {
-                        valid_users_from_contract += 1;
-
-                        user_data.push(user_from_aave_contract);
+                            match aave_user_data_result {
+                                Ok(user_from_aave_contract) => {
+                                    valid_users_from_contract.fetch_add(1, Ordering::SeqCst);
+                                    user_data.push(user_from_aave_contract);
+                                }
+                                Err(_) => {
+                                    // error!("user did not fit criteria => {}", error);
+                                }
+                            }
+                        }
                     }
-                    Err(_) => {
-                        // error!("user did not fit criteria => {}", error);
+
+                    // processing chunk complete, save data
+                    let mut user_map = HashMap::new();
+                    for user in user_data {
+                        user_map.insert(user.id, user);
                     }
-                };
-            }
+                    let mut user_hash_lock = users_hash.lock().await;
+                    user_hash_lock.user_data.extend(user_map);
+
+                    info!("{} users saved", user_hash_lock.user_data.len());
+                    info!(
+                        "{} valid users saved from graphQL",
+                        valid_users_from_graphql.load(Ordering::SeqCst)
+                    );
+                    info!(
+                        "{} valid users saved from data provider contract",
+                        valid_users_from_contract.load(Ordering::SeqCst)
+                    );
+
+                    user_hash_lock.intialize_token_user_mapping().await?;
+
+                    Ok(())
+                }
+                .await;
+
+                if let Err(e) = result {
+                    error!("Error processing user: {:#}", e);
+                }
+            });
+
+            handles.push(handle);
+
+            //END THREAD
         }
 
-        info!("{} users saved", user_data.len());
-        info!(
-            "{} valid users saved from graphQL",
-            valid_users_from_graphql
-        );
-        info!(
-            "{} valid users saved from data provider contract",
-            valid_users_from_contract
-        );
-
-        let mut user_data_hash = HashMap::new();
-
-        for user in &user_data {
-            user_data_hash.insert(user.id, user.clone());
+        // Wait for ALL tasks to complete
+        for handle in handles {
+            handle.await?; // Will error if task panicked
         }
 
-        let mut user_hash = AaveUsersHash {
-            user_data: user_data_hash,
-            standard_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
-            whale_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
-        };
-
-        user_hash.intialize_token_user_mapping().await?;
-
-        Ok(user_hash)
+        Ok(())
     }
 }
 
