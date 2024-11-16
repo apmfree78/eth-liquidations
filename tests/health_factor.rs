@@ -10,8 +10,15 @@ use eth_liquadation::{
         user_structs::{AaveUserData, AaveUsersHash, PricingSource, SampleSize},
     },
 };
-use ethers::providers::{Provider, Ws};
-use std::sync::Arc;
+use ethers::{
+    providers::{Provider, Ws},
+    types::Address,
+};
+use futures::lock::Mutex;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 #[tokio::test]
 async fn test_that_health_factor_is_self_consistent_in_user_data() -> Result<()> {
@@ -25,8 +32,15 @@ async fn test_that_health_factor_is_self_consistent_in_user_data() -> Result<()>
     save_erc20_tokens_from_static_data(&client).await?;
     generate_token_price_hash(&client).await?;
 
-    let aave_users_hash: AaveUsersHash =
-        AaveUserData::get_users(&client, SampleSize::SmallBatch).await?;
+    let aave_users_hash = Arc::new(Mutex::new(AaveUsersHash {
+        user_data: HashMap::<Address, AaveUserData>::new(),
+        standard_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
+        whale_user_ids_by_token: HashMap::<Address, HashSet<Address>>::new(),
+    }));
+
+    AaveUserData::get_users(&aave_users_hash, SampleSize::All).await?;
+
+    let aave_users_hash = aave_users_hash.lock().await;
 
     for user in aave_users_hash.user_data.values() {
         let given_health_factor = user.health_factor;

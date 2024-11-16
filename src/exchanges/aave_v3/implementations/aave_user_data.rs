@@ -22,8 +22,7 @@ use ethers::{
 };
 use futures::lock::Mutex;
 use log::{debug, error, info};
-use std::collections::{HashMap, HashSet};
-use std::ops::Deref;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Arc;
 
@@ -237,7 +236,7 @@ impl GenerateUsers for AaveUserData {
         for handle in handles {
             handle.await?; // Will error if task panicked
         }
-        //
+
         Ok(())
     }
 }
