@@ -14,6 +14,7 @@ pub mod exchanges {
 }
 
 pub mod backrun {
+    pub mod anvil_simulator;
     pub mod flashbots;
     pub mod simulation;
 }

@@ -42,9 +42,7 @@ pub async fn find_users_and_liquidate(
     }
 
     let top_profit_accounts =
-        find_top_profit_accounts_with_simulation(&user_accounts_to_liquidate, &mempool_tx, client)
-            .await?;
-    let top_profit_accounts = top_profit_accounts.unwrap();
+        find_top_profit_accounts_with_simulation(&user_accounts_to_liquidate, &mempool_tx).await?;
     info!("Top Profit Accounts {:#?}", top_profit_accounts);
 
     // TODO - UNCOMMENT WHEN MAINNET IS READY

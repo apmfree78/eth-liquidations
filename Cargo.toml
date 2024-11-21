@@ -38,6 +38,8 @@ alloy-primitives = "0.7.7"
 anyhow = "1.0.87"
 rand = "0.8.5"
 hex = "0.4.3"
+anvil = { git = "https://github.com/foundry-rs/foundry.git", package = "anvil" }
+bytes = "1.8.0"
 
 [dev-dependencies]
 serial_test = "0.5"

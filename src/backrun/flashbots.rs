@@ -1,7 +1,7 @@
 use crate::abi::qualifyuser::{User, QUALIFY_USER};
-use crate::backrun::simulation::{
-    get_state_diffs_from_qualify_user_trace, simulate_transaction_bundle,
-};
+// use crate::backrun::simulation::{
+//     get_state_diffs_from_qualify_user_trace, simulate_transaction_bundle,
+// };
 use crate::data::address::CONTRACT;
 use crate::data::erc20::u256_to_big_decimal;
 use crate::exchanges::aave_v3::user_structs::{LiquidationCandidate, PROFIT_THRESHOLD_MAINNET};
@@ -82,13 +82,13 @@ pub async fn submit_to_flashbots(
 
     // SIMULATE transaction to find top profit account
     // TODO - CREATE SEPARATE TRANSACTION FOR QUALIFY USER CONTRACT , REPLACE backrun_tx
-    let simulation_trace = simulate_transaction_bundle(&mempool_tx, &backrun_tx, client).await?;
-
-    if let Some(top_profit_user_account) =
-        get_state_diffs_from_qualify_user_trace(&simulation_trace)
-    {
-        info!("top profit account {:#?}", top_profit_user_account);
-    }
+    // let simulation_trace = simulate_transaction_bundle(&mempool_tx, &backrun_tx, client).await?;
+    //
+    // if let Some(top_profit_user_account) =
+    //     get_state_diffs_from_qualify_user_trace(&simulation_trace)
+    // {
+    //     info!("top profit account {:#?}", top_profit_user_account);
+    // }
 
     // *******************************************************
     // CREATE SIGNED CLIENT WITH FLASHBOT MIDDLEWARE SET TO BROADCAST TO FLASHBOT AND BUILDER RELAYS

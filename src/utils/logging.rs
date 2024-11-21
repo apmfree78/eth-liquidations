@@ -22,6 +22,8 @@ pub fn setup_logger() -> Result<(), fern::InitError> {
             ))
         })
         .level(log::LevelFilter::Debug)
+        .level_for("ethers_providers", log::LevelFilter::Off) // Disable logging for ethers_providers
+        .level_for("hyper", log::LevelFilter::Off) // Disable logging for hyper
         .chain(std::io::stdout())
         // .chain(fern::log_file("eth_liquidation.log")?)
         .apply()?;
