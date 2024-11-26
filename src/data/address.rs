@@ -28,6 +28,7 @@ pub struct ContractAddresses {
     pub weth: String,
     pub chain_link_feed_registry: String,
     pub qualify_user: String,
+    pub liquidate_qualified_user: String,
 }
 
 pub struct ContractAddressMap {
@@ -48,6 +49,7 @@ impl ContractAddressMap {
                 chain_link_feed_registry: chains.mainnet.chain_link_feed_registry,
                 weth: chains.mainnet.weth,
                 qualify_user: chains.mainnet.qualify_user,
+                liquidate_qualified_user: chains.mainnet.liquidate_qualified_user,
             },
         );
 
@@ -62,6 +64,7 @@ impl ContractAddressMap {
                 chain_link_feed_registry: chains.sepolia.chain_link_feed_registry,
                 weth: chains.sepolia.weth,
                 qualify_user: chains.sepolia.qualify_user,
+                liquidate_qualified_user: chains.sepolia.liquidate_qualified_user,
             },
         );
         Self { addresses }
@@ -88,6 +91,7 @@ struct ChainContracts {
     liquidate_user: String,
     chain_link_feed_registry: String,
     qualify_user: String,
+    liquidate_qualified_user: String,
 }
 
 impl Chains {

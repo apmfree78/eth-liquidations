@@ -1,11 +1,14 @@
-use crate::abi::qualifyuser::{User, QUALIFY_USER};
+// use crate::abi::qualifyuser::{User, QUALIFY_USER};
+use crate::abi::liquidate_qualified_user::{User, LIQUIDATE_QUALIFIED_USER};
+use crate::abi::liquidate_user;
+use crate::abi::qualifyuser::TopProfitUserAccount;
 // use crate::backrun::simulation::{
 //     get_state_diffs_from_qualify_user_trace, simulate_transaction_bundle,
 // };
 use crate::data::address::CONTRACT;
 use crate::data::erc20::u256_to_big_decimal;
 use crate::exchanges::aave_v3::user_structs::{LiquidationCandidate, PROFIT_THRESHOLD_MAINNET};
-use crate::utils::type_conversion::{f64_to_u256, usd_to_eth};
+use crate::utils::type_conversion::{f64_to_u256, u256_to_f64, usd_to_eth};
 use anyhow::{anyhow, Result};
 use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use ethers::core::rand::thread_rng;
@@ -49,11 +52,12 @@ static BUILDER_URLS: &[&str] = &[
 // TODO - REDO for LIQUIDATE_QUALIFIED_USERS
 // ==================>
 pub async fn submit_to_flashbots(
-    user: &[LiquidationCandidate],
+    user: &TopProfitUserAccount,
     mempool_tx: Transaction,
     client: &Arc<Provider<Ws>>,
 ) -> Result<()> {
-    let liquidate_user_address: Address = CONTRACT.get_address().liquidate_user.parse()?;
+    let liquidate_user_address: Address =
+        CONTRACT.get_address().liquidate_qualified_user.parse()?;
     // get last block number
     let block = client.get_block(BlockNumber::Latest).await?.unwrap();
 
@@ -64,11 +68,7 @@ pub async fn submit_to_flashbots(
     // *******************************************************
     // CREATE BACKRUN Transaction
     // ==================>
-    // TODO - REDO for LIQUIDATE_QUALIFIED_USERS
-    // ==================>
-    let calldata = get_qualify_user_calldata(user, client)?;
-
-    // TODO - CREATE SEPARATE TRANSACTION FOR QUALIFY USER CONTRACT , REPLACE backrun_tx
+    let calldata = get_liquidate_qualified_user_calldata(user, client)?;
 
     let backrun_tx = Eip1559TransactionRequest {
         chain_id: Some(Chain::Mainnet.into()), // Mainnet
@@ -79,16 +79,6 @@ pub async fn submit_to_flashbots(
         value: None,
         ..Default::default()
     };
-
-    // SIMULATE transaction to find top profit account
-    // TODO - CREATE SEPARATE TRANSACTION FOR QUALIFY USER CONTRACT , REPLACE backrun_tx
-    // let simulation_trace = simulate_transaction_bundle(&mempool_tx, &backrun_tx, client).await?;
-    //
-    // if let Some(top_profit_user_account) =
-    //     get_state_diffs_from_qualify_user_trace(&simulation_trace)
-    // {
-    //     info!("top profit account {:#?}", top_profit_user_account);
-    // }
 
     // *******************************************************
     // CREATE SIGNED CLIENT WITH FLASHBOT MIDDLEWARE SET TO BROADCAST TO FLASHBOT AND BUILDER RELAYS
@@ -174,60 +164,54 @@ pub async fn submit_to_flashbots(
         ..backrun_tx
     };
 
-    // resign transaction
-    let signature = client_signed
-        .signer()
-        .sign_transaction(&TypedTransaction::Eip1559(backrun_tx.clone()))
-        .await?;
-
-    // *******************************************************
-    let production_bundle = BundleRequest::new()
-        .push_transaction(mempool_tx)
-        .push_transaction(TypedTransaction::Eip1559(backrun_tx).rlp_signed(&signature))
-        .set_block(next_block_number)
-        .set_simulation_block(next_block_number)
-        .set_simulation_timestamp(0);
-
-    // FOR PRODUCTION
-    // Send it
-    let results = client_signed
-        .inner()
-        .send_bundle(&production_bundle)
-        .await?;
-
-    // You can also optionally wait to see if the bundle was included
-    for result in results {
-        match result {
-            Ok(pending_bundle) => match pending_bundle.await {
-                Ok(bundle_hash) => println!(
-                    "Bundle with hash {:?} was included in target block",
-                    bundle_hash
-                ),
-                Err(PendingBundleError::BundleNotIncluded) => {
-                    println!("Bundle was not included in target block.")
-                }
-                Err(e) => println!("An error occured: {}", e),
-            },
-            Err(e) => println!("An error occured: {}", e),
-        }
-    }
+    // // resign transaction
+    // let signature = client_signed
+    //     .signer()
+    //     .sign_transaction(&TypedTransaction::Eip1559(backrun_tx.clone()))
+    //     .await?;
+    //
+    // // *******************************************************
+    // let production_bundle = BundleRequest::new()
+    //     .push_transaction(mempool_tx)
+    //     .push_transaction(TypedTransaction::Eip1559(backrun_tx).rlp_signed(&signature))
+    //     .set_block(next_block_number)
+    //     .set_simulation_block(next_block_number)
+    //     .set_simulation_timestamp(0);
+    //
+    // // FOR PRODUCTION
+    // // Send it
+    // let results = client_signed
+    //     .inner()
+    //     .send_bundle(&production_bundle)
+    //     .await?;
+    //
+    // // You can also optionally wait to see if the bundle was included
+    // for result in results {
+    //     match result {
+    //         Ok(pending_bundle) => match pending_bundle.await {
+    //             Ok(bundle_hash) => println!(
+    //                 "Bundle with hash {:?} was included in target block",
+    //                 bundle_hash
+    //             ),
+    //             Err(PendingBundleError::BundleNotIncluded) => {
+    //                 println!("Bundle was not included in target block.")
+    //             }
+    //             Err(e) => println!("An error occured: {}", e),
+    //         },
+    //         Err(e) => println!("An error occured: {}", e),
+    //     }
+    // }
 
     Ok(())
 }
 
 async fn get_estimated_transaction_profit_in_eth(
-    liquidation_users: &[LiquidationCandidate],
+    liquidation_user: &TopProfitUserAccount,
 ) -> Result<f64> {
-    let mut total_profit = 0_f64;
-
-    for user in liquidation_users {
-        if user.estimated_profit > PROFIT_THRESHOLD_MAINNET {
-            total_profit += user.estimated_profit;
-        }
-    }
+    let profit = u256_to_f64(liquidation_user.profit).unwrap();
 
     // convert to eth
-    let profit_in_eth = usd_to_eth(total_profit).await?;
+    let profit_in_eth = usd_to_eth(profit).await?;
 
     Ok(profit_in_eth)
 }
@@ -300,27 +284,26 @@ pub fn calculate_next_block_base_fee(block: &Block<H256>) -> Result<U256> {
     Ok(new_base_fee + seed)
 }
 
-fn get_qualify_user_calldata(
-    liquidation_users: &[LiquidationCandidate],
+fn get_liquidate_qualified_user_calldata(
+    candidate: &TopProfitUserAccount,
     client: &Arc<Provider<Ws>>,
 ) -> anyhow::Result<Bytes> {
-    let qualify_user_address: Address = CONTRACT.get_address().qualify_user.parse()?;
+    let qualify_user_address: Address = CONTRACT.get_address().liquidate_qualified_user.parse()?;
     // convert user to correct type
-    let mut users = Vec::<User>::new();
 
-    for user in liquidation_users {
-        users.push(User {
-            id: user.user_id,
-            debt_token: user.debt_token,
-            collateral_token: user.collateral_token,
-        })
-    }
+    let user = User {
+        id: candidate.user_id,
+        debt_token: candidate.debt_token,
+        collateral_token: candidate.collateral_token,
+        debt_to_cover: candidate.debt_to_cover,
+    };
 
-    let qualify_user = QUALIFY_USER::new(qualify_user_address, client.clone());
+    let liquidate_qualified_user =
+        LIQUIDATE_QUALIFIED_USER::new(qualify_user_address, client.clone());
 
     // Encode the function with parameters, and get TypedTransaction
-    let calldata = qualify_user
-        .check_user_accounts(users)
+    let calldata = liquidate_qualified_user
+        .liquidate_account(user)
         .calldata()
         .expect("Failed to encode");
 
